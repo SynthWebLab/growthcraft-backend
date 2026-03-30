@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# PRODUCTION VERSION - Strict checks
+# To use this version, rename it to 'pre-push' and make it executable
+
+echo "🧪 Running pre-push checks (PRODUCTION MODE)..."
+
+# Change to backend directory
+cd backend || exit 1
+
+# Run tests - MUST PASS
+echo "🧪 Running tests..."
+npm test || {
+  echo "❌ Tests failed! Push aborted."
+  exit 1
+}
+
+# Run type check - MUST PASS
+echo "🔎 Type checking..."
+npm run type-check || {
+  echo "❌ Type check failed! Push aborted."
+  exit 1
+}
+
+# Run build - MUST PASS
+echo "🏗️ Building project..."
+npm run build || {
+  echo "❌ Build failed! Push aborted."
+  exit 1
+}
+
+# Run linter - MUST PASS
+echo "🔍 Linting..."
+npm run lint || {
+  echo "❌ Linting failed! Push aborted."
+  exit 1
+}
+
+echo "✅ All pre-push checks passed! Safe to push."

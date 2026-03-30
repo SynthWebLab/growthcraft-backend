@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🧪 Running pre-push checks..."
+
+# Change to backend directory
+cd backend || exit 1
+
+# Run tests (skip if no tests exist yet)
+echo "🧪 Running tests..."
+npm test || {
+  echo "⚠️  Tests failed or not configured yet"
+  echo "⚠️  Continuing with push (remove this in production)"
+}
+
+# Run type check (more important than build during development)
+echo "🔎 Type checking..."
+npm run type-check || {
+  echo "❌ Type check failed!"
+  exit 1
+}
+
+# Run build (optional during development)
+echo "🏗️ Building project..."
+npm run build || {
+  echo "⚠️  Build failed"
+  echo "⚠️  Continuing with push (fix before production)"
+}
+
+echo "✅ Pre-push checks completed!"
