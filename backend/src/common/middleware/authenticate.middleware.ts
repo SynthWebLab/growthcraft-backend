@@ -12,28 +12,15 @@ export interface AuthRequest extends Request {
 
 export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization;
+    // Get token from httpOnly cookie
+    const token = req.cookies.access_token;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       res.status(401).json({
         success: false,
         error: {
-          message: 'No token provided. Please include Authorization header with Bearer token',
+          message: 'No access token provided',
           code: 'NO_TOKEN',
-        },
-      });
-      return;
-    }
-
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-    if (!token || token.trim() === '') {
-      res.status(401).json({
-        success: false,
-        error: {
-          message: 'Token is empty',
-          code: 'EMPTY_TOKEN',
         },
       });
       return;
@@ -58,7 +45,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
       res.status(401).json({
         success: false,
         error: {
-          message: 'Access token has expired. Please refresh your token',
+          message: 'Access token has expired',
           code: 'TOKEN_EXPIRED',
         },
       });
@@ -69,7 +56,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
       res.status(401).json({
         success: false,
         error: {
-          message: 'Invalid token format. Please check your token',
+          message: 'Invalid token format',
           code: 'INVALID_TOKEN_FORMAT',
         },
       });

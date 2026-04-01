@@ -16,7 +16,7 @@ router.post(
 router.post('/login', AuthValidator.login(), (req: Request, res: Response, next: NextFunction) => {
   void authController.login(req, res, next);
 });
-router.post('/refresh-token', (req: Request, res: Response, next: NextFunction) => {
+router.post('/refresh', (req: Request, res: Response, next: NextFunction) => {
   void authController.refreshToken(req, res, next);
 });
 

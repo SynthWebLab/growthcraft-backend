@@ -3,6 +3,8 @@ import { validationResult } from 'express-validator';
 import { authService } from '../services/auth.service';
 import { RegisterDto } from '../dto/register.dto';
 import { logger } from '@/common/utils/logger.util';
+import { config } from '@/config';
+import { jwtConfig } from '@/config/jwt.config';
 
 export class AuthController {
   private static instance: AuthController;
@@ -14,6 +16,39 @@ export class AuthController {
       AuthController.instance = new AuthController();
     }
     return AuthController.instance;
+  }
+
+  /**
+   * Set secure httpOnly cookies for tokens
+   */
+  private setTokenCookies(res: Response, accessToken: string, refreshToken: string): void {
+    const isProduction = config.NODE_ENV === 'production';
+
+    // Access token cookie (15 minutes)
+    res.cookie('access_token', accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+      path: '/',
+    });
+
+    // Refresh token cookie (30 days)
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      path: '/',
+    });
+  }
+
+  /**
+   * Clear authentication cookies
+   */
+  private clearTokenCookies(res: Response): void {
+    res.clearCookie('access_token', { path: '/' });
+    res.clearCookie('refreshToken', { path: '/' });
   }
 
   public async register(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -37,20 +72,21 @@ export class AuthController {
       // Register user
       const result = await authService.register(registerDto);
 
-      // Set refresh token in httpOnly cookie
-      res.cookie('refreshToken', result.tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+      // Set httpOnly cookies
+      this.setTokenCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
 
       res.status(201).json({
         success: true,
         message: 'User registered successfully',
         data: {
           user: result.user,
-          accessToken: result.tokens.accessToken,
+          // DEVELOPMENT ONLY: Show tokens in response for testing
+          ...(config.NODE_ENV === 'development' && {
+            tokens: {
+              accessToken: result.tokens.accessToken,
+              refreshToken: result.tokens.refreshToken,
+            },
+          }),
         },
       });
     } catch (error: any) {
@@ -92,20 +128,14 @@ export class AuthController {
       // Login user
       const result = await authService.login(email, password);
 
-      // Set refresh token in httpOnly cookie
-      res.cookie('refreshToken', result.tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+      // Set httpOnly cookies
+      this.setTokenCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
 
       res.status(200).json({
         success: true,
         message: 'Login successful',
         data: {
           user: result.user,
-          accessToken: result.tokens.accessToken,
         },
       });
     } catch (error: any) {
@@ -157,8 +187,8 @@ export class AuthController {
 
   public async refreshToken(req: Request, res: Response, _next: NextFunction): Promise<void> {
     try {
-      // Get refresh token from cookie or body
-      const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+      // Get refresh token from cookie
+      const refreshToken = req.cookies.refreshToken;
 
       if (!refreshToken) {
         res.status(401).json({
@@ -171,26 +201,41 @@ export class AuthController {
         return;
       }
 
-      // Refresh tokens
-      const tokens = await authService.refreshToken(refreshToken);
+      // Get userId from access_token cookie (even if expired, we can decode it)
+      const expiredAccessToken = req.cookies.access_token;
+      let userId: string | undefined;
 
-      // Set new refresh token in cookie
-      res.cookie('refreshToken', tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+      if (expiredAccessToken) {
+        const decoded = jwtConfig.decodeToken(expiredAccessToken);
+        userId = decoded?.userId;
+      }
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          error: {
+            message: 'Cannot identify user',
+            code: 'USER_IDENTIFICATION_FAILED',
+          },
+        });
+        return;
+      }
+
+      // Refresh tokens (validates and rotates)
+      const tokens = await authService.refreshToken(userId, refreshToken);
+
+      // Set new httpOnly cookies
+      this.setTokenCookies(res, tokens.accessToken, tokens.refreshToken);
 
       res.status(200).json({
         success: true,
         message: 'Token refreshed successfully',
-        data: {
-          accessToken: tokens.accessToken,
-        },
       });
     } catch (error: any) {
       logger.error('Refresh token controller error:', error);
+
+      // Clear invalid cookies
+      this.clearTokenCookies(res);
 
       res.status(401).json({
         success: false,
@@ -205,14 +250,14 @@ export class AuthController {
   public async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = (req as any).user.userId;
-      const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+      const refreshToken = req.cookies.refreshToken;
 
       if (refreshToken) {
         await authService.logout(userId, refreshToken);
       }
 
-      // Clear refresh token cookie
-      res.clearCookie('refreshToken');
+      // Clear cookies
+      this.clearTokenCookies(res);
 
       res.status(200).json({
         success: true,
@@ -229,8 +274,8 @@ export class AuthController {
 
       await authService.logoutAll(userId);
 
-      // Clear refresh token cookie
-      res.clearCookie('refreshToken');
+      // Clear cookies
+      this.clearTokenCookies(res);
 
       res.status(200).json({
         success: true,

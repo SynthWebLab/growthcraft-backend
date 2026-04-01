@@ -15,7 +15,7 @@ app.use(helmet());
 app.use(
   cors({
     origin: config.FRONTEND_URL,
-    credentials: true,
+    credentials: true, // CRITICAL: Allow cookies to be sent
   })
 );
 

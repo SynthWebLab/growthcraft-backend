@@ -1,8 +1,8 @@
 import { User, IUser } from '@/database/models/User.model';
 import { RegisterDto, RegisterResponseDto } from '../dto/register.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
-import { jwtConfig } from '@/config/jwt.config';
 import { logger } from '@/common/utils/logger.util';
+import { tokenService } from './token.service';
 
 export class AuthService {
   private static instance: AuthService;
@@ -35,16 +35,15 @@ export class AuthService {
 
       await user.save();
 
-      // Generate tokens
-      const tokens = jwtConfig.generateTokenPair({
+      // Generate tokens (JWT access + crypto refresh)
+      const tokens = tokenService.generateTokenPair({
         userId: user._id.toString(),
         email: user.email,
         role: user.role,
       });
 
-      // Save refresh token to user
-      user.refreshTokens = [tokens.refreshToken];
-      await user.save();
+      // Store hashed refresh token
+      await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
 
       logger.info(`User registered successfully: ${user.email}`);
 
@@ -85,16 +84,15 @@ export class AuthService {
         throw new Error('Invalid email or password');
       }
 
-      // Generate new tokens
-      const tokens = jwtConfig.generateTokenPair({
+      // Generate new tokens (JWT access + crypto refresh)
+      const tokens = tokenService.generateTokenPair({
         userId: user._id.toString(),
         email: user.email,
         role: user.role,
       });
 
-      // Add refresh token to user's tokens
-      user.refreshTokens.push(tokens.refreshToken);
-      await user.save();
+      // Store hashed refresh token
+      await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
 
       logger.info(`User logged in successfully: ${user.email}`);
 
@@ -119,13 +117,13 @@ export class AuthService {
     return User.findById(userId);
   }
 
-  public async refreshToken(refreshToken: string): Promise<RefreshTokenResponseDto> {
+  public async refreshToken(
+    userId: string,
+    refreshToken: string
+  ): Promise<RefreshTokenResponseDto> {
     try {
-      // Verify refresh token
-      const decoded = jwtConfig.verifyRefreshToken(refreshToken);
-
-      // Find user and check if refresh token exists
-      const user = await User.findById(decoded.userId).select('+refreshTokens');
+      // Find user
+      const user = await User.findById(userId).select('+refreshTokens');
 
       if (!user) {
         throw new Error('User not found');
@@ -135,22 +133,12 @@ export class AuthService {
         throw new Error('Account is deactivated');
       }
 
-      // Check if refresh token is in user's token list
-      if (!user.refreshTokens.includes(refreshToken)) {
-        throw new Error('Invalid refresh token');
-      }
-
-      // Generate new token pair
-      const tokens = jwtConfig.generateTokenPair({
+      // Rotate refresh token (validates, removes old, generates new)
+      const tokens = await tokenService.rotateRefreshToken(userId, refreshToken, {
         userId: user._id.toString(),
         email: user.email,
         role: user.role,
       });
-
-      // Replace old refresh token with new one
-      user.refreshTokens = user.refreshTokens.filter((token) => token !== refreshToken);
-      user.refreshTokens.push(tokens.refreshToken);
-      await user.save();
 
       logger.info(`Token refreshed for user: ${user.email}`);
 
@@ -163,17 +151,8 @@ export class AuthService {
 
   public async logout(userId: string, refreshToken: string): Promise<void> {
     try {
-      const user = await User.findById(userId).select('+refreshTokens');
-
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      // Remove the specific refresh token
-      user.refreshTokens = user.refreshTokens.filter((token) => token !== refreshToken);
-      await user.save();
-
-      logger.info(`User logged out: ${user.email}`);
+      await tokenService.removeRefreshToken(userId, refreshToken);
+      logger.info(`User logged out: ${userId}`);
     } catch (error: any) {
       logger.error('Logout error:', error);
       throw error;
@@ -182,17 +161,8 @@ export class AuthService {
 
   public async logoutAll(userId: string): Promise<void> {
     try {
-      const user = await User.findById(userId).select('+refreshTokens');
-
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      // Remove all refresh tokens
-      user.refreshTokens = [];
-      await user.save();
-
-      logger.info(`User logged out from all devices: ${user.email}`);
+      await tokenService.removeAllRefreshTokens(userId);
+      logger.info(`User logged out from all devices: ${userId}`);
     } catch (error: any) {
       logger.error('Logout all error:', error);
       throw error;
