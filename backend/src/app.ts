@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { config } from './config';
 import { logger } from './common/utils/logger.util';
 import { NotFoundError } from './common/errors/NotFoundError';
+import routes from './routes/v1';
 
 // Create Express app
 const app: Application = express();
@@ -38,8 +39,8 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// API routes will be added here
-// app.use('/api/v1', routes);
+// API routes
+app.use('/api/v1', routes);
 
 // 404 handler
 app.use((req: Request, res: Response, next: NextFunction) => {
