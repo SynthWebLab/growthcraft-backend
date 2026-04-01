@@ -4,7 +4,7 @@
   "description": "GrowthCraft EdTech SaaS Backend API",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon src/server.ts",
+    "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "jest",
