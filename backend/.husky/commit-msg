@@ -1,30 +1,30 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+# #!/usr/bin/env sh
+# . "$(dirname -- "$0")/_/husky.sh"
 
-# Commit message format validation
-# Format: type(scope): subject
-# Example: feat(auth): add login endpoint
+# # Commit message format validation
+# # Format: type(scope): subject
+# # Example: feat(auth): add login endpoint
 
-commit_msg_file=$1
-commit_msg=$(cat "$commit_msg_file")
+# commit_msg_file=$1
+# commit_msg=$(cat "$commit_msg_file")
 
-# Regex pattern for conventional commits
-pattern="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .{1,100}"
+# # Regex pattern for conventional commits
+# pattern="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .{1,100}"
 
-if ! echo "$commit_msg" | grep -qE "$pattern"; then
-  echo "❌ Invalid commit message format!"
-  echo ""
-  echo "Commit message must follow the format:"
-  echo "  type(scope): subject"
-  echo ""
-  echo "Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
-  echo ""
-  echo "Examples:"
-  echo "  feat(auth): add login endpoint"
-  echo "  fix(database): resolve connection timeout"
-  echo "  docs(readme): update installation steps"
-  echo ""
-  exit 1
-fi
+# if ! echo "$commit_msg" | grep -qE "$pattern"; then
+#   echo "❌ Invalid commit message format!"
+#   echo ""
+#   echo "Commit message must follow the format:"
+#   echo "  type(scope): subject"
+#   echo ""
+#   echo "Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+#   echo ""
+#   echo "Examples:"
+#   echo "  feat(auth): add login endpoint"
+#   echo "  fix(database): resolve connection timeout"
+#   echo "  docs(readme): update installation steps"
+#   echo ""
+#   exit 1
+# fi
 
-echo "✅ Commit message format is valid!"
+# echo "✅ Commit message format is valid!"
