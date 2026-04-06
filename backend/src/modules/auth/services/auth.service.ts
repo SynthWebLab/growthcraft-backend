@@ -119,7 +119,8 @@ export class AuthService {
 
   public async refreshToken(
     userId: string,
-    refreshToken: string
+    refreshToken: string,
+    deviceInfo?: string
   ): Promise<RefreshTokenResponseDto> {
     try {
       // Find user
@@ -133,12 +134,20 @@ export class AuthService {
         throw new Error('Account is deactivated');
       }
 
-      // Rotate refresh token (validates, removes old, generates new)
-      const tokens = await tokenService.rotateRefreshToken(userId, refreshToken, {
-        userId: user._id.toString(),
-        email: user.email,
-        role: user.role,
-      });
+      // Rotate refresh token with reuse detection enabled
+      const tokens = await tokenService.rotateRefreshToken(
+        userId,
+        refreshToken,
+        {
+          userId: user._id.toString(),
+          email: user.email,
+          role: user.role,
+        },
+        {
+          deviceInfo,
+          detectReuse: true, // Enable token reuse detection
+        }
+      );
 
       logger.info(`Token refreshed for user: ${user.email}`);
 

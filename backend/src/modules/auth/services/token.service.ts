@@ -1,8 +1,9 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { jwtConfig } from '@/config/jwt.config';
-import { User } from '@/database/models/User.model';
+import { User, IRefreshToken } from '@/database/models/User.model';
 import { logger } from '@/common/utils/logger.util';
+import { config } from '@/config';
 
 export interface TokenPayload {
   userId: string;
@@ -13,6 +14,11 @@ export interface TokenPayload {
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
+}
+
+export interface TokenRotationOptions {
+  deviceInfo?: string;
+  detectReuse?: boolean;
 }
 
 export class TokenService {
@@ -66,9 +72,13 @@ export class TokenService {
   }
 
   /**
-   * Store hashed refresh token in database
+   * Store hashed refresh token in database with metadata
    */
-  public async storeRefreshToken(userId: string, refreshToken: string): Promise<void> {
+  public async storeRefreshToken(
+    userId: string,
+    refreshToken: string,
+    deviceInfo?: string
+  ): Promise<void> {
     try {
       const hashedToken = await this.hashRefreshToken(refreshToken);
 
@@ -77,8 +87,46 @@ export class TokenService {
         throw new Error('User not found');
       }
 
+      // Calculate expiration date (30 days from now)
+      const expiresAt = new Date();
+      const refreshExpiresIn = config.JWT_REFRESH_EXPIRES_IN || '30d';
+      const match = refreshExpiresIn.match(/^(\d+)([smhd])$/);
+      
+      if (match) {
+        const value = parseInt(match[1], 10);
+        const unit = match[2];
+        
+        switch (unit) {
+          case 's':
+            expiresAt.setSeconds(expiresAt.getSeconds() + value);
+            break;
+          case 'm':
+            expiresAt.setMinutes(expiresAt.getMinutes() + value);
+            break;
+          case 'h':
+            expiresAt.setHours(expiresAt.getHours() + value);
+            break;
+          case 'd':
+            expiresAt.setDate(expiresAt.getDate() + value);
+            break;
+        }
+      }
+
+      // Create refresh token object with metadata
+      const refreshTokenObj: IRefreshToken = {
+        token: hashedToken,
+        createdAt: new Date(),
+        expiresAt,
+        deviceInfo,
+      };
+
       // Add hashed token to user's refresh tokens array
-      user.refreshTokens.push(hashedToken);
+      user.refreshTokens.push(refreshTokenObj);
+
+      // Remove expired tokens
+      user.refreshTokens = user.refreshTokens.filter(
+        (rt) => rt.expiresAt > new Date()
+      );
 
       // Limit to last 5 refresh tokens per user (for multiple device support)
       if (user.refreshTokens.length > 5) {
@@ -103,10 +151,19 @@ export class TokenService {
         return false;
       }
 
+      // Remove expired tokens
+      user.refreshTokens = user.refreshTokens.filter(
+        (rt) => rt.expiresAt > new Date()
+      );
+      await user.save();
+
       // Check if any hashed token matches the provided token
-      for (const hashedToken of user.refreshTokens) {
-        const isValid = await this.verifyRefreshToken(refreshToken, hashedToken);
+      for (const tokenObj of user.refreshTokens) {
+        const isValid = await this.verifyRefreshToken(refreshToken, tokenObj.token);
         if (isValid) {
+          // Update last used timestamp
+          tokenObj.lastUsedAt = new Date();
+          await user.save();
           return true;
         }
       }
@@ -129,11 +186,11 @@ export class TokenService {
       }
 
       // Filter out the matching hashed token
-      const updatedTokens: string[] = [];
-      for (const hashedToken of user.refreshTokens) {
-        const isMatch = await this.verifyRefreshToken(refreshToken, hashedToken);
+      const updatedTokens: IRefreshToken[] = [];
+      for (const tokenObj of user.refreshTokens) {
+        const isMatch = await this.verifyRefreshToken(refreshToken, tokenObj.token);
         if (!isMatch) {
-          updatedTokens.push(hashedToken);
+          updatedTokens.push(tokenObj);
         }
       }
 
@@ -168,18 +225,55 @@ export class TokenService {
   }
 
   /**
-   * Rotate refresh token (remove old, generate new)
+   * Rotate refresh token (remove old, generate new) with reuse detection
    */
   public async rotateRefreshToken(
     userId: string,
     oldRefreshToken: string,
-    payload: TokenPayload
+    payload: TokenPayload,
+    options: TokenRotationOptions = {}
   ): Promise<TokenPair> {
     try {
-      // Validate old refresh token
-      const isValid = await this.validateRefreshToken(userId, oldRefreshToken);
-      if (!isValid) {
+      const user = await User.findById(userId).select('+refreshTokens');
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Find the matching token
+      let matchedToken: IRefreshToken | null = null;
+      for (const tokenObj of user.refreshTokens) {
+        const isValid = await this.verifyRefreshToken(oldRefreshToken, tokenObj.token);
+        if (isValid) {
+          matchedToken = tokenObj;
+          break;
+        }
+      }
+
+      if (!matchedToken) {
+        // Token not found - possible reuse attack
+        if (options.detectReuse) {
+          logger.warn(`Possible token reuse detected for user: ${userId}`);
+          // Invalidate all refresh tokens for this user as a security measure
+          await this.removeAllRefreshTokens(userId);
+          throw new Error('Token reuse detected - all sessions invalidated');
+        }
         throw new Error('Invalid refresh token');
+      }
+
+      // Check if token is expired
+      if (matchedToken.expiresAt < new Date()) {
+        throw new Error('Refresh token expired');
+      }
+
+      // Check for suspicious reuse (token used multiple times in short period)
+      if (matchedToken.lastUsedAt && options.detectReuse) {
+        const timeSinceLastUse = Date.now() - matchedToken.lastUsedAt.getTime();
+        if (timeSinceLastUse < 5000) {
+          // Less than 5 seconds
+          logger.warn(`Rapid token reuse detected for user: ${userId}`);
+          await this.removeAllRefreshTokens(userId);
+          throw new Error('Suspicious activity detected - all sessions invalidated');
+        }
       }
 
       // Remove old refresh token
@@ -188,8 +282,8 @@ export class TokenService {
       // Generate new token pair
       const tokenPair = this.generateTokenPair(payload);
 
-      // Store new hashed refresh token
-      await this.storeRefreshToken(userId, tokenPair.refreshToken);
+      // Store new hashed refresh token with metadata
+      await this.storeRefreshToken(userId, tokenPair.refreshToken, options.deviceInfo);
 
       logger.info(`Refresh token rotated for user: ${userId}`);
 

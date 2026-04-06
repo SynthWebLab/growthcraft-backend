@@ -30,6 +30,11 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// Optional: Auto-refresh middleware for seamless token rotation
+// Uncomment to enable automatic token refresh when access token is about to expire
+// import { autoRefreshToken } from './common/middleware/auto-refresh.middleware';
+// app.use(autoRefreshToken);
+
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({

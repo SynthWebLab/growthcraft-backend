@@ -2,6 +2,14 @@ import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { UserRole, USER_ROLES } from '@/common/constants/user.constants';
 
+export interface IRefreshToken {
+  token: string;
+  createdAt: Date;
+  lastUsedAt?: Date;
+  expiresAt: Date;
+  deviceInfo?: string;
+}
+
 export interface IUser extends Document {
   fullName: string;
   email: string;
@@ -10,7 +18,7 @@ export interface IUser extends Document {
   role: UserRole;
   isEmailVerified: boolean;
   isActive: boolean;
-  refreshTokens: string[];
+  refreshTokens: IRefreshToken[];
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -59,7 +67,15 @@ const userSchema = new Schema<IUser>(
       default: true,
     },
     refreshTokens: {
-      type: [String],
+      type: [
+        {
+          token: { type: String, required: true },
+          createdAt: { type: Date, required: true },
+          lastUsedAt: { type: Date },
+          expiresAt: { type: Date, required: true },
+          deviceInfo: { type: String },
+        },
+      ],
       default: [],
       select: false,
     },

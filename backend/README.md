@@ -166,13 +166,28 @@ backend/
 
 ## 🔐 Security Features
 
-- JWT authentication
+- JWT authentication with access & refresh tokens
+- **Automatic token rotation** with reuse detection
+- **Auto-refresh middleware** for seamless authentication
 - Password hashing with bcryptjs
+- httpOnly secure cookies
+- Device tracking for security monitoring
 - Helmet for security headers
 - CORS configuration
 - Rate limiting
 - Input sanitization
 - Environment variable validation
+
+### Token Rotation
+
+The backend implements secure token rotation:
+- Automatic rotation on every refresh
+- Token reuse detection prevents attacks
+- Device tracking for each session
+- Support for multiple devices (up to 5)
+- Auto-refresh when tokens are about to expire
+
+📖 See [TOKEN_ROTATION_QUICKSTART.md](./TOKEN_ROTATION_QUICKSTART.md) for implementation details
 
 ## 📝 API Documentation
 

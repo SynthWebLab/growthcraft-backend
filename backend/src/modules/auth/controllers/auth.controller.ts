@@ -221,8 +221,12 @@ export class AuthController {
         return;
       }
 
-      // Refresh tokens (validates and rotates)
-      const tokens = await authService.refreshToken(userId, refreshToken);
+      // Extract device info from user agent
+      const userAgent = req.headers['user-agent'] || 'Unknown';
+      const deviceInfo = `${userAgent.substring(0, 100)}`;
+
+      // Refresh tokens (validates and rotates with reuse detection)
+      const tokens = await authService.refreshToken(userId, refreshToken, deviceInfo);
 
       // Set new httpOnly cookies
       this.setTokenCookies(res, tokens.accessToken, tokens.refreshToken);
@@ -236,6 +240,18 @@ export class AuthController {
 
       // Clear invalid cookies
       this.clearTokenCookies(res);
+
+      // Check if it's a token reuse attack
+      if (error.message.includes('reuse detected') || error.message.includes('Suspicious activity')) {
+        res.status(401).json({
+          success: false,
+          error: {
+            message: 'Security violation detected. Please login again.',
+            code: 'TOKEN_REUSE_DETECTED',
+          },
+        });
+        return;
+      }
 
       res.status(401).json({
         success: false,
