@@ -44,9 +44,8 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${plusJakartaSans.variable} ${dancingScript.variable} h-full antialiased`}
-      style={{ fontFamily: 'var(--font-sans), system-ui, sans-serif' }}
     >
-      <body className="min-h-screen flex flex-col" style={{ fontFamily: 'var(--font-sans), system-ui, sans-serif' }}>
+      <body className="min-h-screen flex flex-col font-sans">
         <Navbar />
         <main className="flex-1 pt-16 lg:pt-20">{children}</main>
         <Footer />
