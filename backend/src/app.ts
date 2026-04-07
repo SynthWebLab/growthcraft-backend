@@ -6,6 +6,7 @@ import swaggerUi from 'swagger-ui-express';
 import { config } from './config';
 import { logger } from './common/utils/logger.util';
 import { NotFoundError } from './common/errors/NotFoundError';
+import { errorHandler } from './common/middleware/error-handler.middleware';
 import routes from './routes/v1';
 import { swaggerSpec } from './config/swagger.config';
 import swaggerOutputAuto from './config/swagger-output.json';
@@ -86,21 +87,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next(NotFoundError.route());
 });
 
-// Global error handler
-app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
-  logger.error(`Error: ${err.message}`);
-
-  const statusCode = (err as any).statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-
-  res.status(statusCode).json({
-    success: false,
-    error: {
-      message,
-      code: (err as any).code || 'INTERNAL_ERROR',
-      ...(config.NODE_ENV === 'development' && { stack: err.stack }),
-    },
-  });
-});
+// Global error handler (must be last)
+app.use(errorHandler);
 
 export default app;
