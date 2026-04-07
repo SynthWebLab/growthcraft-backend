@@ -2,7 +2,7 @@ export { errorHandler, handleUnhandledRejection, handleUncaughtException } from 
 export { asyncHandler } from '../utils/async-handler.util';
 export { authenticate } from './authenticate.middleware';
 export { authorize } from './authorize.middleware';
+export { apiLimiter, authLimiter, passwordResetLimiter } from './rate-limiter.middleware';
 // Note: The following middleware are not yet implemented
-// export { rateLimiter } from './rate-limiter.middleware';
 // export { validate } from './validate.middleware';
 // export { sanitizeInput } from './sanitize.middleware';
