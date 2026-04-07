@@ -24,7 +24,7 @@ export interface TokenRotationOptions {
 export class TokenService {
   private static instance: TokenService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): TokenService {
     if (!TokenService.instance) {
@@ -91,11 +91,11 @@ export class TokenService {
       const expiresAt = new Date();
       const refreshExpiresIn = config.JWT_REFRESH_EXPIRES_IN || '30d';
       const match = refreshExpiresIn.match(/^(\d+)([smhd])$/);
-      
+
       if (match) {
         const value = parseInt(match[1], 10);
         const unit = match[2];
-        
+
         switch (unit) {
           case 's':
             expiresAt.setSeconds(expiresAt.getSeconds() + value);

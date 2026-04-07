@@ -191,9 +191,40 @@ The backend implements secure token rotation:
 
 ## 📝 API Documentation
 
-API documentation will be available at:
+### Interactive Swagger Documentation
+
+Your API now has **automatic, interactive documentation** powered by Swagger/OpenAPI!
+
+**Access the documentation**:
 - Development: `http://localhost:5000/api-docs`
-- Production: TBD
+- OpenAPI JSON: `http://localhost:5000/api-docs.json`
+
+**Features**:
+- ✅ Interactive API testing
+- ✅ Try-it-out functionality
+- ✅ Cookie-based authentication support
+- ✅ Request/response schemas
+- ✅ Example values
+- ✅ Error response documentation
+
+**Quick Start**:
+```bash
+npm run dev
+# Open http://localhost:5001/api-docs
+```
+
+**Documentation Files**:
+- `API_DOCUMENTATION.md` - Main documentation guide
+- `SWAGGER_SETUP.md` - Complete setup guide
+- `SWAGGER_QUICK_REFERENCE.md` - Quick reference
+- `SWAGGER_COMPLETE.md` - Implementation summary
+
+**Add documentation to new endpoints**:
+```bash
+npm run swagger:generate
+```
+
+See `API_DOCUMENTATION.md` for complete guide.
 
 ## 🐛 Debugging
 
@@ -233,6 +264,7 @@ NODE_ENV=production npm start
 | `npm run lint:fix` | Fix linting errors |
 | `npm run format` | Format code with Prettier |
 | `npm run type-check` | Check TypeScript types |
+| `npm run swagger:generate` | Generate Swagger documentation template |
 | `npm run prepare` | Install Husky hooks |
 
 ## 🤝 Contributing

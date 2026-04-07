@@ -2,10 +2,13 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import swaggerUi from 'swagger-ui-express';
 import { config } from './config';
 import { logger } from './common/utils/logger.util';
 import { NotFoundError } from './common/errors/NotFoundError';
 import routes from './routes/v1';
+import { swaggerSpec } from './config/swagger.config';
+import swaggerOutputAuto from './config/swagger-output.json';
 
 // Create Express app
 const app: Application = express();
@@ -34,6 +37,37 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Uncomment to enable automatic token refresh when access token is about to expire
 // import { autoRefreshToken } from './common/middleware/auto-refresh.middleware';
 // app.use(autoRefreshToken);
+
+// Swagger documentation (conditional based on config)
+if (config.SWAGGER_ENABLED) {
+  // Manual detailed documentation
+  app.use(
+    config.SWAGGER_PATH,
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'GrowthCraft API Docs',
+    })
+  );
+
+  // Auto-generated documentation
+  app.use(
+    config.SWAGGER_AUTO_PATH,
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerOutputAuto, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'GrowthCraft API Docs (Auto)',
+    })
+  );
+
+  // Swagger JSON endpoint
+  app.get('/api-docs.json', (req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+
+  logger.info(`Swagger docs enabled at ${config.SWAGGER_PATH} and ${config.SWAGGER_AUTO_PATH}`);
+}
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
