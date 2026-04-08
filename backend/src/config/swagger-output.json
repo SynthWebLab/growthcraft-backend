@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "GrowthCraft API",
+    "title": "GrowthCraft EdTech API",
     "version": "1.0.0",
-    "description": "Auto-generated API documentation for GrowthCraft SaaS Backend"
+    "description": "Auto-generated API documentation for GrowthCraft EdTech SaaS Backend"
   },
   "servers": [
     {
