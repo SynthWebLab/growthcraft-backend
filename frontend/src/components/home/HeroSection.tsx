@@ -26,9 +26,7 @@ export const HeroSection = () => {
       <div className="container mx-auto px-4 relative z-10 py-8 md:py-0">
         <div className="max-w-3xl">
           {/* Badge */}
-          <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-secondary      text-foreground text-xs md:text-sm font-medium mb-4 md:mb-6 animate-fade-up"
-          >
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-secondary      text-foreground text-xs md:text-sm font-medium mb-4 md:mb-6 animate-fade-up">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             Your Career Transformation Starts Here
           </div>
@@ -38,9 +36,7 @@ export const HeroSection = () => {
             className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 animate-fade-up text-foreground leading-tight"
             style={{ animationDelay: "0.1s" }}
           >
-            Where{" "}
-            <span className="text-primary">Learning</span>{" "}
-            Meets{" "}
+            Where <span className="text-primary">Learning</span> Meets{" "}
             <span className="text-primary">Opportunity</span>
           </h1>
 
@@ -59,13 +55,23 @@ export const HeroSection = () => {
             className="flex flex-col sm:flex-row gap-3 md:gap-4 animate-fade-up"
             style={{ animationDelay: "0.3s" }}
           >
-            <Button asChild variant="hero" size="lg" className="w-full sm:w-auto">
+            <Button
+              asChild
+              variant="hero"
+              size="lg"
+              className="w-full sm:w-auto"
+            >
               <Link href="/courses">
                 Explore Courses
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button asChild variant="hero-outline" size="lg" className="w-full sm:w-auto">
+            <Button
+              asChild
+              variant="hero-outline"
+              size="lg"
+              className="w-full sm:w-auto"
+            >
               <Link href="/bootcamps">
                 <Play className="mr-2 h-5 w-5" />
                 Join a Bootcamp

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Dancing+Script:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Dancing+Script:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -12,44 +12,47 @@
     --card-foreground: 230 25% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 230 25% 10%;
-    
+
     /* Primary brand color - #4a32ff */
     --primary: 248 100% 60%;
     --primary-foreground: 0 0% 100%;
-    
+
     /* Secondary - Very light primary */
     --secondary: 248 60% 97%;
     --secondary-foreground: 248 100% 50%;
-    
+
     --muted: 220 14% 96%;
     --muted-foreground: 220 10% 40%;
-    
+
     /* Accent - Slightly different blue */
     --accent: 248 80% 65%;
     --accent-foreground: 0 0% 100%;
-    
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    
+
     --border: 220 13% 91%;
     --input: 220 13% 91%;
     --ring: 248 100% 60%;
     --radius: 0.75rem;
-    
+
     /* Custom brand tokens */
     --brand: 248 100% 60%;
     --brand-light: 248 60% 97%;
     --brand-dark: 248 100% 50%;
     --graphite: 230 25% 10%;
     --marble: 0 0% 100%;
-    
+
     /* Shadows - clean, modern */
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.07), 0 2px 4px -2px hsl(0 0% 0% / 0.05);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.08), 0 4px 6px -4px hsl(0 0% 0% / 0.04);
-    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.06), 0 6px 16px hsl(0 0% 0% / 0.06);
+    --shadow-md:
+      0 4px 6px -1px hsl(0 0% 0% / 0.07), 0 2px 4px -2px hsl(0 0% 0% / 0.05);
+    --shadow-lg:
+      0 10px 15px -3px hsl(0 0% 0% / 0.08), 0 4px 6px -4px hsl(0 0% 0% / 0.04);
+    --shadow-card:
+      0 1px 3px hsl(0 0% 0% / 0.06), 0 6px 16px hsl(0 0% 0% / 0.06);
     --shadow-hover: 0 4px 12px hsl(248 100% 60% / 0.15);
-    
+
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 230 25% 10%;
     --sidebar-primary: 248 100% 60%;
@@ -59,7 +62,7 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 248 100% 60%;
   }
-  
+
   .dark {
     --background: 230 20% 8%;
     --foreground: 0 0% 95%;
@@ -67,35 +70,35 @@
     --card-foreground: 0 0% 95%;
     --popover: 230 20% 11%;
     --popover-foreground: 0 0% 95%;
-    
+
     --primary: 248 100% 70%;
     --primary-foreground: 230 20% 8%;
-    
+
     --secondary: 248 30% 18%;
     --secondary-foreground: 248 100% 80%;
-    
+
     --muted: 230 15% 18%;
     --muted-foreground: 220 10% 60%;
-    
+
     --accent: 248 80% 75%;
     --accent-foreground: 230 20% 8%;
-    
+
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
-    
+
     --border: 230 15% 20%;
     --input: 230 15% 20%;
     --ring: 248 100% 70%;
-    
+
     --brand: 248 100% 70%;
     --brand-light: 248 30% 18%;
     --brand-dark: 248 100% 60%;
     --graphite: 0 0% 95%;
     --marble: 230 20% 8%;
-    
+
     --shadow-card: 0 2px 8px hsl(0 0% 0% / 0.3);
     --shadow-hover: 0 4px 16px hsl(248 100% 70% / 0.2);
-    
+
     --sidebar-background: 230 20% 10%;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 248 100% 70%;
@@ -114,7 +117,12 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-display font-bold tracking-tight text-foreground;
   }
 }
@@ -150,7 +158,8 @@
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {

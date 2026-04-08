@@ -4,7 +4,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image, { StaticImageData } from "next/image";
-import { Clock, BookOpen, ArrowRight, Star, CheckCircle, Filter, Search } from "lucide-react";
+import {
+  Clock,
+  BookOpen,
+  ArrowRight,
+  Star,
+  CheckCircle,
+  Filter,
+  Search,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PopupForm } from "@/components/common/PopupForm";
 import { TechLogos } from "@/components/common/TechLogos";
@@ -21,8 +29,8 @@ const categoryImages: Record<string, StaticImageData> = {
   "Data Science & AI": courseDataScience,
   "Cloud & DevOps": courseCloud,
   "Mobile Development": courseMobile,
-  "Cybersecurity": courseSecurity,
-  "Design": courseWebDev,
+  Cybersecurity: courseSecurity,
+  Design: courseWebDev,
 };
 
 // Mock data - replace with actual API calls
@@ -103,7 +111,12 @@ const mockCourses = [
     price: 18999,
     discount_price: 12999,
     image_url: courseSecurity as StaticImageData | string,
-    topics: ["Network Security", "Ethical Hacking", "Cryptography", "Penetration Testing"],
+    topics: [
+      "Network Security",
+      "Ethical Hacking",
+      "Cryptography",
+      "Penetration Testing",
+    ],
   },
 ];
 
@@ -118,10 +131,14 @@ const mockCategories = [
 
 const getLevelColor = (level: string) => {
   switch (level) {
-    case "Beginner": return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
-    case "Intermediate": return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
-    case "Advanced": return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
-    default: return "bg-secondary text-secondary-foreground";
+    case "Beginner":
+      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+    case "Intermediate":
+      return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
+    case "Advanced":
+      return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+    default:
+      return "bg-secondary text-secondary-foreground";
   }
 };
 
@@ -136,12 +153,17 @@ export default function CoursesPage() {
   const courses = mockCourses;
   const categories = mockCategories;
 
-  const filteredCourses = courses.filter(course => {
-    const matchesCategory = !selectedCategory || course.category === selectedCategory;
+  const filteredCourses = courses.filter((course) => {
+    const matchesCategory =
+      !selectedCategory || course.category === selectedCategory;
     const matchesLevel = !selectedLevel || course.level === selectedLevel;
-    const matchesSearch = !searchQuery || 
+    const matchesSearch =
+      !searchQuery ||
       course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (course.topics && course.topics.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())));
+      (course.topics &&
+        course.topics.some((t) =>
+          t.toLowerCase().includes(searchQuery.toLowerCase()),
+        ));
     return matchesCategory && matchesLevel && matchesSearch;
   });
 
@@ -164,7 +186,8 @@ export default function CoursesPage() {
               <span className="text-primary">Tech Career</span>
             </h1>
             <p className="text-sm md:text-lg lg:text-xl text-muted-foreground mb-6 md:mb-8 px-2">
-              From Python basics to advanced AI, from frontend to DevOps — master in-demand skills with our comprehensive course library.
+              From Python basics to advanced AI, from frontend to DevOps —
+              master in-demand skills with our comprehensive course library.
             </p>
             <div className="flex items-center justify-center gap-4 md:gap-6 text-xs md:text-sm text-muted-foreground flex-wrap">
               <div className="flex items-center gap-2">
@@ -188,8 +211,8 @@ export default function CoursesPage() {
           <div className="flex flex-col gap-4">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search courses, topics, tools..." 
+              <Input
+                placeholder="Search courses, topics, tools..."
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -197,13 +220,15 @@ export default function CoursesPage() {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
-              {["Beginner", "Intermediate", "Advanced"].map(level => (
+              {["Beginner", "Intermediate", "Advanced"].map((level) => (
                 <button
                   key={level}
-                  onClick={() => setSelectedLevel(selectedLevel === level ? null : level)}
+                  onClick={() =>
+                    setSelectedLevel(selectedLevel === level ? null : level)
+                  }
                   className={`cursor-pointer px-2.5 py-1 md:px-3 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium transition-all ${
-                    selectedLevel === level 
-                      ? "bg-primary text-primary-foreground" 
+                    selectedLevel === level
+                      ? "bg-primary text-primary-foreground"
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   }`}
                 >
@@ -212,10 +237,10 @@ export default function CoursesPage() {
               ))}
               {(selectedCategory || selectedLevel || searchQuery) && (
                 <button
-                  onClick={() => { 
-                    setSelectedCategory(null); 
-                    setSelectedLevel(null); 
-                    setSearchQuery(""); 
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setSelectedLevel(null);
+                    setSearchQuery("");
                   }}
                   className="px-2.5 py-1 md:px-3 md:py-1.5 rounded-full text-[10px] md:text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all"
                 >
@@ -232,9 +257,13 @@ export default function CoursesPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-nowrap md:flex-wrap justify-start md:justify-center gap-2 pb-2 md:pb-0">
             {categories.map((category) => (
-              <button 
-                key={category.name} 
-                onClick={() => setSelectedCategory(selectedCategory === category.name ? null : category.name)}
+              <button
+                key={category.name}
+                onClick={() =>
+                  setSelectedCategory(
+                    selectedCategory === category.name ? null : category.name,
+                  )
+                }
                 className={`cursor-pointer flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full border text-xs md:text-sm transition-all whitespace-nowrap flex-shrink-0 ${
                   selectedCategory === category.name
                     ? "bg-primary text-primary-foreground border-primary"
@@ -242,7 +271,13 @@ export default function CoursesPage() {
                 }`}
               >
                 <span className="font-medium">{category.name}</span>
-                <span className={selectedCategory === category.name ? "text-primary-foreground/70" : "text-muted-foreground"}>
+                <span
+                  className={
+                    selectedCategory === category.name
+                      ? "text-primary-foreground/70"
+                      : "text-muted-foreground"
+                  }
+                >
                   ({category.count})
                 </span>
               </button>
@@ -256,7 +291,7 @@ export default function CoursesPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-2">
             <h2 className="text-lg md:text-2xl font-bold text-foreground">
-              {selectedCategory || "All Courses"} 
+              {selectedCategory || "All Courses"}
               <span className="text-muted-foreground font-normal ml-2 text-sm md:text-base">
                 ({filteredCourses.length})
               </span>
@@ -266,7 +301,10 @@ export default function CoursesPage() {
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="rounded-xl bg-card border border-border overflow-hidden">
+                <div
+                  key={i}
+                  className="rounded-xl bg-card border border-border overflow-hidden"
+                >
                   <Skeleton className="h-28 md:h-32 w-full" />
                   <div className="p-3 md:p-4">
                     <Skeleton className="h-4 w-1/3 mb-2" />
@@ -280,20 +318,26 @@ export default function CoursesPage() {
           ) : filteredCourses.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
               {filteredCourses.map((course) => (
-                <Link 
+                <Link
                   href={`/courses/${course.slug}`}
-                  key={course.id} 
+                  key={course.id}
                   className="group rounded-xl bg-card border border-border overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-300"
                 >
                   <div className="h-28 md:h-32 overflow-hidden relative">
-                    <Image 
-                      src={course.image_url || categoryImages[course.category] || courseWebDev} 
-                      alt={course.title} 
+                    <Image
+                      src={
+                        course.image_url ||
+                        categoryImages[course.category] ||
+                        courseWebDev
+                      }
+                      alt={course.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       width={400}
                       height={200}
                     />
-                    <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium ${getLevelColor(course.level || "Beginner")}`}>
+                    <span
+                      className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium ${getLevelColor(course.level || "Beginner")}`}
+                    >
                       {course.level}
                     </span>
                   </div>
@@ -311,8 +355,11 @@ export default function CoursesPage() {
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-1 mb-2 md:mb-3">
-                      {course.topics?.slice(0, 2).map(topic => (
-                        <span key={topic} className="px-1.5 md:px-2 py-0.5 bg-secondary text-secondary-foreground rounded text-[8px] md:text-[10px]">
+                      {course.topics?.slice(0, 2).map((topic) => (
+                        <span
+                          key={topic}
+                          className="px-1.5 md:px-2 py-0.5 bg-secondary text-secondary-foreground rounded text-[8px] md:text-[10px]"
+                        >
                           {topic}
                         </span>
                       ))}
@@ -328,14 +375,16 @@ export default function CoursesPage() {
                           ₹{course.discount_price || course.price}
                         </span>
                       ) : (
-                        <span className="text-xs md:text-sm font-bold text-primary">Free</span>
+                        <span className="text-xs md:text-sm font-bold text-primary">
+                          Free
+                        </span>
                       )}
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         className="text-[10px] md:text-xs h-7 md:h-9 px-2 md:px-4"
-                        onClick={(e) => { 
-                          e.preventDefault(); 
-                          handleEnroll(course.title); 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleEnroll(course.title);
                         }}
                       >
                         Enroll
@@ -350,12 +399,12 @@ export default function CoursesPage() {
               <p className="text-muted-foreground text-lg mb-4">
                 No courses found matching your criteria.
               </p>
-              <Button 
-                variant="outline" 
-                onClick={() => { 
-                  setSelectedCategory(null); 
-                  setSelectedLevel(null); 
-                  setSearchQuery(""); 
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedCategory(null);
+                  setSelectedLevel(null);
+                  setSearchQuery("");
                 }}
               >
                 Clear Filters
@@ -381,11 +430,16 @@ export default function CoursesPage() {
                 "Downloadable resources",
                 "Community access",
                 "Job placement assistance",
-                "Industry-recognized curriculum"
+                "Industry-recognized curriculum",
               ].map((feature) => (
-                <div key={feature} className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-xl bg-card border border-border">
+                <div
+                  key={feature}
+                  className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-xl bg-card border border-border"
+                >
                   <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
-                  <span className="text-foreground text-sm md:text-base">{feature}</span>
+                  <span className="text-foreground text-sm md:text-base">
+                    {feature}
+                  </span>
                 </div>
               ))}
             </div>
@@ -401,17 +455,23 @@ export default function CoursesPage() {
               Not sure where to start?
             </h2>
             <p className="text-muted-foreground mb-6 md:mb-8 text-sm md:text-base">
-              Talk to our career counselors and get personalized course recommendations based on your goals.
+              Talk to our career counselors and get personalized course
+              recommendations based on your goals.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
-              <Button 
-                size="lg" 
-                className="w-full sm:w-auto cursor-pointer" 
+              <Button
+                size="lg"
+                className="w-full sm:w-auto cursor-pointer"
                 onClick={() => setShowEnrollForm(true)}
               >
                 Get Career Guidance <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto"
+              >
                 <Link href="/for-students">Explore Student Programs</Link>
               </Button>
             </div>
@@ -419,11 +479,13 @@ export default function CoursesPage() {
         </div>
       </section>
 
-      <PopupForm 
-        isOpen={showEnrollForm} 
-        onClose={() => setShowEnrollForm(false)} 
-        type="enrollment" 
-        title={selectedCourse ? `Enroll in ${selectedCourse}` : "Course Enrollment"} 
+      <PopupForm
+        isOpen={showEnrollForm}
+        onClose={() => setShowEnrollForm(false)}
+        type="enrollment"
+        title={
+          selectedCourse ? `Enroll in ${selectedCourse}` : "Course Enrollment"
+        }
       />
     </>
   );

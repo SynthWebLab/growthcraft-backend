@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:connections": "node scripts/test-connections.js",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.{ts,json}\"",

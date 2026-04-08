@@ -2,9 +2,9 @@
 
 /**
  * Swagger Documentation Template Generator
- * 
+ *
  * Usage: node scripts/generate-swagger-template.js
- * 
+ *
  * This script helps you quickly generate Swagger JSDoc templates
  * for your API endpoints.
  */

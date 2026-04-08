@@ -3,18 +3,23 @@
 ## ✅ What's Installed
 
 ### 1. Husky (Git Hooks)
+
 Automatically runs checks before commits and pushes to ensure code quality.
 
 ### 2. ESLint
+
 Catches errors and enforces coding standards.
 
 ### 3. Prettier
+
 Automatically formats code for consistency.
 
 ### 4. Lint-staged
+
 Runs linters only on staged files (faster commits).
 
 ### 5. TypeScript Strict Mode
+
 Catches type errors before runtime.
 
 ---
@@ -22,6 +27,7 @@ Catches type errors before runtime.
 ## 🪝 Git Hooks Configured
 
 ### Pre-commit Hook
+
 **Runs before every commit**
 
 ✅ Lints staged TypeScript files with ESLint
@@ -32,6 +38,7 @@ Catches type errors before runtime.
 **Location**: `.husky/pre-commit`
 
 ### Commit Message Hook
+
 **Validates commit message format**
 
 ✅ Enforces conventional commits
@@ -41,6 +48,7 @@ Catches type errors before runtime.
 **Location**: `.husky/commit-msg`
 
 **Valid commit types**:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation
@@ -53,6 +61,7 @@ Catches type errors before runtime.
 - `chore`: Maintenance
 
 **Examples**:
+
 ```bash
 ✅ git commit -m "feat(auth): add login endpoint"
 ✅ git commit -m "fix(database): resolve connection issue"
@@ -61,6 +70,7 @@ Catches type errors before runtime.
 ```
 
 ### Pre-push Hook
+
 **Runs before pushing to remote**
 
 ✅ Runs all tests
@@ -74,6 +84,7 @@ Catches type errors before runtime.
 ## 🎯 Error Control Features
 
 ### 1. TypeScript Strict Mode
+
 ```json
 {
   "strict": true,
@@ -84,12 +95,14 @@ Catches type errors before runtime.
 ```
 
 **Catches**:
+
 - Type mismatches
 - Null/undefined errors
 - Missing return statements
 - Implicit any types
 
 ### 2. ESLint Rules
+
 ```json
 {
   "@typescript-eslint/no-explicit-any": "warn",
@@ -101,6 +114,7 @@ Catches type errors before runtime.
 ```
 
 **Catches**:
+
 - Unused variables
 - Unhandled promises
 - Console.log statements
@@ -108,6 +122,7 @@ Catches type errors before runtime.
 - Code style issues
 
 ### 3. Prettier Formatting
+
 ```json
 {
   "semi": true,
@@ -118,22 +133,22 @@ Catches type errors before runtime.
 ```
 
 **Enforces**:
+
 - Consistent semicolons
 - Single quotes
 - 100 character line width
 - 2 space indentation
 
 ### 4. Lint-staged
+
 ```json
 {
-  "*.ts": [
-    "eslint --fix",
-    "prettier --write"
-  ]
+  "*.ts": ["eslint --fix", "prettier --write"]
 }
 ```
 
 **Benefits**:
+
 - Only checks changed files
 - Faster commits
 - Auto-fixes issues
@@ -143,6 +158,7 @@ Catches type errors before runtime.
 ## 🚀 Usage
 
 ### Normal Workflow
+
 ```bash
 # 1. Make changes
 vim src/modules/auth/auth.service.ts
@@ -168,6 +184,7 @@ git push
 ```
 
 ### Manual Checks
+
 ```bash
 # Run linter
 npm run lint
@@ -189,6 +206,7 @@ npm test
 ```
 
 ### Skip Hooks (Emergency Only!)
+
 ```bash
 # Skip pre-commit
 git commit --no-verify -m "emergency fix"
@@ -203,15 +221,15 @@ git push --no-verify
 
 ## 🔧 Configuration Files
 
-| File | Purpose |
-|------|---------|
-| `.husky/pre-commit` | Pre-commit hook script |
-| `.husky/commit-msg` | Commit message validation |
-| `.husky/pre-push` | Pre-push hook script |
-| `.eslintrc.json` | ESLint configuration |
-| `.prettierrc.json` | Prettier configuration |
+| File                 | Purpose                   |
+| -------------------- | ------------------------- |
+| `.husky/pre-commit`  | Pre-commit hook script    |
+| `.husky/commit-msg`  | Commit message validation |
+| `.husky/pre-push`    | Pre-push hook script      |
+| `.eslintrc.json`     | ESLint configuration      |
+| `.prettierrc.json`   | Prettier configuration    |
 | `.lintstagedrc.json` | Lint-staged configuration |
-| `tsconfig.json` | TypeScript configuration |
+| `tsconfig.json`      | TypeScript configuration  |
 
 ---
 
@@ -222,6 +240,7 @@ git push --no-verify
 **Problem**: Git hooks don't execute
 
 **Solution**:
+
 ```bash
 # Reinstall hooks
 rm -rf .husky
@@ -238,6 +257,7 @@ chmod +x .husky/pre-push
 **Problem**: `❌ Invalid commit message format!`
 
 **Solution**: Use correct format
+
 ```bash
 # Wrong
 git commit -m "added login"
@@ -251,6 +271,7 @@ git commit -m "feat(auth): add login endpoint"
 **Problem**: Linting errors prevent commit
 
 **Solution**:
+
 ```bash
 # See errors
 npm run lint
@@ -267,6 +288,7 @@ git commit -m "fix(auth): resolve linting errors"
 **Problem**: TypeScript errors prevent commit
 
 **Solution**:
+
 ```bash
 # See errors
 npm run type-check
@@ -280,6 +302,7 @@ npm run type-check
 **Problem**: Tests fail on pre-push
 
 **Solution**:
+
 ```bash
 # Run tests locally
 npm test
@@ -293,6 +316,7 @@ npm test
 ## 📊 Benefits
 
 ### Before Husky
+
 ❌ Inconsistent code style
 ❌ Type errors in production
 ❌ Broken tests pushed to repo
@@ -300,6 +324,7 @@ npm test
 ❌ Manual code reviews needed
 
 ### After Husky
+
 ✅ Consistent code style
 ✅ Type-safe code
 ✅ All tests pass
@@ -311,18 +336,23 @@ npm test
 ## 🎓 Best Practices
 
 ### 1. Don't Skip Hooks
+
 Only use `--no-verify` in emergencies.
 
 ### 2. Fix Errors Immediately
+
 Don't accumulate linting errors.
 
 ### 3. Write Good Commit Messages
+
 Follow conventional commits format.
 
 ### 4. Run Tests Locally
+
 Don't rely only on pre-push hook.
 
 ### 5. Keep Dependencies Updated
+
 ```bash
 npm update
 npm audit fix
@@ -333,6 +363,7 @@ npm audit fix
 ## 📈 Code Quality Metrics
 
 With Husky, you ensure:
+
 - ✅ 100% formatted code
 - ✅ 0 linting errors
 - ✅ 0 type errors
@@ -354,6 +385,7 @@ With Husky, you ensure:
 ## ✨ Summary
 
 Husky is now configured to:
+
 1. ✅ Lint and format code before commits
 2. ✅ Validate commit messages
 3. ✅ Run tests before pushes

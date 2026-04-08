@@ -3,7 +3,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Users, ArrowRight, Code2, Brain, Palette } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Users,
+  ArrowRight,
+  Code2,
+  Brain,
+  Palette,
+} from "lucide-react";
 import { useBootcamps } from "@/hooks/useBootcamps";
 import { useTrainingPrograms } from "@/hooks/useTrainingPrograms";
 import bootcampScene from "@/assets/bootcamp-scene.jpg";
@@ -38,8 +46,12 @@ export const BootcampsSection = () => {
                   <Users className="h-4 w-4 md:h-6 md:w-6" />
                 </div>
                 <div>
-                  <p className="text-lg md:text-2xl font-bold text-foreground">500+</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Bootcamp Alumni</p>
+                  <p className="text-lg md:text-2xl font-bold text-foreground">
+                    500+
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    Bootcamp Alumni
+                  </p>
                 </div>
               </div>
             </div>
@@ -79,7 +91,8 @@ export const BootcampsSection = () => {
                 ))
               ) : displayBootcamps.length > 0 ? (
                 displayBootcamps.map((bootcamp) => {
-                  const IconComponent = iconMap[bootcamp.icon_name || "Code2"] || Code2;
+                  const IconComponent =
+                    iconMap[bootcamp.icon_name || "Code2"] || Code2;
                   return (
                     <Link
                       href={`/bootcamps/${bootcamp.slug}`}
@@ -113,7 +126,9 @@ export const BootcampsSection = () => {
                             {bootcamp.next_batch_date && (
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                {new Date(bootcamp.next_batch_date).toLocaleDateString()}
+                                {new Date(
+                                  bootcamp.next_batch_date,
+                                ).toLocaleDateString()}
                               </span>
                             )}
                           </div>

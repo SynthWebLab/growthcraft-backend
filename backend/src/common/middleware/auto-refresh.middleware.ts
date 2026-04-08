@@ -43,11 +43,7 @@ export const autoRefreshToken = async (
         const deviceInfo = `${userAgent.substring(0, 100)}`;
 
         // Rotate tokens
-        const tokens = await authService.refreshToken(
-          decoded.userId,
-          refreshToken,
-          deviceInfo
-        );
+        const tokens = await authService.refreshToken(decoded.userId, refreshToken, deviceInfo);
 
         // Set new cookies
         const isProduction = config.NODE_ENV === 'production';

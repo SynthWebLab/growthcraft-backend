@@ -11,6 +11,7 @@
 ### 1. User Registration
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -26,6 +27,7 @@ curl -X POST http://localhost:5001/api/v1/auth/register \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": true,
@@ -44,12 +46,14 @@ curl -X POST http://localhost:5001/api/v1/auth/register \
 ```
 
 **Expected Cookies:**
+
 ```
 Set-Cookie: access_token=eyJhbGc...; HttpOnly; Path=/; Max-Age=900
 Set-Cookie: refreshToken=a1b2c3d4...; HttpOnly; Path=/; Max-Age=2592000
 ```
 
 **Verify:**
+
 - Status code: 201
 - Two `Set-Cookie` headers present
 - `access_token` expires in 900 seconds (15 min)
@@ -62,6 +66,7 @@ Set-Cookie: refreshToken=a1b2c3d4...; HttpOnly; Path=/; Max-Age=2592000
 ### 2. User Login
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -74,6 +79,7 @@ curl -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": true,
@@ -90,12 +96,14 @@ curl -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 **Expected Cookies:**
+
 ```
 Set-Cookie: access_token=...; HttpOnly; Path=/
 Set-Cookie: refreshToken=...; HttpOnly; Path=/
 ```
 
 **Verify:**
+
 - Status code: 200
 - Cookies saved to `cookies.txt`
 - No tokens in response body
@@ -106,6 +114,7 @@ Set-Cookie: refreshToken=...; HttpOnly; Path=/
 ### 3. Access Protected Route
 
 **Request:**
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/auth/profile \
   -b cookies.txt \
@@ -113,6 +122,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": true,
@@ -132,6 +142,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ```
 
 **Verify:**
+
 - Status code: 200
 - Request includes `Cookie: access_token=...`
 - User profile returned
@@ -141,12 +152,14 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ### 4. Access Protected Route Without Cookies
 
 **Request:**
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/auth/profile \
   -v
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": false,
@@ -158,6 +171,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ```
 
 **Verify:**
+
 - Status code: 401
 - Error message indicates missing token
 
@@ -172,6 +186,7 @@ Option A: Wait 15 minutes after login
 Option B: Manually test refresh endpoint
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/refresh \
   -b cookies.txt \
@@ -180,6 +195,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": true,
@@ -188,12 +204,14 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh \
 ```
 
 **Expected Cookies:**
+
 ```
 Set-Cookie: access_token=<NEW_TOKEN>; HttpOnly; Path=/
 Set-Cookie: refreshToken=<NEW_TOKEN>; HttpOnly; Path=/
 ```
 
 **Verify:**
+
 - Status code: 200
 - New cookies set (different from old ones)
 - Old refresh token invalidated in database
@@ -204,12 +222,14 @@ Set-Cookie: refreshToken=<NEW_TOKEN>; HttpOnly; Path=/
 ### 6. Token Refresh Without Refresh Token
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/refresh \
   -v
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": false,
@@ -221,6 +241,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh \
 ```
 
 **Verify:**
+
 - Status code: 401
 - Error indicates missing refresh token
 
@@ -229,6 +250,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh \
 ### 7. Token Refresh with Invalid Token
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/refresh \
   -H "Cookie: refreshToken=invalid_token; access_token=invalid" \
@@ -236,6 +258,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": false,
@@ -247,6 +270,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh \
 ```
 
 **Verify:**
+
 - Status code: 401
 - Cookies cleared
 
@@ -255,6 +279,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh \
 ### 8. Logout
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/logout \
   -b cookies.txt \
@@ -262,6 +287,7 @@ curl -X POST http://localhost:5001/api/v1/auth/logout \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": true,
@@ -270,12 +296,14 @@ curl -X POST http://localhost:5001/api/v1/auth/logout \
 ```
 
 **Expected Cookies:**
+
 ```
 Set-Cookie: access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
 Set-Cookie: refreshToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
 ```
 
 **Verify:**
+
 - Status code: 200
 - Cookies cleared (expired dates)
 - Refresh token removed from database
@@ -286,6 +314,7 @@ Set-Cookie: refreshToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
 ### 9. Access Protected Route After Logout
 
 **Request:**
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/auth/profile \
   -b cookies.txt \
@@ -293,6 +322,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": false,
@@ -304,6 +334,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ```
 
 **Verify:**
+
 - Status code: 401
 - Access denied
 
@@ -312,6 +343,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ### 10. Logout from All Devices
 
 **Setup:**
+
 1. Login from multiple "devices" (save cookies to different files)
 
 ```bash
@@ -329,6 +361,7 @@ curl -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/logout-all \
   -b cookies1.txt \
@@ -336,6 +369,7 @@ curl -X POST http://localhost:5001/api/v1/auth/logout-all \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": true,
@@ -344,6 +378,7 @@ curl -X POST http://localhost:5001/api/v1/auth/logout-all \
 ```
 
 **Verify:**
+
 ```bash
 # Try accessing from device 2
 curl -X POST http://localhost:5001/api/v1/auth/refresh \
@@ -357,6 +392,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh \
 
 **Setup:**
 Create admin user:
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -371,6 +407,7 @@ curl -X POST http://localhost:5001/api/v1/auth/register \
 ```
 
 **Test admin-only route:**
+
 ```bash
 # Assuming you have an admin-only route
 curl -X GET http://localhost:5001/api/v1/admin/users \
@@ -387,6 +424,7 @@ curl -X GET http://localhost:5001/api/v1/admin/users \
 ### 12. Concurrent Requests During Token Expiry
 
 **Simulate:**
+
 1. Wait until access token is about to expire
 2. Make multiple simultaneous requests
 
@@ -402,6 +440,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile -b cookies.txt &
 ```
 
 **Expected:**
+
 - Only one refresh request should be made
 - All requests should eventually succeed
 - No race conditions
@@ -411,6 +450,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile -b cookies.txt &
 ### 13. Token Reuse Detection
 
 **Test:**
+
 1. Login and save refresh token
 2. Use refresh token to get new tokens
 3. Try using old refresh token again
@@ -437,6 +477,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh \
 ```
 
 **Expected:**
+
 - Second refresh fails
 - Old token no longer valid
 
@@ -445,6 +486,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh \
 ### 14. Invalid Credentials
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -456,6 +498,7 @@ curl -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": false,
@@ -467,6 +510,7 @@ curl -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 **Verify:**
+
 - Status code: 401
 - No cookies set
 
@@ -475,6 +519,7 @@ curl -X POST http://localhost:5001/api/v1/auth/login \
 ### 15. Duplicate Registration
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -489,6 +534,7 @@ curl -X POST http://localhost:5001/api/v1/auth/register \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": false,
@@ -500,6 +546,7 @@ curl -X POST http://localhost:5001/api/v1/auth/register \
 ```
 
 **Verify:**
+
 - Status code: 409
 - No cookies set
 
@@ -578,6 +625,7 @@ echo -e "\n=== All Tests Complete ==="
 ```
 
 **Run:**
+
 ```bash
 chmod +x test_auth.sh
 ./test_auth.sh
@@ -588,6 +636,7 @@ chmod +x test_auth.sh
 ## Browser Testing (DevTools)
 
 ### 1. Check Cookies
+
 1. Open DevTools (F12)
 2. Go to Application → Cookies
 3. Look for:
@@ -595,6 +644,7 @@ chmod +x test_auth.sh
    - `refreshToken` (HttpOnly, Secure in prod)
 
 ### 2. Monitor Network
+
 1. Open DevTools → Network
 2. Login
 3. Check response headers for `Set-Cookie`
@@ -602,6 +652,7 @@ chmod +x test_auth.sh
 5. Check request headers for `Cookie`
 
 ### 3. Test Refresh Flow
+
 1. Login
 2. Wait 15+ minutes (or manually delete access_token)
 3. Make protected request
@@ -626,28 +677,32 @@ chmod +x test_auth.sh
 ✅ Cookies have Secure flag in production  
 ✅ CORS allows credentials  
 ✅ Multiple devices supported (up to 5)  
-✅ Role-based access control works  
+✅ Role-based access control works
 
 ---
 
 ## Troubleshooting
 
 ### Cookies not being set
+
 - Check CORS `credentials: true`
 - Verify `withCredentials: true` in frontend
 - Check `Set-Cookie` headers in response
 
 ### 401 on all requests
+
 - Verify cookies exist in request
 - Check cookie expiration
 - Verify JWT secret matches
 
 ### Refresh not working
+
 - Check both cookies present
 - Verify refresh token in database
 - Check token hasn't expired (30 days)
 
 ### CORS errors
+
 - Cannot use `origin: '*'` with credentials
 - Must specify exact origin
 - Check preflight OPTIONS requests

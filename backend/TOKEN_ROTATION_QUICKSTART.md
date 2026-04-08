@@ -8,18 +8,20 @@ Your backend now has **automatic token rotation** with security features:
 ✅ Old tokens are immediately invalidated  
 ✅ Token reuse detection prevents attacks  
 ✅ Auto-refresh keeps users logged in seamlessly  
-✅ Device tracking for security monitoring  
+✅ Device tracking for security monitoring
 
 ## Key Changes
 
 ### 1. Enhanced Refresh Token Structure
 
 **Before:**
+
 ```typescript
 refreshTokens: string[]  // Simple array of hashed tokens
 ```
 
 **After:**
+
 ```typescript
 refreshTokens: IRefreshToken[]  // Array with metadata
 
@@ -35,6 +37,7 @@ interface IRefreshToken {
 ### 2. Token Rotation on Every Refresh
 
 When `/auth/refresh` is called:
+
 1. Validates old refresh token
 2. Checks for reuse (security)
 3. Removes old token
@@ -73,10 +76,12 @@ POST /api/v1/auth/refresh
 ```
 
 **Cookies Required:**
+
 - `access_token` (can be expired)
 - `refreshToken`
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -85,6 +90,7 @@ POST /api/v1/auth/refresh
 ```
 
 **New cookies automatically set:**
+
 - `access_token` (new, 15 min)
 - `refreshToken` (new, 30 days)
 
@@ -122,7 +128,7 @@ axios.interceptors.response.use(
       try {
         // Refresh tokens
         await axios.post('/api/v1/auth/refresh');
-        
+
         // Retry original request
         return axios(originalRequest);
       } catch (refreshError) {
@@ -210,6 +216,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ### Token Reuse Detection
 
 If a refresh token is used twice:
+
 1. System detects reuse
 2. All user sessions are invalidated
 3. User must login again
@@ -220,6 +227,7 @@ If a refresh token is used twice:
 ### Device Tracking
 
 Each refresh token stores device info (user agent):
+
 - Helps identify suspicious activity
 - Supports multiple devices (up to 5)
 - Useful for security audits
@@ -233,14 +241,17 @@ Each refresh token stores device info (user agent):
 ## Common Issues
 
 ### "Token reuse detected"
+
 **Cause:** Multiple tabs/windows refreshing simultaneously or token theft  
 **Fix:** Implement proper token refresh logic in frontend (use a single refresh promise)
 
 ### "Cannot identify user"
+
 **Cause:** Access token cookie missing  
 **Fix:** Ensure cookies are included in requests (`withCredentials: true`)
 
 ### Auto-refresh not working
+
 **Cause:** Middleware not applied  
 **Fix:** Add `autoRefreshToken` middleware before protected routes
 

@@ -9,9 +9,11 @@
 **Possible Causes:**
 
 #### A. Token Expired (Most Common)
+
 Access tokens expire after 15 minutes.
 
 **Solution:** Refresh your token
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/refresh-token \
   -b cookies.txt \
@@ -19,24 +21,29 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh-token \
 ```
 
 #### B. Wrong Token Format
+
 Make sure you're sending the token correctly.
 
 **Wrong:**
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/auth/profile \
   -H "Authorization: YOUR_TOKEN"
 ```
 
 **Correct:**
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/auth/profile \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 #### C. Token Not Copied Correctly
+
 Make sure you copy the entire token without extra spaces or line breaks.
 
 **Test Your Token:**
+
 ```bash
 # Save token to variable
 TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -104,6 +111,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 **Problem:** MongoDB database name case mismatch.
 
 **Solution:** Update `.env` file to match existing database name:
+
 ```bash
 # If MongoDB has "growthCraft", use:
 MONGODB_URI=mongodb://localhost:27017/growthCraft
@@ -121,11 +129,13 @@ Then restart the server.
 **Problem:** Authorization header is missing or malformed.
 
 **Check:**
+
 1. Header name is `Authorization` (capital A)
 2. Value starts with `Bearer ` (with space)
 3. Token is included after `Bearer `
 
 **Correct Format:**
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/auth/profile \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -138,13 +148,15 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 **Problem:** You don't have permission to access the resource.
 
 **Example:** Student trying to access admin route
+
 ```bash
 # This will fail if you're a student
 curl -X GET http://localhost:5001/api/v1/users \
   -H "Authorization: Bearer STUDENT_TOKEN"
 ```
 
-**Solution:** 
+**Solution:**
+
 - Check your role: `GET /api/v1/auth/profile`
 - Use an account with appropriate role
 - See RBAC_GUIDE.md for role permissions
@@ -156,6 +168,7 @@ curl -X GET http://localhost:5001/api/v1/users \
 **Problem:** Missing or invalid fields in request body.
 
 **Example Error:**
+
 ```json
 {
   "success": false,
@@ -175,6 +188,7 @@ curl -X GET http://localhost:5001/api/v1/users \
 **Solution:** Check required fields:
 
 **Register requires:**
+
 - fullName (2-100 chars)
 - email (valid email)
 - phone (valid phone)
@@ -182,6 +196,7 @@ curl -X GET http://localhost:5001/api/v1/users \
 - role (student, instructor, admin, super_admin)
 
 **Login requires:**
+
 - email
 - password
 
@@ -192,6 +207,7 @@ curl -X GET http://localhost:5001/api/v1/users \
 **Error:** `Connection refused` or `ECONNREFUSED`
 
 **Solution:**
+
 ```bash
 # Check if server is running
 curl http://localhost:5001/health
@@ -208,6 +224,7 @@ npm run dev
 **Error:** `MongoServerError: connect ECONNREFUSED`
 
 **Solution:**
+
 ```bash
 # Windows - Start MongoDB service
 net start MongoDB
@@ -229,6 +246,7 @@ curl http://localhost:27017
 **Solution:**
 
 **Save cookies:**
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -237,6 +255,7 @@ curl -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 **Send cookies:**
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/refresh-token \
   -b cookies.txt \
@@ -244,6 +263,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh-token \
 ```
 
 **Check cookies file:**
+
 ```bash
 cat cookies.txt
 # Should contain refreshToken
@@ -279,16 +299,19 @@ cat cookies.txt
 ## Quick Debug Commands
 
 ### Check if server is running:
+
 ```bash
 curl http://localhost:5001/health
 ```
 
 ### Check if MongoDB is running:
+
 ```bash
 curl http://localhost:27017
 ```
 
 ### Test login and extract token:
+
 ```bash
 curl -s -X POST http://localhost:5001/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -298,12 +321,14 @@ curl -s -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 ### Decode JWT token (without verification):
+
 ```bash
 # Install jwt-cli: npm install -g jwt-cli
 jwt decode YOUR_TOKEN
 ```
 
 ### Check token expiration:
+
 ```bash
 # The token payload contains 'exp' (expiration timestamp)
 echo "YOUR_TOKEN" | cut -d'.' -f2 | base64 -d | jq
@@ -313,18 +338,18 @@ echo "YOUR_TOKEN" | cut -d'.' -f2 | base64 -d | jq
 
 ## Error Code Reference
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `NO_TOKEN` | Authorization header missing | Add `Authorization: Bearer TOKEN` |
-| `EMPTY_TOKEN` | Token is empty | Check token value |
-| `TOKEN_EXPIRED` | Access token expired | Use refresh token endpoint |
-| `INVALID_TOKEN_FORMAT` | Token format is wrong | Check JWT format |
-| `INVALID_TOKEN` | Token is invalid | Login again |
-| `FORBIDDEN` | No permission | Check role permissions |
-| `VALIDATION_ERROR` | Invalid input | Check required fields |
-| `USER_EXISTS` | Email already registered | Use different email |
-| `USER_NOT_FOUND` | User doesn't exist | Check user ID |
-| `AUTHENTICATION_FAILED` | Wrong credentials | Check email/password |
+| Code                    | Meaning                      | Solution                          |
+| ----------------------- | ---------------------------- | --------------------------------- |
+| `NO_TOKEN`              | Authorization header missing | Add `Authorization: Bearer TOKEN` |
+| `EMPTY_TOKEN`           | Token is empty               | Check token value                 |
+| `TOKEN_EXPIRED`         | Access token expired         | Use refresh token endpoint        |
+| `INVALID_TOKEN_FORMAT`  | Token format is wrong        | Check JWT format                  |
+| `INVALID_TOKEN`         | Token is invalid             | Login again                       |
+| `FORBIDDEN`             | No permission                | Check role permissions            |
+| `VALIDATION_ERROR`      | Invalid input                | Check required fields             |
+| `USER_EXISTS`           | Email already registered     | Use different email               |
+| `USER_NOT_FOUND`        | User doesn't exist           | Check user ID                     |
+| `AUTHENTICATION_FAILED` | Wrong credentials            | Check email/password              |
 
 ---
 

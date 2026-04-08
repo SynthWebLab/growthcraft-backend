@@ -1,6 +1,7 @@
 # Complete cURL Commands for All APIs
 
 ## Prerequisites
+
 - Server running on `http://localhost:5001`
 - MongoDB running
 - Use `-c cookies.txt` to save cookies
@@ -51,6 +52,7 @@ curl -X POST http://localhost:5001/api/v1/auth/register \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -86,6 +88,7 @@ curl -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -118,12 +121,14 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ```
 
 **Example with actual token:**
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/auth/profile \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NWFiYzEyMyIsImVtYWlsIjoiam9obkBleGFtcGxlLmNvbSIsInJvbGUiOiJzdHVkZW50IiwiaWF0IjoxNjk5OTk5OTk5LCJleHAiOjE3MDAwMDA4OTl9.abc123..."
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -154,6 +159,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh-token \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -179,6 +185,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh-token \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -200,6 +207,7 @@ curl -X POST http://localhost:5001/api/v1/auth/logout \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -219,6 +227,7 @@ curl -X POST http://localhost:5001/api/v1/auth/logout-all \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -236,6 +245,7 @@ curl -X GET http://localhost:5001/api/v1/users \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -268,12 +278,14 @@ curl -X GET http://localhost:5001/api/v1/users/USER_ID_HERE \
 ```
 
 **Example:**
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/users/65abc123def456 \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -308,6 +320,7 @@ curl -X PATCH http://localhost:5001/api/v1/users/USER_ID_HERE \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -338,6 +351,7 @@ curl -X DELETE http://localhost:5001/api/v1/users/USER_ID_HERE \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -350,6 +364,7 @@ curl -X DELETE http://localhost:5001/api/v1/users/USER_ID_HERE \
 ## Complete Workflow Example
 
 ### Step 1: Register
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -365,6 +380,7 @@ curl -X POST http://localhost:5001/api/v1/auth/register \
 **Copy the `accessToken` from response**
 
 ### Step 2: Use Access Token
+
 ```bash
 # Replace YOUR_ACCESS_TOKEN with the token from Step 1
 export ACCESS_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -374,6 +390,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ```
 
 ### Step 3: Wait 15+ Minutes (Token Expires)
+
 ```bash
 # This will fail with 401
 curl -X GET http://localhost:5001/api/v1/auth/profile \
@@ -381,6 +398,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ```
 
 **Response:**
+
 ```json
 {
   "success": false,
@@ -392,6 +410,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ```
 
 ### Step 4: Refresh Token
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/refresh-token \
   -b cookies.txt \
@@ -401,6 +420,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh-token \
 **Copy the new `accessToken` from response**
 
 ### Step 5: Use New Access Token
+
 ```bash
 export ACCESS_TOKEN="NEW_TOKEN_HERE"
 
@@ -462,6 +482,7 @@ curl -X POST http://localhost:5001/api/v1/auth/logout \
 ## Error Responses
 
 ### 400 - Validation Error
+
 ```json
 {
   "success": false,
@@ -479,6 +500,7 @@ curl -X POST http://localhost:5001/api/v1/auth/logout \
 ```
 
 ### 401 - Unauthorized
+
 ```json
 {
   "success": false,
@@ -490,6 +512,7 @@ curl -X POST http://localhost:5001/api/v1/auth/logout \
 ```
 
 ### 403 - Forbidden
+
 ```json
 {
   "success": false,
@@ -501,6 +524,7 @@ curl -X POST http://localhost:5001/api/v1/auth/logout \
 ```
 
 ### 404 - Not Found
+
 ```json
 {
   "success": false,
@@ -512,6 +536,7 @@ curl -X POST http://localhost:5001/api/v1/auth/logout \
 ```
 
 ### 409 - Conflict
+
 ```json
 {
   "success": false,
@@ -534,6 +559,7 @@ curl -X POST http://localhost:5001/api/v1/auth/logout \
 6. **Silent mode**: Add `-s` flag to hide progress bar
 
 ### Example with jq (pretty print):
+
 ```bash
 curl -s -X POST http://localhost:5001/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -542,6 +568,7 @@ curl -s -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 ### Example with verbose:
+
 ```bash
 curl -v -X GET http://localhost:5001/api/v1/auth/profile \
   -H "Authorization: Bearer YOUR_TOKEN"

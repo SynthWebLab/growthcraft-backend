@@ -29,7 +29,10 @@ export const NewsletterSection = () => {
             opportunities, free events, and early bird discounts.
           </p>
 
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+          >
             <div className="flex-1 space-y-3 sm:space-y-0 sm:flex sm:gap-3">
               <Input
                 type="text"

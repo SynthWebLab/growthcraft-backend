@@ -1,4 +1,8 @@
-export { errorHandler, handleUnhandledRejection, handleUncaughtException } from './error-handler.middleware';
+export {
+  errorHandler,
+  handleUnhandledRejection,
+  handleUncaughtException,
+} from './error-handler.middleware';
 export { asyncHandler } from '../utils/async-handler.util';
 export { authenticate } from './authenticate.middleware';
 export { authorize } from './authorize.middleware';

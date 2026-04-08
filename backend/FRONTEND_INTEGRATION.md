@@ -188,12 +188,7 @@ export interface ApiError {
 
 ```typescript
 import api from '../axios';
-import {
-  LoginCredentials,
-  RegisterData,
-  AuthResponse,
-  User,
-} from '@/types/auth.types';
+import { LoginCredentials, RegisterData, AuthResponse, User } from '@/types/auth.types';
 
 export const authApi = {
   // Register new user
@@ -254,11 +249,7 @@ export type AppDispatch = typeof store.dispatch;
 ```typescript
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { authApi } from '@/lib/api/auth';
-import {
-  User,
-  LoginCredentials,
-  RegisterData,
-} from '@/types/auth.types';
+import { User, LoginCredentials, RegisterData } from '@/types/auth.types';
 
 interface AuthState {
   user: User | null;
@@ -282,9 +273,7 @@ export const register = createAsyncThunk(
       const user = await authApi.register(data);
       return user;
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.error?.message || 'Registration failed'
-      );
+      return rejectWithValue(error.response?.data?.error?.message || 'Registration failed');
     }
   }
 );
@@ -296,39 +285,27 @@ export const login = createAsyncThunk(
       const user = await authApi.login(credentials);
       return user;
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.error?.message || 'Login failed'
-      );
+      return rejectWithValue(error.response?.data?.error?.message || 'Login failed');
     }
   }
 );
 
-export const getProfile = createAsyncThunk(
-  'auth/getProfile',
-  async (_, { rejectWithValue }) => {
-    try {
-      const user = await authApi.getProfile();
-      return user;
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.error?.message || 'Failed to fetch profile'
-      );
-    }
+export const getProfile = createAsyncThunk('auth/getProfile', async (_, { rejectWithValue }) => {
+  try {
+    const user = await authApi.getProfile();
+    return user;
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.error?.message || 'Failed to fetch profile');
   }
-);
+});
 
-export const logout = createAsyncThunk(
-  'auth/logout',
-  async (_, { rejectWithValue }) => {
-    try {
-      await authApi.logout();
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.error?.message || 'Logout failed'
-      );
-    }
+export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValue }) => {
+  try {
+    await authApi.logout();
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.error?.message || 'Logout failed');
   }
-);
+});
 
 const authSlice = createSlice({
   name: 'auth',
@@ -395,12 +372,11 @@ const authSlice = createSlice({
       });
 
     // Logout
-    builder
-      .addCase(logout.fulfilled, (state) => {
-        state.user = null;
-        state.isAuthenticated = false;
-        state.error = null;
-      });
+    builder.addCase(logout.fulfilled, (state) => {
+      state.user = null;
+      state.isAuthenticated = false;
+      state.error = null;
+    });
   },
 });
 
@@ -425,9 +401,7 @@ import { UserRole } from '@/types/auth.types';
 export const useAuth = (requiredRole?: UserRole) => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { user, isAuthenticated, isLoading } = useSelector(
-    (state: RootState) => state.auth
-  );
+  const { user, isAuthenticated, isLoading } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     // Fetch user profile on mount if not authenticated

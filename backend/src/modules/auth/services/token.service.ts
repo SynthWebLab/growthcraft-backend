@@ -24,7 +24,7 @@ export interface TokenRotationOptions {
 export class TokenService {
   private static instance: TokenService;
 
-  private constructor() { }
+  private constructor() {}
 
   public static getInstance(): TokenService {
     if (!TokenService.instance) {
@@ -124,9 +124,7 @@ export class TokenService {
       user.refreshTokens.push(refreshTokenObj);
 
       // Remove expired tokens
-      user.refreshTokens = user.refreshTokens.filter(
-        (rt) => rt.expiresAt > new Date()
-      );
+      user.refreshTokens = user.refreshTokens.filter((rt) => rt.expiresAt > new Date());
 
       // Limit to last 5 refresh tokens per user (for multiple device support)
       if (user.refreshTokens.length > 5) {
@@ -152,9 +150,7 @@ export class TokenService {
       }
 
       // Remove expired tokens
-      user.refreshTokens = user.refreshTokens.filter(
-        (rt) => rt.expiresAt > new Date()
-      );
+      user.refreshTokens = user.refreshTokens.filter((rt) => rt.expiresAt > new Date());
       await user.save();
 
       // Check if any hashed token matches the provided token

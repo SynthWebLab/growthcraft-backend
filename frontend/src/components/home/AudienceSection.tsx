@@ -3,7 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, School, Hand, UserCheck, Briefcase, ArrowRight } from "lucide-react";
+import {
+  GraduationCap,
+  School,
+  Hand,
+  UserCheck,
+  Briefcase,
+  ArrowRight,
+} from "lucide-react";
 import collegeStudents from "@/assets/college-students.jpg";
 import mentorScene from "@/assets/mentor-scene.jpg";
 import employerScene from "@/assets/employer-scene.jpg";
@@ -13,7 +20,8 @@ const audiences = [
     icon: GraduationCap,
     role: "Students",
     title: "GrowthCraft Seeker",
-    description: "Learn, build, and launch your tech career with industry-relevant courses and hands-on projects.",
+    description:
+      "Learn, build, and launch your tech career with industry-relevant courses and hands-on projects.",
     cta: "Start Learning",
     link: "/for-students",
     image: collegeStudents,
@@ -22,7 +30,8 @@ const audiences = [
     icon: School,
     role: "Colleges",
     title: "GrowthCraft Campus",
-    description: "Partner with us for integrated learning, workshops, and bootcamps on your campus.",
+    description:
+      "Partner with us for integrated learning, workshops, and bootcamps on your campus.",
     cta: "Partner With Us",
     link: "/for-colleges",
     image: null,
@@ -31,7 +40,8 @@ const audiences = [
     icon: Hand,
     role: "Ambassadors",
     title: "GrowthCraft Ambassador",
-    description: "Represent GrowthCraft on campus and grow your influence while helping peers succeed.",
+    description:
+      "Represent GrowthCraft on campus and grow your influence while helping peers succeed.",
     cta: "Apply Now",
     link: "/for-students",
     image: null,
@@ -40,7 +50,8 @@ const audiences = [
     icon: UserCheck,
     role: "Mentors",
     title: "GrowthCraft Mentor",
-    description: "Inspire the next wave of talent by sharing your experience and guiding learners.",
+    description:
+      "Inspire the next wave of talent by sharing your experience and guiding learners.",
     cta: "Become a Mentor",
     link: "/for-mentors",
     image: mentorScene,
@@ -49,7 +60,8 @@ const audiences = [
     icon: Briefcase,
     role: "Hiring Partners",
     title: "GrowthCraft Employer",
-    description: "Recruit skilled, job-ready talent from our certified alumni pool.",
+    description:
+      "Recruit skilled, job-ready talent from our certified alumni pool.",
     cta: "Hire From Us",
     link: "/for-employers",
     image: employerScene,
@@ -66,8 +78,7 @@ export const AudienceSection = () => {
             For Everyone
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-foreground">
-            Different Paths.{" "}
-            <span className="text-primary">One Platform.</span>
+            Different Paths. <span className="text-primary">One Platform.</span>
           </h2>
           <p className="text-muted-foreground text-lg">
             GrowthCraft empowers all stakeholders in the tech learning journey.

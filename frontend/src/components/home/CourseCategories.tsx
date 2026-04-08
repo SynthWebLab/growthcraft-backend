@@ -3,7 +3,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Clock, BookOpen, Code2, Brain, Cloud, Palette, Shield, Smartphone } from "lucide-react";
+import {
+  ArrowRight,
+  Clock,
+  BookOpen,
+  Code2,
+  Brain,
+  Cloud,
+  Palette,
+  Shield,
+  Smartphone,
+} from "lucide-react";
 import { useCourses, useCategories } from "@/hooks/useCourses";
 import { Skeleton } from "@/components/ui/skeleton";
 import courseFullstack from "@/assets/course-fullstack.jpg";
@@ -19,8 +29,8 @@ const categoryImages: Record<string, any> = {
   "Data Science": courseDataScience,
   "Cloud Computing": courseDevops,
   "Mobile Development": courseMobile,
-  "Cybersecurity": courseSecurity,
-  "Design": courseFullstack,
+  Cybersecurity: courseSecurity,
+  Design: courseFullstack,
 };
 
 const categoryIcons: Record<string, any> = {
@@ -29,8 +39,8 @@ const categoryIcons: Record<string, any> = {
   "Data Science": Brain,
   "Cloud Computing": Cloud,
   "Mobile Development": Smartphone,
-  "Cybersecurity": Shield,
-  "Design": Palette,
+  Cybersecurity: Shield,
+  Design: Palette,
 };
 
 export const CourseCategories = () => {
@@ -74,7 +84,8 @@ export const CourseCategories = () => {
               ))
             : categories.slice(0, 8).map((category) => {
                 const IconComponent = categoryIcons[category.name] || BookOpen;
-                const categoryImage = categoryImages[category.name] || courseFullstack;
+                const categoryImage =
+                  categoryImages[category.name] || courseFullstack;
                 return (
                   <Link
                     key={category.name}
@@ -141,8 +152,8 @@ export const CourseCategories = () => {
                           course.level === "Beginner"
                             ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                             : course.level === "Intermediate"
-                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                              ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                         }`}
                       >
                         {course.level}

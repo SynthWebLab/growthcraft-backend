@@ -1,6 +1,7 @@
 import app from './app';
 import { config } from './config';
 import { databaseConfig } from './config/database.config';
+import { redisConfig } from './config/redis.config';
 import { logger } from './common/utils/logger.util';
 
 // Handle uncaught exceptions
@@ -22,6 +23,12 @@ const startServer = async () => {
     await databaseConfig.connect();
     logger.info('Database connected successfully');
 
+    // Connect to Redis (optional)
+    await redisConfig.connect();
+    if (redisConfig.getConnectionStatus()) {
+      logger.info('Redis connected successfully');
+    }
+
     // Start listening
     const server = app.listen(config.PORT, () => {
       logger.info(`Server running on port ${config.PORT}`);
@@ -33,19 +40,23 @@ const startServer = async () => {
     const gracefulShutdown = (signal: string) => {
       logger.info(`${signal} received. Starting graceful shutdown...`);
 
-      server.close(() => {
+      server.close(async () => {
         logger.info('HTTP server closed');
 
-        databaseConfig
-          .disconnect()
-          .then(() => {
-            logger.info('Database disconnected');
-            process.exit(0);
-          })
-          .catch((error) => {
-            logger.error('Error during shutdown:', error);
-            process.exit(1);
-          });
+        try {
+          // Disconnect Redis
+          await redisConfig.disconnect();
+          logger.info('Redis disconnected');
+
+          // Disconnect Database
+          await databaseConfig.disconnect();
+          logger.info('Database disconnected');
+
+          process.exit(0);
+        } catch (error) {
+          logger.error('Error during shutdown:', error);
+          process.exit(1);
+        }
       });
 
       // Force shutdown after 10 seconds

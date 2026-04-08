@@ -1,12 +1,38 @@
-import { GraduationCap, Map, Building, Handshake, Briefcase } from "lucide-react";
+import {
+  GraduationCap,
+  Map,
+  Building,
+  Handshake,
+  Briefcase,
+} from "lucide-react";
 import { TechLogos } from "@/components/common/TechLogos";
 
 const offerings = [
-  { icon: GraduationCap, title: "Tech Courses & Career Tracks", description: "Industry-relevant curriculum" },
-  { icon: Map, title: "On-Campus & Online Bootcamps", description: "Intensive learning programs" },
-  { icon: Building, title: "Internship-Like Project Programs", description: "Real-world experience" },
-  { icon: Handshake, title: "Mentorship & Career Guidance", description: "Expert support" },
-  { icon: Briefcase, title: "Placement Support & Hiring", description: "Job-ready outcomes" },
+  {
+    icon: GraduationCap,
+    title: "Tech Courses & Career Tracks",
+    description: "Industry-relevant curriculum",
+  },
+  {
+    icon: Map,
+    title: "On-Campus & Online Bootcamps",
+    description: "Intensive learning programs",
+  },
+  {
+    icon: Building,
+    title: "Internship-Like Project Programs",
+    description: "Real-world experience",
+  },
+  {
+    icon: Handshake,
+    title: "Mentorship & Career Guidance",
+    description: "Expert support",
+  },
+  {
+    icon: Briefcase,
+    title: "Placement Support & Hiring",
+    description: "Job-ready outcomes",
+  },
 ];
 
 export const AboutSection = () => {
@@ -24,10 +50,10 @@ export const AboutSection = () => {
               <span className="text-primary">A Complete Ecosystem.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-6">
-              At GrowthCraft, we believe tech education should lead to transformation. 
-              That's why we don't just offer courses — we craft pathways. From immersive 
-              bootcamps to college-integrated workshops, from internship-style training to 
-              real job placement.
+              At GrowthCraft, we believe tech education should lead to
+              transformation. That's why we don't just offer courses — we craft
+              pathways. From immersive bootcamps to college-integrated
+              workshops, from internship-style training to real job placement.
             </p>
 
             {/* Tech Logos */}

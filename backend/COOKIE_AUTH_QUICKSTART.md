@@ -7,15 +7,19 @@ Your authentication system now uses **secure httpOnly cookies** instead of Autho
 ## Key Differences
 
 ### Before (Bearer Token)
+
 ```typescript
 // Frontend manually stored tokens
 localStorage.setItem('accessToken', token);
 
 // Frontend manually sent tokens
-headers: { Authorization: `Bearer ${token}` }
+headers: {
+  Authorization: `Bearer ${token}`;
+}
 ```
 
 ### After (Cookie-Based)
+
 ```typescript
 // Backend automatically sets cookies
 res.cookie('access_token', token, { httpOnly: true });
@@ -27,10 +31,12 @@ res.cookie('access_token', token, { httpOnly: true });
 ## Backend Changes
 
 ### 1. Token Generation
+
 - **Access Token**: JWT (15 min) → stored in `access_token` cookie
 - **Refresh Token**: Crypto random (30 days) → hashed in DB, raw in `refreshToken` cookie
 
 ### 2. Authentication Middleware
+
 ```typescript
 // OLD: Read from Authorization header
 const token = req.headers.authorization?.split(' ')[1];
@@ -40,6 +46,7 @@ const token = req.cookies.access_token;
 ```
 
 ### 3. Cookie Configuration
+
 ```typescript
 {
   httpOnly: true,        // JavaScript cannot access
@@ -53,32 +60,37 @@ const token = req.cookies.access_token;
 ## Frontend Changes
 
 ### 1. Axios Configuration
+
 ```typescript
 const api = axios.create({
   baseURL: 'http://localhost:5001/api/v1',
-  withCredentials: true,  // CRITICAL: Send cookies
+  withCredentials: true, // CRITICAL: Send cookies
 });
 ```
 
 ### 2. Remove Manual Token Handling
+
 ```typescript
 // ❌ DELETE THIS
 localStorage.setItem('accessToken', token);
 localStorage.getItem('accessToken');
-headers: { Authorization: `Bearer ${token}` }
+headers: {
+  Authorization: `Bearer ${token}`;
+}
 
 // ✅ DO NOTHING - Cookies are automatic!
 ```
 
 ### 3. Automatic Token Refresh
+
 ```typescript
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      await api.post('/auth/refresh');  // Rotates tokens
-      return api(originalRequest);       // Retry original request
+      await api.post('/auth/refresh'); // Rotates tokens
+      return api(originalRequest); // Retry original request
     }
     return Promise.reject(error);
   }
@@ -88,12 +100,14 @@ api.interceptors.response.use(
 ## Testing
 
 ### 1. Start Backend
+
 ```bash
 cd backend
 npm run dev
 ```
 
 ### 2. Test Login
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -102,18 +116,21 @@ curl -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 Look for `Set-Cookie` headers:
+
 ```
 Set-Cookie: access_token=eyJhbGc...; HttpOnly; Path=/
 Set-Cookie: refreshToken=a1b2c3...; HttpOnly; Path=/
 ```
 
 ### 3. Test Protected Route
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/auth/profile \
   -b cookies.txt
 ```
 
 ### 4. Test Refresh
+
 ```bash
 # Wait 15+ minutes for access token to expire, then:
 curl -X GET http://localhost:5001/api/v1/auth/profile \
@@ -130,6 +147,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ```
 
 ### 5. Test Logout
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/logout \
   -b cookies.txt -v
@@ -139,38 +157,48 @@ Look for `Set-Cookie` with expired dates (clears cookies).
 
 ## API Endpoints
 
-| Endpoint | Method | Auth Required | Description |
-|----------|--------|---------------|-------------|
-| `/auth/register` | POST | No | Register new user |
-| `/auth/login` | POST | No | Login user |
-| `/auth/refresh` | POST | Cookie | Rotate tokens |
-| `/auth/logout` | POST | Yes | Logout current device |
-| `/auth/logout-all` | POST | Yes | Logout all devices |
-| `/auth/profile` | GET | Yes | Get user profile |
+| Endpoint           | Method | Auth Required | Description           |
+| ------------------ | ------ | ------------- | --------------------- |
+| `/auth/register`   | POST   | No            | Register new user     |
+| `/auth/login`      | POST   | No            | Login user            |
+| `/auth/refresh`    | POST   | Cookie        | Rotate tokens         |
+| `/auth/logout`     | POST   | Yes           | Logout current device |
+| `/auth/logout-all` | POST   | Yes           | Logout all devices    |
+| `/auth/profile`    | GET    | Yes           | Get user profile      |
 
 ## Common Issues
 
 ### Issue: Cookies not being set
+
 **Solution**: Check CORS configuration
+
 ```typescript
-app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true,  // MUST be true
-}));
+app.use(
+  cors({
+    origin: 'http://localhost:3000',
+    credentials: true, // MUST be true
+  })
+);
 ```
 
 ### Issue: 401 on protected routes
+
 **Solution**: Verify cookies are sent
+
 - Open DevTools → Network → Request → Cookies
 - Should see `access_token` cookie
 
 ### Issue: Refresh not working
+
 **Solution**: Check both cookies exist
+
 - `access_token` (can be expired)
 - `refreshToken` (must be valid)
 
 ### Issue: CORS errors
-**Solution**: 
+
+**Solution**:
+
 1. Cannot use `origin: '*'` with credentials
 2. Must specify exact origin URL
 3. Frontend must use `withCredentials: true`
@@ -182,7 +210,7 @@ app.use(cors({
 ✅ **Token Rotation**: Refresh tokens rotated on every use  
 ✅ **Hashed Storage**: Refresh tokens hashed in database  
 ✅ **Short-lived Access**: 15-minute access tokens limit exposure  
-✅ **Multi-device**: Support up to 5 devices per user  
+✅ **Multi-device**: Support up to 5 devices per user
 
 ## Environment Variables
 
@@ -205,6 +233,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 ## Migration Checklist
 
 ### Backend
+
 - [x] Update `.env` with 30d refresh expiry
 - [x] Implement `TokenService` with crypto tokens
 - [x] Update `AuthService` to use `TokenService`
@@ -213,6 +242,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 - [x] Test all endpoints with curl
 
 ### Frontend
+
 - [ ] Install axios: `npm install axios`
 - [ ] Create `lib/axios.ts` with interceptor
 - [ ] Add `withCredentials: true`

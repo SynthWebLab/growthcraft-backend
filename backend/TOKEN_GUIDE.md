@@ -3,12 +3,14 @@
 ## Token Overview
 
 ### Access Token
+
 - **Purpose**: Authenticate API requests
 - **Lifetime**: 15 minutes (short-lived for security)
 - **Storage**: Client-side (localStorage, sessionStorage, or memory)
 - **Usage**: Sent in Authorization header for protected routes
 
 ### Refresh Token
+
 - **Purpose**: Get new access tokens without re-login
 - **Lifetime**: 7 days (long-lived)
 - **Storage**: HttpOnly cookie (secure) or client-side
@@ -17,6 +19,7 @@
 ## Complete Token Flow
 
 ### 1. Registration/Login
+
 When user registers or logs in, they receive both tokens:
 
 ```bash
@@ -30,6 +33,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -47,11 +51,13 @@ Content-Type: application/json
 ```
 
 **Also sets cookie:**
+
 ```
 Set-Cookie: refreshToken=eyJhbGc...; HttpOnly; Secure; SameSite=Strict; Max-Age=604800
 ```
 
 ### 2. Using Access Token
+
 Include access token in Authorization header for protected routes:
 
 ```bash
@@ -60,6 +66,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 ### 3. When Access Token Expires
+
 After 15 minutes, access token expires. You'll get:
 
 ```json
@@ -73,6 +80,7 @@ After 15 minutes, access token expires. You'll get:
 ```
 
 ### 4. Refresh the Access Token
+
 Use refresh token to get new access token:
 
 ```bash
@@ -87,6 +95,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -98,6 +107,7 @@ Content-Type: application/json
 ```
 
 ### 5. Logout
+
 Invalidate refresh token:
 
 ```bash
@@ -106,6 +116,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
 
 ### 6. Logout All Devices
+
 Invalidate all refresh tokens:
 
 ```bash
@@ -129,37 +140,37 @@ class AuthService {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include', // Important: sends/receives cookies
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
     });
 
     const data = await response.json();
-    
+
     if (data.success) {
       // Store access token
       this.accessToken = data.data.accessToken;
       localStorage.setItem('accessToken', data.data.accessToken);
-      
+
       // Refresh token is automatically stored in httpOnly cookie
       return data.data.user;
     }
-    
+
     throw new Error(data.error.message);
   }
 
   async refreshAccessToken() {
     const response = await fetch('http://localhost:5001/api/v1/auth/refresh-token', {
       method: 'POST',
-      credentials: 'include' // Sends refresh token cookie
+      credentials: 'include', // Sends refresh token cookie
     });
 
     const data = await response.json();
-    
+
     if (data.success) {
       this.accessToken = data.data.accessToken;
       localStorage.setItem('accessToken', data.data.accessToken);
       return data.data.accessToken;
     }
-    
+
     throw new Error('Token refresh failed');
   }
 
@@ -167,7 +178,7 @@ class AuthService {
     // Add access token to request
     const headers = {
       ...options.headers,
-      'Authorization': `Bearer ${this.accessToken || localStorage.getItem('accessToken')}`
+      Authorization: `Bearer ${this.accessToken || localStorage.getItem('accessToken')}`,
     };
 
     let response = await fetch(url, { ...options, headers });
@@ -176,7 +187,7 @@ class AuthService {
     if (response.status === 401) {
       try {
         await this.refreshAccessToken();
-        
+
         // Retry with new token
         headers.Authorization = `Bearer ${this.accessToken}`;
         response = await fetch(url, { ...options, headers });
@@ -193,8 +204,8 @@ class AuthService {
   async logout() {
     await fetch('http://localhost:5001/api/v1/auth/logout', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${this.accessToken}` },
-      credentials: 'include'
+      headers: { Authorization: `Bearer ${this.accessToken}` },
+      credentials: 'include',
     });
 
     this.accessToken = null;
@@ -213,7 +224,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: 'http://localhost:5001/api/v1',
-  withCredentials: true // Important: sends cookies
+  withCredentials: true, // Important: sends cookies
 });
 
 // Request interceptor - add access token
@@ -276,7 +287,7 @@ import authService from './auth.service';
 function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
-    
+
     try {
       const user = await authService.login(email, password);
       console.log('Logged in:', user);
@@ -286,11 +297,7 @@ function Login() {
     }
   };
 
-  return (
-    <form onSubmit={handleLogin}>
-      {/* form fields */}
-    </form>
-  );
+  return <form onSubmit={handleLogin}>{/* form fields */}</form>;
 }
 
 // Profile.jsx
@@ -299,11 +306,12 @@ import api from './axios.config';
 function Profile() {
   useEffect(() => {
     // Axios automatically handles token refresh
-    api.get('/auth/profile')
-      .then(response => {
+    api
+      .get('/auth/profile')
+      .then((response) => {
         setUser(response.data.data.user);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Failed to load profile:', error);
       });
   }, []);
@@ -315,31 +323,38 @@ function Profile() {
 ## Security Best Practices
 
 ### 1. Token Storage
+
 - **Access Token**: localStorage or memory (for SPAs)
 - **Refresh Token**: HttpOnly cookie (most secure) or secure storage
 
 ### 2. HTTPS Only
+
 Always use HTTPS in production to prevent token interception.
 
 ### 3. Token Rotation
+
 Refresh tokens are rotated on each use (old token invalidated, new one issued).
 
 ### 4. Logout Handling
+
 - Single device: Removes one refresh token
 - All devices: Removes all refresh tokens
 
 ### 5. XSS Protection
+
 - HttpOnly cookies prevent JavaScript access
 - Sanitize all user inputs
 - Use Content Security Policy
 
 ### 6. CSRF Protection
+
 - SameSite cookie attribute
 - CSRF tokens for state-changing operations
 
 ## Testing Token Flow
 
 ### 1. Login and Get Tokens
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -348,12 +363,14 @@ curl -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 ### 2. Use Access Token
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/auth/profile \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 ### 3. Refresh Token (with cookie)
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/refresh-token \
   -b cookies.txt \
@@ -361,6 +378,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh-token \
 ```
 
 ### 4. Logout
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/logout \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
@@ -370,30 +388,34 @@ curl -X POST http://localhost:5001/api/v1/auth/logout \
 ## Troubleshooting
 
 ### "No token provided"
+
 - Ensure Authorization header is included
 - Format: `Authorization: Bearer <token>`
 
 ### "Invalid or expired token"
+
 - Access token expired (15 min)
 - Use refresh token endpoint
 
 ### "Invalid refresh token"
+
 - Refresh token expired (7 days)
 - User logged out
 - User needs to login again
 
 ### CORS Issues
+
 - Ensure `credentials: 'include'` in fetch
 - Backend CORS must allow credentials
 - Frontend and backend must be on allowed origins
 
 ## API Endpoints Summary
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/auth/register` | POST | No | Register new user |
-| `/auth/login` | POST | No | Login user |
-| `/auth/refresh-token` | POST | No | Refresh access token |
-| `/auth/profile` | GET | Yes | Get user profile |
-| `/auth/logout` | POST | Yes | Logout current device |
-| `/auth/logout-all` | POST | Yes | Logout all devices |
+| Endpoint              | Method | Auth | Description           |
+| --------------------- | ------ | ---- | --------------------- |
+| `/auth/register`      | POST   | No   | Register new user     |
+| `/auth/login`         | POST   | No   | Login user            |
+| `/auth/refresh-token` | POST   | No   | Refresh access token  |
+| `/auth/profile`       | GET    | Yes  | Get user profile      |
+| `/auth/logout`        | POST   | Yes  | Logout current device |
+| `/auth/logout-all`    | POST   | Yes  | Logout all devices    |

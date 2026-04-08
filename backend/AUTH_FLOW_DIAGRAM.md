@@ -312,9 +312,9 @@ Origin: http://localhost:3000
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: http://localhost:3000
 Access-Control-Allow-Credentials: true
-Set-Cookie: access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; 
+Set-Cookie: access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...;
             HttpOnly; Secure; SameSite=None; Path=/; Max-Age=900
-Set-Cookie: refreshToken=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6...; 
+Set-Cookie: refreshToken=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6...;
             HttpOnly; Secure; SameSite=None; Path=/; Max-Age=2592000
 Content-Type: application/json
 

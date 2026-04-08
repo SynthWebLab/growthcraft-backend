@@ -30,10 +30,10 @@ export const Navbar = () => {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center">
-            <Image 
-              src={logoMain} 
-              alt="GrowthCraft" 
-              className="h-8 lg:h-10 w-auto object-contain" 
+            <Image
+              src={logoMain}
+              alt="GrowthCraft"
+              className="h-8 lg:h-10 w-auto object-contain"
               height={40}
               width={120}
               priority

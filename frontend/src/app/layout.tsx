@@ -19,18 +19,28 @@ const dancingScript = Dancing_Script({
 
 export const metadata: Metadata = {
   title: "GrowthCraft - Where Learning Meets Opportunity",
-  description: "GrowthCraft - Your all-in-one platform to learn tech, master industry skills, join hands-on bootcamps, connect with mentors, and land your dream job.",
+  description:
+    "GrowthCraft - Your all-in-one platform to learn tech, master industry skills, join hands-on bootcamps, connect with mentors, and land your dream job.",
   authors: [{ name: "GrowthCraft by SYNTHWEB" }],
-  keywords: ["tech education", "bootcamps", "coding courses", "web development", "data science", "career training"],
+  keywords: [
+    "tech education",
+    "bootcamps",
+    "coding courses",
+    "web development",
+    "data science",
+    "career training",
+  ],
   openGraph: {
     title: "GrowthCraft - Where Learning Meets Opportunity",
-    description: "Learn tech, master skills, join bootcamps, connect with mentors, and land your dream job.",
+    description:
+      "Learn tech, master skills, join bootcamps, connect with mentors, and land your dream job.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "GrowthCraft - Where Learning Meets Opportunity",
-    description: "Learn tech, master skills, join bootcamps, and land your dream job.",
+    description:
+      "Learn tech, master skills, join bootcamps, and land your dream job.",
   },
   viewport: "width=device-width, initial-scale=1.0",
 };

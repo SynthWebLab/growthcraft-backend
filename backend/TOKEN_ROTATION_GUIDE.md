@@ -7,27 +7,32 @@ This backend implements a secure token rotation system with automatic refresh, r
 ## Features
 
 ### 1. Automatic Token Rotation
+
 - Tokens are automatically rotated when the `/auth/refresh` endpoint is called
 - Old refresh tokens are invalidated immediately after rotation
 - New token pairs (access + refresh) are generated with each rotation
 
 ### 2. Proactive Auto-Refresh
+
 - Middleware automatically refreshes tokens when access token is about to expire (< 5 minutes)
 - Provides seamless user experience without manual refresh calls
 - Configurable threshold via `AUTO_REFRESH_THRESHOLD` environment variable
 
 ### 3. Token Reuse Detection
+
 - Detects when a refresh token is used multiple times
 - Identifies potential token theft or replay attacks
 - Automatically invalidates all user sessions when reuse is detected
 - Configurable via `TOKEN_REUSE_DETECTION` environment variable
 
 ### 4. Device Tracking
+
 - Tracks device information (user agent) for each refresh token
 - Supports multiple devices (up to 5 concurrent sessions per user)
 - Helps identify suspicious activity across devices
 
 ### 5. Token Metadata
+
 - Each refresh token stores:
   - `token`: Hashed refresh token
   - `createdAt`: When the token was created
@@ -62,9 +67,11 @@ POST /api/v1/auth/refresh
 ```
 
 **Request:**
+
 - Cookies: `access_token`, `refreshToken`
 
 **Response (Success):**
+
 ```json
 {
   "success": true,
@@ -73,6 +80,7 @@ POST /api/v1/auth/refresh
 ```
 
 **Response (Token Reuse Detected):**
+
 ```json
 {
   "success": false,
@@ -84,6 +92,7 @@ POST /api/v1/auth/refresh
 ```
 
 **New Cookies Set:**
+
 - `access_token`: New JWT access token (15 minutes)
 - `refreshToken`: New refresh token (30 days)
 
@@ -126,11 +135,13 @@ T2: Attacker tries to use RT1 → DETECTED!
 ```
 
 **Detection Triggers:**
+
 - Token not found in database (already used/rotated)
 - Token used multiple times within 5 seconds
 - Token used after expiration
 
 **Security Response:**
+
 - Invalidate all refresh tokens for the user
 - Clear all cookies
 - Force re-authentication
@@ -139,24 +150,28 @@ T2: Attacker tries to use RT1 → DETECTED!
 ## Security Best Practices
 
 ### 1. Token Storage
+
 - ✅ Refresh tokens are hashed before storage (bcrypt)
 - ✅ Tokens stored in httpOnly cookies (not accessible via JavaScript)
 - ✅ Secure flag enabled in production
 - ✅ SameSite attribute prevents CSRF attacks
 
 ### 2. Token Rotation
+
 - ✅ Immediate invalidation of old tokens
 - ✅ One-time use refresh tokens
 - ✅ Automatic cleanup of expired tokens
 - ✅ Limited number of concurrent sessions (5 per user)
 
 ### 3. Attack Prevention
+
 - ✅ Token reuse detection
 - ✅ Rapid reuse detection (< 5 seconds)
 - ✅ Automatic session invalidation on suspicious activity
 - ✅ Device tracking for forensics
 
 ### 4. Monitoring
+
 - ✅ Comprehensive logging of token operations
 - ✅ Security event logging
 - ✅ Failed refresh attempt tracking
@@ -178,9 +193,13 @@ axios.interceptors.response.use(
 
       try {
         // Call refresh endpoint
-        await axios.post('/api/v1/auth/refresh', {}, {
-          withCredentials: true // Include cookies
-        });
+        await axios.post(
+          '/api/v1/auth/refresh',
+          {},
+          {
+            withCredentials: true, // Include cookies
+          }
+        );
 
         // Retry original request
         return axios(originalRequest);
@@ -238,35 +257,40 @@ router.use('/api/v1/protected', autoRefreshToken, authenticate);
 
 ```typescript
 interface IRefreshToken {
-  token: string;           // Hashed refresh token
-  createdAt: Date;         // Creation timestamp
-  lastUsedAt?: Date;       // Last usage timestamp
-  expiresAt: Date;         // Expiration timestamp
-  deviceInfo?: string;     // User agent info
+  token: string; // Hashed refresh token
+  createdAt: Date; // Creation timestamp
+  lastUsedAt?: Date; // Last usage timestamp
+  expiresAt: Date; // Expiration timestamp
+  deviceInfo?: string; // User agent info
 }
 
 interface IUser {
   // ... other fields
-  refreshTokens: IRefreshToken[];  // Array of refresh tokens
+  refreshTokens: IRefreshToken[]; // Array of refresh tokens
 }
 ```
 
 ## Troubleshooting
 
 ### Issue: "Token reuse detected"
+
 **Cause:** Refresh token was used multiple times or after rotation
 **Solution:** User must login again. Check for:
+
 - Multiple tabs/windows trying to refresh simultaneously
 - Attacker attempting to use stolen token
 - Race conditions in frontend code
 
 ### Issue: "Cannot identify user"
+
 **Cause:** Access token cookie is missing or corrupted
 **Solution:** User must login again
 
 ### Issue: Auto-refresh not working
+
 **Cause:** Middleware not applied or threshold too low
-**Solution:** 
+**Solution:**
+
 - Ensure `autoRefreshToken` middleware is applied before protected routes
 - Check `AUTO_REFRESH_THRESHOLD` environment variable
 - Verify access token expiry time is greater than threshold

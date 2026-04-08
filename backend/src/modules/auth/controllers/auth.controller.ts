@@ -242,7 +242,10 @@ export class AuthController {
       this.clearTokenCookies(res);
 
       // Check if it's a token reuse attack
-      if (error.message.includes('reuse detected') || error.message.includes('Suspicious activity')) {
+      if (
+        error.message.includes('reuse detected') ||
+        error.message.includes('Suspicious activity')
+      ) {
         res.status(401).json({
           success: false,
           error: {

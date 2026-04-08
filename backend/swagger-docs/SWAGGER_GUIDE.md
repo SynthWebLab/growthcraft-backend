@@ -89,7 +89,8 @@ Run `npm run swagger:auto` and it appears in Swagger automatically!
 Add simple comments to enhance the auto-generated docs:
 
 ```typescript
-router.post('/courses',
+router.post(
+  '/courses',
   // #swagger.tags = ['Courses']
   // #swagger.summary = 'Create a new course'
   // #swagger.description = 'Creates a new course in the system'
@@ -182,7 +183,7 @@ components: {
 Then reference it in your routes:
 
 ```typescript
-$ref: '#/components/schemas/Course'
+$ref: '#/components/schemas/Course';
 ```
 
 ## Security Schemes
@@ -270,7 +271,7 @@ responses:
 Group related endpoints with tags:
 
 ```typescript
-tags: ['Auth', 'Users', 'Courses', 'Payments']
+tags: ['Auth', 'Users', 'Courses', 'Payments'];
 ```
 
 ### 3. Provide Examples
@@ -278,7 +279,7 @@ tags: ['Auth', 'Users', 'Courses', 'Payments']
 Always include example values:
 
 ```typescript
-example: "user@example.com"
+example: 'user@example.com';
 ```
 
 ### 4. Document Query Parameters

@@ -1,6 +1,7 @@
 # Cookie-Based Authentication Implementation Guide
 
 ## Overview
+
 This document describes the production-grade cookie-based authentication system implemented for GrowthCraft EdTech SaaS platform.
 
 ## Architecture
@@ -8,6 +9,7 @@ This document describes the production-grade cookie-based authentication system 
 ### Token Strategy
 
 #### Access Token (JWT)
+
 - **Type**: JSON Web Token (JWT)
 - **Expiry**: 15 minutes
 - **Storage**: `access_token` httpOnly cookie
@@ -15,9 +17,10 @@ This document describes the production-grade cookie-based authentication system 
 - **Contains**: userId, email, role
 
 #### Refresh Token (Crypto Random)
+
 - **Type**: Cryptographically secure random token (128 hex characters)
 - **Expiry**: 30 days
-- **Storage**: 
+- **Storage**:
   - Raw token in `refreshToken` httpOnly cookie
   - Hashed version (bcrypt) in MongoDB
 - **Purpose**: Rotate access tokens without re-login
@@ -183,9 +186,11 @@ This document describes the production-grade cookie-based authentication system 
 ## API Endpoints
 
 ### POST /api/v1/auth/register
+
 Register a new user account.
 
 **Request Body:**
+
 ```json
 {
   "fullName": "John Doe",
@@ -197,6 +202,7 @@ Register a new user account.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -215,13 +221,16 @@ Register a new user account.
 ```
 
 **Cookies Set:**
+
 - `access_token` (15 min)
 - `refreshToken` (30 days)
 
 ### POST /api/v1/auth/login
+
 Authenticate user and issue tokens.
 
 **Request Body:**
+
 ```json
 {
   "email": "john@example.com",
@@ -230,6 +239,7 @@ Authenticate user and issue tokens.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -246,15 +256,18 @@ Authenticate user and issue tokens.
 ```
 
 **Cookies Set:**
+
 - `access_token` (15 min)
 - `refreshToken` (30 days)
 
 ### POST /api/v1/auth/refresh
+
 Rotate tokens using refresh token.
 
 **Request:** Cookies automatically sent by browser
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -263,15 +276,18 @@ Rotate tokens using refresh token.
 ```
 
 **Cookies Set:**
+
 - `access_token` (new, 15 min)
 - `refreshToken` (new, 30 days)
 
 ### POST /api/v1/auth/logout
+
 Logout from current device.
 
 **Request:** Cookies automatically sent by browser
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -280,15 +296,18 @@ Logout from current device.
 ```
 
 **Cookies Cleared:**
+
 - `access_token`
 - `refreshToken`
 
 ### POST /api/v1/auth/logout-all
+
 Logout from all devices.
 
 **Request:** Cookies automatically sent by browser
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -297,15 +316,18 @@ Logout from all devices.
 ```
 
 **Cookies Cleared:**
+
 - `access_token`
 - `refreshToken`
 
 ### GET /api/v1/auth/profile
+
 Get current user profile (protected route).
 
 **Request:** Cookies automatically sent by browser
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -323,30 +345,36 @@ Get current user profile (protected route).
 ## Security Features
 
 ### 1. XSS Protection
+
 - **httpOnly cookies**: JavaScript cannot access tokens
 - **No localStorage**: Tokens never exposed to client-side code
 
 ### 2. CSRF Protection
+
 - **SameSite attribute**: Prevents cross-site request forgery
 - **Production**: `sameSite: 'none'` with `secure: true`
 - **Development**: `sameSite: 'lax'`
 
 ### 3. Token Rotation
+
 - Refresh tokens are rotated on every use
 - Old refresh token is invalidated immediately
 - Prevents token reuse attacks
 
 ### 4. Hashed Storage
+
 - Refresh tokens hashed with bcrypt before database storage
 - Even if database is compromised, tokens cannot be used
 
 ### 5. Multiple Device Support
+
 - Users can have up to 5 active refresh tokens
 - Each device gets its own refresh token
 - Logout affects only current device
 - Logout-all invalidates all devices
 
 ### 6. Token Expiration
+
 - Short-lived access tokens (15 min) limit exposure window
 - Long-lived refresh tokens (30 days) for good UX
 - Automatic refresh flow is seamless
@@ -463,6 +491,7 @@ NEXT_PUBLIC_API_URL=https://your-api.com/api/v1
 ## Testing
 
 ### Test Login
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -471,12 +500,14 @@ curl -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 ### Test Protected Route
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/auth/profile \
   -b cookies.txt
 ```
 
 ### Test Refresh
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/refresh \
   -b cookies.txt \
@@ -484,6 +515,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh \
 ```
 
 ### Test Logout
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/logout \
   -b cookies.txt
@@ -527,13 +559,14 @@ The authentication system integrates with RBAC middleware:
 // Protect route with authentication + authorization
 router.get(
   '/admin/users',
-  authenticate,           // Verify access token
-  authorize(['admin']),   // Check role
+  authenticate, // Verify access token
+  authorize(['admin']), // Check role
   userController.getAll
 );
 ```
 
 Supported roles:
+
 - `student`
 - `mentor`
 - `college`
@@ -568,6 +601,7 @@ If migrating from Authorization header approach:
 ## Support
 
 For issues or questions:
+
 - Check this documentation first
 - Review TROUBLESHOOTING.md
 - Check application logs

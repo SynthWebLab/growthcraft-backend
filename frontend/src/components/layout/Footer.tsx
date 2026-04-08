@@ -1,7 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import logoMain from "@/assets/logo-main.png";
-import { Mail, Phone, MapPin, Linkedin, Twitter, Instagram, Youtube } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Linkedin,
+  Twitter,
+  Instagram,
+  Youtube,
+} from "lucide-react";
 
 const footerLinks = {
   platform: [
@@ -60,7 +68,9 @@ export const Footer = () => {
               </a>
               <div className="flex items-start gap-2 md:gap-3 text-background/70 text-sm md:text-base">
                 <MapPin className="h-4 w-4 md:h-5 md:w-5 mt-0.5 shrink-0" />
-                <span className="text-xs md:text-sm">Guwahati, Assam, India</span>
+                <span className="text-xs md:text-sm">
+                  Guwahati, Assam, India
+                </span>
               </div>
             </div>
           </div>

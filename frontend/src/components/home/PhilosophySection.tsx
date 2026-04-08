@@ -6,22 +6,26 @@ const features = [
   {
     icon: Target,
     title: "Curriculum Tailored to Industry Needs",
-    description: "Designed with hiring managers and tech professionals to ensure every skill you learn is relevant.",
+    description:
+      "Designed with hiring managers and tech professionals to ensure every skill you learn is relevant.",
   },
   {
     icon: UserCheck,
     title: "Mentorship-First Learning",
-    description: "Get feedback and support from real developers, designers, and analysts throughout your journey.",
+    description:
+      "Get feedback and support from real developers, designers, and analysts throughout your journey.",
   },
   {
     icon: FolderKanban,
     title: "Internship-Equivalent Programs",
-    description: "Learn by doing, building real-world projects in a guided format that mimics actual work environments.",
+    description:
+      "Learn by doing, building real-world projects in a guided format that mimics actual work environments.",
   },
   {
     icon: Briefcase,
     title: "Placement Pipeline",
-    description: "We actively connect alumni with hiring companies in our network for job opportunities.",
+    description:
+      "We actively connect alumni with hiring companies in our network for job opportunities.",
   },
 ];
 

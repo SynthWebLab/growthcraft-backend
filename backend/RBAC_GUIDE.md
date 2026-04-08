@@ -12,12 +12,14 @@ The system supports 4 roles with hierarchical permissions:
 ## Role Permissions
 
 ### Student
+
 - Read/update own profile
 - Read courses
 - Enroll in courses
 - Submit assignments
 
 ### Instructor
+
 - All student permissions
 - Create courses
 - Update/delete own courses
@@ -25,12 +27,14 @@ The system supports 4 roles with hierarchical permissions:
 - Grade assignments
 
 ### Admin
+
 - All instructor permissions
 - Manage all courses
 - Read/create/update users
 - View analytics
 
 ### Super Admin
+
 - All admin permissions
 - Delete users
 - Manage system settings
@@ -39,6 +43,7 @@ The system supports 4 roles with hierarchical permissions:
 ## Authorization Middleware
 
 ### 1. `authorize([roles])`
+
 Restrict access to specific roles only.
 
 ```typescript
@@ -46,7 +51,8 @@ import { authorize } from '@/common/middleware/authorize.middleware';
 import { UserRole } from '@/common/constants/user.constants';
 
 // Only admins and super admins
-router.get('/admin-only', 
+router.get(
+  '/admin-only',
   authenticate,
   authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   controller.method
@@ -54,13 +60,15 @@ router.get('/admin-only',
 ```
 
 ### 2. `authorizeMinRole(role)`
+
 Allow access to a role and all higher roles.
 
 ```typescript
 import { authorizeMinRole } from '@/common/middleware/authorize.middleware';
 
 // Instructors, admins, and super admins can access
-router.post('/courses', 
+router.post(
+  '/courses',
   authenticate,
   authorizeMinRole(UserRole.INSTRUCTOR),
   controller.createCourse
@@ -68,13 +76,15 @@ router.post('/courses',
 ```
 
 ### 3. `authorizePermission(permission)`
+
 Check for specific permission.
 
 ```typescript
 import { authorizePermission } from '@/common/middleware/authorize.middleware';
 
 // Only users with 'create:courses' permission
-router.post('/courses', 
+router.post(
+  '/courses',
   authenticate,
   authorizePermission('create:courses'),
   controller.createCourse
@@ -82,33 +92,33 @@ router.post('/courses',
 ```
 
 ### 4. `authorizeOwnership(paramName)`
+
 Allow access to own resources or admins.
 
 ```typescript
 import { authorizeOwnership } from '@/common/middleware/authorize.middleware';
 
 // Users can only update their own profile (or admins can update any)
-router.patch('/users/:userId', 
-  authenticate,
-  authorizeOwnership('userId'),
-  controller.updateUser
-);
+router.patch('/users/:userId', authenticate, authorizeOwnership('userId'), controller.updateUser);
 ```
 
 ## API Endpoints with RBAC
 
 ### Authentication (Public)
+
 ```
 POST /api/v1/auth/register - Register new user
 POST /api/v1/auth/login - Login user
 ```
 
 ### User Profile (Protected)
+
 ```
 GET  /api/v1/auth/profile - Get own profile (All authenticated users)
 ```
 
 ### User Management (Protected)
+
 ```
 GET    /api/v1/users - Get all users (Admin, Super Admin)
 GET    /api/v1/users/:userId - Get user by ID (Own profile or Admin)
@@ -119,6 +129,7 @@ DELETE /api/v1/users/:userId - Delete user (Admin, Super Admin)
 ## Testing RBAC
 
 ### 1. Register as Student (default)
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -131,12 +142,14 @@ curl -X POST http://localhost:5001/api/v1/auth/register \
 ```
 
 ### 2. Try to Access Admin Route (Should Fail)
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/users \
   -H "Authorization: Bearer STUDENT_TOKEN"
 ```
 
 Response:
+
 ```json
 {
   "success": false,
@@ -148,15 +161,14 @@ Response:
 ```
 
 ### 3. Create Admin User (Manually in MongoDB)
+
 ```javascript
 // In MongoDB Compass or shell
-db.users.updateOne(
-  { email: "student@example.com" },
-  { $set: { role: "admin" } }
-)
+db.users.updateOne({ email: 'student@example.com' }, { $set: { role: 'admin' } });
 ```
 
 ### 4. Login as Admin and Access Route
+
 ```bash
 # Login to get new token with admin role
 curl -X POST http://localhost:5001/api/v1/auth/login \
@@ -174,6 +186,7 @@ curl -X GET http://localhost:5001/api/v1/users \
 ## Usage Examples
 
 ### Example 1: Course Routes (Future Implementation)
+
 ```typescript
 import { Router } from 'express';
 import { authenticate } from '@/common/middleware/authenticate.middleware';
@@ -186,21 +199,24 @@ const router = Router();
 router.get('/', courseController.getAllCourses);
 
 // Instructors and above can create courses
-router.post('/',
+router.post(
+  '/',
   authenticate,
   authorizeMinRole(UserRole.INSTRUCTOR),
   courseController.createCourse
 );
 
 // Only course owner or admin can update
-router.patch('/:courseId',
+router.patch(
+  '/:courseId',
   authenticate,
   authorizePermission('update:courses'),
   courseController.updateCourse
 );
 
 // Only admin can delete
-router.delete('/:courseId',
+router.delete(
+  '/:courseId',
   authenticate,
   authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
   courseController.deleteCourse
@@ -208,6 +224,7 @@ router.delete('/:courseId',
 ```
 
 ### Example 2: Checking Permissions in Controller
+
 ```typescript
 import { AuthRequest } from '@/common/middleware/authenticate.middleware';
 import { UserRole, ROLE_PERMISSIONS } from '@/common/constants/user.constants';
@@ -215,7 +232,7 @@ import { UserRole, ROLE_PERMISSIONS } from '@/common/constants/user.constants';
 public async createCourse(req: Request, res: Response) {
   const authReq = req as AuthRequest;
   const userRole = authReq.user?.role as UserRole;
-  
+
   // Check if user has permission
   const permissions = ROLE_PERMISSIONS[userRole];
   if (!permissions.includes('create:courses')) {
@@ -224,7 +241,7 @@ public async createCourse(req: Request, res: Response) {
       error: { message: 'Insufficient permissions' }
     });
   }
-  
+
   // Create course logic...
 }
 ```
@@ -240,6 +257,7 @@ public async createCourse(req: Request, res: Response) {
 ## Adding New Roles
 
 1. Add role to enum in `user.constants.ts`:
+
 ```typescript
 export enum UserRole {
   STUDENT = 'student',
@@ -251,6 +269,7 @@ export enum UserRole {
 ```
 
 2. Add to hierarchy:
+
 ```typescript
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   [UserRole.STUDENT]: 1,
@@ -262,14 +281,10 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
 ```
 
 3. Define permissions:
+
 ```typescript
 export const ROLE_PERMISSIONS = {
-  [UserRole.MODERATOR]: [
-    'read:own_profile',
-    'update:own_profile',
-    'moderate:content',
-    'ban:users',
-  ],
+  [UserRole.MODERATOR]: ['read:own_profile', 'update:own_profile', 'moderate:content', 'ban:users'],
   // ... other roles
 };
 ```

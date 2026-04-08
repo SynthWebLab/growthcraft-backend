@@ -1,6 +1,7 @@
 # Swagger Quick Reference
 
 ## Access Points
+
 - **Swagger UI**: http://localhost:5001/api-docs
 - **OpenAPI JSON**: http://localhost:5001/api-docs.json
 
@@ -52,11 +53,13 @@ router.method('/your-path', controller.method);
 ```
 
 ## Common Schema References
+
 - `$ref: '#/components/schemas/User'` - User object
 - `$ref: '#/components/schemas/Error'` - Error response
 - `$ref: '#/components/schemas/Success'` - Success response
 
 ## HTTP Methods
+
 - `get` - Retrieve data
 - `post` - Create new resource
 - `patch` - Update existing resource (partial)
@@ -64,12 +67,14 @@ router.method('/your-path', controller.method);
 - `delete` - Remove resource
 
 ## Parameter Locations
+
 - `path` - URL path parameter (e.g., `/users/{id}`)
 - `query` - Query string parameter (e.g., `?page=1`)
 - `header` - HTTP header
 - `cookie` - Cookie value
 
 ## Common Data Types
+
 - `string` - Text
 - `number` - Numeric value
 - `integer` - Whole number
@@ -78,19 +83,23 @@ router.method('/your-path', controller.method);
 - `object` - Complex object
 
 ## Security Schemes
+
 - `cookieAuth` - Access token (for most protected routes)
 - `refreshCookieAuth` - Refresh token (for /auth/refresh)
 
 ## Tags (Current)
+
 - `Auth` - Authentication endpoints
 - `Users` - User management endpoints
 
 ## File Locations
+
 - **Config**: `src/config/swagger.config.ts`
 - **App Setup**: `src/app.ts`
 - **Route Examples**: `src/modules/auth/routes/*.ts`
 
 ## Testing Flow
+
 1. Start server: `npm run dev`
 2. Open: http://localhost:5000/api-docs
 3. Login via `/auth/login` endpoint

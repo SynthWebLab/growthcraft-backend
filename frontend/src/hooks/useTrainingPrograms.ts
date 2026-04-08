@@ -35,7 +35,8 @@ const DUMMY_TRAINING_PROGRAMS: TrainingProgram[] = [
     id: "1",
     title: "Corporate Full Stack Development Training",
     slug: "corporate-full-stack-development",
-    description: "Comprehensive full-stack development training program designed for corporate teams. Upskill your developers with modern web technologies and best practices.",
+    description:
+      "Comprehensive full-stack development training program designed for corporate teams. Upskill your developers with modern web technologies and best practices.",
     duration: "8 weeks",
     batch_size: 30,
     price: 150000,
@@ -47,32 +48,43 @@ const DUMMY_TRAINING_PROGRAMS: TrainingProgram[] = [
     category: "Corporate Training",
     domain: "Web Development",
     format: "On-site + Online Hybrid",
-    tech_stack: ["React", "Node.js", "TypeScript", "PostgreSQL", "Docker", "AWS"],
+    tech_stack: [
+      "React",
+      "Node.js",
+      "TypeScript",
+      "PostgreSQL",
+      "Docker",
+      "AWS",
+    ],
     focus_areas: [
       "Modern JavaScript & TypeScript",
       "React & Next.js Development",
       "Backend API Development",
       "Database Design & Optimization",
-      "Cloud Deployment & DevOps"
+      "Cloud Deployment & DevOps",
     ],
     highlights: [
       "Customized curriculum for your team",
       "On-site training at your office",
       "Hands-on project work",
       "Post-training support for 3 months",
-      "Team performance assessment"
+      "Team performance assessment",
     ],
     curriculum: {},
-    prerequisites: ["Basic programming knowledge", "Understanding of web fundamentals"],
+    prerequisites: [
+      "Basic programming knowledge",
+      "Understanding of web fundamentals",
+    ],
     learning_outcomes: [
       "Build production-ready full-stack applications",
       "Implement modern development workflows",
       "Deploy and maintain scalable applications",
       "Follow industry best practices and coding standards",
-      "Work effectively in agile teams"
+      "Work effectively in agile teams",
     ],
     instructor_name: "Rajesh Kumar & Team",
-    instructor_bio: "Lead instructor with 12+ years of experience training corporate teams at Fortune 500 companies.",
+    instructor_bio:
+      "Lead instructor with 12+ years of experience training corporate teams at Fortune 500 companies.",
     is_published: true,
     is_featured: true,
     created_at: "2026-01-10T10:00:00Z",
@@ -81,7 +93,8 @@ const DUMMY_TRAINING_PROGRAMS: TrainingProgram[] = [
     id: "2",
     title: "Enterprise Data Science & ML Training",
     slug: "enterprise-data-science-ml",
-    description: "Transform your team into data-driven decision makers. Comprehensive training in data science, machine learning, and AI for enterprise applications.",
+    description:
+      "Transform your team into data-driven decision makers. Comprehensive training in data science, machine learning, and AI for enterprise applications.",
     duration: "10 weeks",
     batch_size: 25,
     price: 180000,
@@ -93,32 +106,44 @@ const DUMMY_TRAINING_PROGRAMS: TrainingProgram[] = [
     category: "Corporate Training",
     domain: "Data Science & AI",
     format: "Online Live + Recorded",
-    tech_stack: ["Python", "Pandas", "TensorFlow", "PyTorch", "Scikit-learn", "MLflow"],
+    tech_stack: [
+      "Python",
+      "Pandas",
+      "TensorFlow",
+      "PyTorch",
+      "Scikit-learn",
+      "MLflow",
+    ],
     focus_areas: [
       "Data Analysis & Visualization",
       "Machine Learning Algorithms",
       "Deep Learning & Neural Networks",
       "MLOps & Model Deployment",
-      "Business Intelligence & Reporting"
+      "Business Intelligence & Reporting",
     ],
     highlights: [
       "Industry-specific use cases",
       "Work with your company's data",
       "ML model deployment training",
       "Executive summary sessions",
-      "6 months post-training consultation"
+      "6 months post-training consultation",
     ],
     curriculum: {},
-    prerequisites: ["Python basics", "Statistics fundamentals", "SQL knowledge"],
+    prerequisites: [
+      "Python basics",
+      "Statistics fundamentals",
+      "SQL knowledge",
+    ],
     learning_outcomes: [
       "Analyze complex business data",
       "Build and deploy ML models",
       "Implement data pipelines",
       "Create actionable insights from data",
-      "Establish ML best practices in organization"
+      "Establish ML best practices in organization",
     ],
     instructor_name: "Dr. Priya Sharma",
-    instructor_bio: "PhD in Machine Learning, 10+ years training data science teams at leading tech companies.",
+    instructor_bio:
+      "PhD in Machine Learning, 10+ years training data science teams at leading tech companies.",
     is_published: true,
     is_featured: true,
     created_at: "2026-01-12T10:00:00Z",
@@ -127,7 +152,8 @@ const DUMMY_TRAINING_PROGRAMS: TrainingProgram[] = [
     id: "3",
     title: "Cloud & DevOps Transformation Program",
     slug: "cloud-devops-transformation",
-    description: "Accelerate your organization's cloud adoption journey. Comprehensive training in AWS, Azure, DevOps practices, and infrastructure automation.",
+    description:
+      "Accelerate your organization's cloud adoption journey. Comprehensive training in AWS, Azure, DevOps practices, and infrastructure automation.",
     duration: "6 weeks",
     batch_size: 20,
     price: 130000,
@@ -139,32 +165,45 @@ const DUMMY_TRAINING_PROGRAMS: TrainingProgram[] = [
     category: "Corporate Training",
     domain: "Cloud & DevOps",
     format: "On-site + Online Hybrid",
-    tech_stack: ["AWS", "Azure", "Docker", "Kubernetes", "Terraform", "Jenkins", "GitLab CI"],
+    tech_stack: [
+      "AWS",
+      "Azure",
+      "Docker",
+      "Kubernetes",
+      "Terraform",
+      "Jenkins",
+      "GitLab CI",
+    ],
     focus_areas: [
       "Cloud Architecture & Design",
       "Infrastructure as Code",
       "CI/CD Pipeline Implementation",
       "Container Orchestration",
-      "Monitoring & Observability"
+      "Monitoring & Observability",
     ],
     highlights: [
       "Multi-cloud training (AWS + Azure)",
       "Hands-on labs with real infrastructure",
       "Migration strategy workshops",
       "Cost optimization techniques",
-      "Certification exam preparation"
+      "Certification exam preparation",
     ],
     curriculum: {},
-    prerequisites: ["Linux fundamentals", "Networking basics", "Basic scripting"],
+    prerequisites: [
+      "Linux fundamentals",
+      "Networking basics",
+      "Basic scripting",
+    ],
     learning_outcomes: [
       "Design and implement cloud infrastructure",
       "Automate deployment pipelines",
       "Manage containerized applications",
       "Implement security best practices",
-      "Optimize cloud costs and performance"
+      "Optimize cloud costs and performance",
     ],
     instructor_name: "Amit Patel",
-    instructor_bio: "AWS & Azure certified architect with 15+ years experience in cloud transformation projects.",
+    instructor_bio:
+      "AWS & Azure certified architect with 15+ years experience in cloud transformation projects.",
     is_published: true,
     is_featured: false,
     created_at: "2026-01-15T10:00:00Z",
@@ -173,7 +212,8 @@ const DUMMY_TRAINING_PROGRAMS: TrainingProgram[] = [
     id: "4",
     title: "Cybersecurity Awareness & Best Practices",
     slug: "cybersecurity-awareness-training",
-    description: "Protect your organization from cyber threats. Comprehensive security training covering threat detection, incident response, and security best practices.",
+    description:
+      "Protect your organization from cyber threats. Comprehensive security training covering threat detection, incident response, and security best practices.",
     duration: "4 weeks",
     batch_size: 40,
     price: 100000,
@@ -191,14 +231,14 @@ const DUMMY_TRAINING_PROGRAMS: TrainingProgram[] = [
       "Threat Detection & Prevention",
       "Secure Coding Practices",
       "Incident Response",
-      "Compliance & Regulations"
+      "Compliance & Regulations",
     ],
     highlights: [
       "Real-world attack simulations",
       "Security audit training",
       "Compliance framework overview",
       "Incident response drills",
-      "Security policy development"
+      "Security policy development",
     ],
     curriculum: {},
     prerequisites: ["Basic IT knowledge", "Understanding of networks"],
@@ -207,10 +247,11 @@ const DUMMY_TRAINING_PROGRAMS: TrainingProgram[] = [
       "Implement secure coding practices",
       "Respond to security incidents",
       "Conduct security audits",
-      "Establish security policies and procedures"
+      "Establish security policies and procedures",
     ],
     instructor_name: "Vikram Singh",
-    instructor_bio: "Certified Ethical Hacker (CEH) and CISSP with 12+ years in cybersecurity consulting.",
+    instructor_bio:
+      "Certified Ethical Hacker (CEH) and CISSP with 12+ years in cybersecurity consulting.",
     is_published: true,
     is_featured: false,
     created_at: "2026-01-18T10:00:00Z",
@@ -219,7 +260,8 @@ const DUMMY_TRAINING_PROGRAMS: TrainingProgram[] = [
     id: "5",
     title: "Agile & Scrum Mastery for Teams",
     slug: "agile-scrum-mastery",
-    description: "Transform your team's productivity with agile methodologies. Comprehensive training in Scrum, Kanban, and agile best practices.",
+    description:
+      "Transform your team's productivity with agile methodologies. Comprehensive training in Scrum, Kanban, and agile best practices.",
     duration: "3 weeks",
     batch_size: 35,
     price: 80000,
@@ -237,14 +279,14 @@ const DUMMY_TRAINING_PROGRAMS: TrainingProgram[] = [
       "Kanban Methodology",
       "Sprint Planning & Execution",
       "Team Collaboration",
-      "Metrics & Continuous Improvement"
+      "Metrics & Continuous Improvement",
     ],
     highlights: [
       "Interactive workshops",
       "Team coaching sessions",
       "Scrum Master certification prep",
       "Custom agile framework design",
-      "3 months follow-up coaching"
+      "3 months follow-up coaching",
     ],
     curriculum: {},
     prerequisites: ["None - suitable for all team members"],
@@ -253,10 +295,11 @@ const DUMMY_TRAINING_PROGRAMS: TrainingProgram[] = [
       "Facilitate agile ceremonies",
       "Improve team collaboration",
       "Measure and improve team velocity",
-      "Scale agile practices across organization"
+      "Scale agile practices across organization",
     ],
     instructor_name: "Neha Gupta",
-    instructor_bio: "Certified Scrum Trainer (CST) with 10+ years coaching agile teams at startups and enterprises.",
+    instructor_bio:
+      "Certified Scrum Trainer (CST) with 10+ years coaching agile teams at startups and enterprises.",
     is_published: true,
     is_featured: false,
     created_at: "2026-01-20T10:00:00Z",
@@ -275,13 +318,15 @@ export const useTrainingPrograms = () => {
       await new Promise((resolve) => setTimeout(resolve, 550));
 
       // Filter published programs and sort by featured, then by created_at
-      const publishedPrograms = DUMMY_TRAINING_PROGRAMS
-        .filter((program) => program.is_published)
-        .sort((a, b) => {
-          if (a.is_featured && !b.is_featured) return -1;
-          if (!a.is_featured && b.is_featured) return 1;
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        });
+      const publishedPrograms = DUMMY_TRAINING_PROGRAMS.filter(
+        (program) => program.is_published,
+      ).sort((a, b) => {
+        if (a.is_featured && !b.is_featured) return -1;
+        if (!a.is_featured && b.is_featured) return 1;
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      });
 
       setPrograms(publishedPrograms);
     } catch (err: any) {
@@ -313,7 +358,7 @@ export const useTrainingProgram = (slug: string) => {
         await new Promise((resolve) => setTimeout(resolve, 350));
 
         const foundProgram = DUMMY_TRAINING_PROGRAMS.find(
-          (p) => p.slug === slug && p.is_published
+          (p) => p.slug === slug && p.is_published,
         );
 
         if (!foundProgram) {

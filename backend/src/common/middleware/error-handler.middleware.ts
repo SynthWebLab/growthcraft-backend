@@ -69,7 +69,7 @@ export const errorHandler = (
 
   // Log error
   const logMessage = `[${code}] ${message} - ${req.method} ${req.path}`;
-  
+
   if (isOperational) {
     logger.warn(logMessage, {
       statusCode,

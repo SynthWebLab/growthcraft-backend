@@ -1,6 +1,7 @@
 # Quick Start Guide
 
 ## Prerequisites
+
 - MongoDB running on `localhost:27017`
 - Node.js installed
 - Dependencies installed (`npm install`)
@@ -70,6 +71,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ## Environment Variables
 
 Check `.env` file for configuration:
+
 - `MONGODB_URI` - MongoDB connection string
 - `JWT_SECRET` - JWT access token secret
 - `JWT_REFRESH_SECRET` - JWT refresh token secret
@@ -79,6 +81,7 @@ Check `.env` file for configuration:
 ## Next Steps
 
 You can now:
+
 1. Connect your frontend registration form to `/api/v1/auth/register`
 2. Store the access token in localStorage/sessionStorage
 3. Include the token in Authorization header for protected routes

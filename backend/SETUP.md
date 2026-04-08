@@ -3,12 +3,14 @@
 ## Quick Setup (5 minutes)
 
 ### Step 1: Install Dependencies
+
 ```bash
 cd backend
 npm install
 ```
 
 ### Step 2: Configure Environment
+
 ```bash
 # Copy example environment file
 cp .env.example .env
@@ -21,11 +23,13 @@ cp .env.example .env
 ```
 
 ### Step 3: Initialize Git Hooks
+
 ```bash
 npm run prepare
 ```
 
 ### Step 4: Start Development Server
+
 ```bash
 npm run dev
 ```
@@ -39,6 +43,7 @@ Server will start at `http://localhost:5000`
 ### 1. MongoDB Setup
 
 #### Option A: Local MongoDB
+
 ```bash
 # Install MongoDB (macOS)
 brew tap mongodb/brew
@@ -52,10 +57,12 @@ mongosh
 ```
 
 #### Option B: MongoDB Atlas (Cloud)
+
 1. Go to https://www.mongodb.com/cloud/atlas
 2. Create free cluster
 3. Get connection string
 4. Add to `.env`:
+
 ```env
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/growthcraft
 ```
@@ -94,6 +101,7 @@ LOG_LEVEL=info
 ```
 
 #### Generate Secure Keys
+
 ```bash
 # Generate JWT secrets (Node.js)
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
@@ -188,11 +196,13 @@ git push --no-verify
 ## Troubleshooting
 
 ### MongoDB Connection Error
+
 ```
 Error: connect ECONNREFUSED 127.0.0.1:27017
 ```
 
 **Solution**: Start MongoDB
+
 ```bash
 # macOS
 brew services start mongodb-community
@@ -207,6 +217,7 @@ net start MongoDB
 ### Husky Hooks Not Running
 
 **Solution**: Reinstall hooks
+
 ```bash
 rm -rf .husky
 npm run prepare
@@ -215,6 +226,7 @@ npm run prepare
 ### TypeScript Errors
 
 **Solution**: Clean and rebuild
+
 ```bash
 rm -rf dist node_modules
 npm install
@@ -224,11 +236,13 @@ npm run build
 ### Port Already in Use
 
 **Solution**: Change port in `.env`
+
 ```env
 PORT=5001
 ```
 
 Or kill process using port 5000:
+
 ```bash
 # macOS/Linux
 lsof -ti:5000 | xargs kill -9
@@ -241,6 +255,7 @@ taskkill /PID <PID> /F
 ### ESLint/Prettier Conflicts
 
 **Solution**: Format all files
+
 ```bash
 npm run format
 npm run lint:fix
@@ -251,36 +266,43 @@ npm run lint:fix
 ## Development Workflow
 
 ### 1. Create Feature Branch
+
 ```bash
 git checkout -b feat/your-feature
 ```
 
 ### 2. Make Changes
+
 - Write code
 - Add tests
 - Update documentation
 
 ### 3. Commit Changes
+
 ```bash
 git add .
 git commit -m "feat(module): description"
 ```
 
 Husky will:
+
 - ✅ Lint and format your code
 - ✅ Check TypeScript types
 - ✅ Validate commit message
 
 ### 4. Push Changes
+
 ```bash
 git push origin feat/your-feature
 ```
 
 Husky will:
+
 - ✅ Run all tests
 - ✅ Build the project
 
 ### 5. Create Pull Request
+
 - All checks should pass
 - Code is clean and tested
 - Ready for review!

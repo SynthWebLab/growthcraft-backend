@@ -5,6 +5,7 @@
 Your GrowthCraft backend now has a **production-grade cookie-based authentication system** with the following features:
 
 ### 🔐 Security Features
+
 - ✅ **httpOnly cookies** - Prevents XSS attacks (JavaScript cannot access tokens)
 - ✅ **Cryptographically secure refresh tokens** - 128-character random hex tokens
 - ✅ **Hashed token storage** - Refresh tokens hashed with bcrypt before DB storage
@@ -18,6 +19,7 @@ Your GrowthCraft backend now has a **production-grade cookie-based authenticatio
 ### 📁 Files Created/Modified
 
 #### New Files
+
 1. **`src/modules/auth/services/token.service.ts`** - Token generation, hashing, validation, rotation
 2. **`COOKIE_AUTH_IMPLEMENTATION.md`** - Complete backend documentation
 3. **`FRONTEND_INTEGRATION.md`** - Complete Next.js frontend guide
@@ -25,6 +27,7 @@ Your GrowthCraft backend now has a **production-grade cookie-based authenticatio
 5. **`TEST_COOKIE_AUTH.md`** - Comprehensive testing guide
 
 #### Modified Files
+
 1. **`.env`** - Updated JWT_REFRESH_EXPIRES_IN to 30d
 2. **`.env.example`** - Updated JWT_REFRESH_EXPIRES_IN to 30d
 3. **`src/modules/auth/services/auth.service.ts`** - Integrated TokenService
@@ -36,6 +39,7 @@ Your GrowthCraft backend now has a **production-grade cookie-based authenticatio
 ## 🔄 Authentication Flow
 
 ### Login Flow
+
 ```
 1. User submits email + password
 2. Backend validates credentials
@@ -52,6 +56,7 @@ Your GrowthCraft backend now has a **production-grade cookie-based authenticatio
 ```
 
 ### Protected Request Flow
+
 ```
 1. Frontend calls protected API
 2. Browser automatically includes access_token cookie
@@ -63,6 +68,7 @@ Your GrowthCraft backend now has a **production-grade cookie-based authenticatio
 ```
 
 ### Token Refresh Flow
+
 ```
 1. Access token expires (15 min)
 2. Protected API returns 401 TOKEN_EXPIRED
@@ -79,6 +85,7 @@ Your GrowthCraft backend now has a **production-grade cookie-based authenticatio
 ```
 
 ### Logout Flow
+
 ```
 1. Frontend calls POST /api/v1/auth/logout
 2. Backend finds and removes hashed refresh token from DB
@@ -89,14 +96,14 @@ Your GrowthCraft backend now has a **production-grade cookie-based authenticatio
 
 ## 🚀 API Endpoints
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/api/v1/auth/register` | POST | No | Register new user |
-| `/api/v1/auth/login` | POST | No | Login user |
-| `/api/v1/auth/refresh` | POST | Cookie | Rotate tokens |
-| `/api/v1/auth/profile` | GET | Yes | Get user profile |
-| `/api/v1/auth/logout` | POST | Yes | Logout current device |
-| `/api/v1/auth/logout-all` | POST | Yes | Logout all devices |
+| Endpoint                  | Method | Auth   | Description           |
+| ------------------------- | ------ | ------ | --------------------- |
+| `/api/v1/auth/register`   | POST   | No     | Register new user     |
+| `/api/v1/auth/login`      | POST   | No     | Login user            |
+| `/api/v1/auth/refresh`    | POST   | Cookie | Rotate tokens         |
+| `/api/v1/auth/profile`    | GET    | Yes    | Get user profile      |
+| `/api/v1/auth/logout`     | POST   | Yes    | Logout current device |
+| `/api/v1/auth/logout-all` | POST   | Yes    | Logout all devices    |
 
 ## 🧪 Quick Test
 
@@ -138,6 +145,7 @@ Read these in order:
 ## 🎯 Next Steps
 
 ### Backend (Complete ✅)
+
 - [x] Token service with crypto tokens
 - [x] Auth service integration
 - [x] Cookie-based controllers
@@ -147,20 +155,23 @@ Read these in order:
 - [x] Documentation
 
 ### Frontend (To Do)
+
 1. **Install Dependencies**
+
    ```bash
    npm install axios
    ```
 
 2. **Create Axios Instance** (`lib/axios.ts`)
+
    ```typescript
    import axios from 'axios';
-   
+
    const api = axios.create({
      baseURL: process.env.NEXT_PUBLIC_API_URL,
      withCredentials: true, // CRITICAL!
    });
-   
+
    // Add response interceptor for auto-refresh
    api.interceptors.response.use(
      (response) => response,
@@ -173,7 +184,7 @@ Read these in order:
        return Promise.reject(error);
      }
    );
-   
+
    export default api;
    ```
 
@@ -191,6 +202,7 @@ Read these in order:
 ## 🔧 Configuration
 
 ### Backend Environment Variables
+
 ```env
 NODE_ENV=production
 FRONTEND_URL=http://localhost:3000
@@ -204,6 +216,7 @@ COOKIE_SECRET=your-cookie-secret-change-this-in-production
 ```
 
 ### Frontend Environment Variables
+
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 ```
@@ -211,6 +224,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 ### Cookie Settings
 
 **Development:**
+
 ```typescript
 {
   httpOnly: true,
@@ -221,6 +235,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 ```
 
 **Production:**
+
 ```typescript
 {
   httpOnly: true,
@@ -233,6 +248,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 ## ⚠️ Important Notes
 
 ### Frontend Rules
+
 1. **NEVER** store tokens in localStorage or sessionStorage
 2. **ALWAYS** use `withCredentials: true` in axios
 3. **DO NOT** send Authorization headers
@@ -240,6 +256,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 5. **IMPLEMENT** automatic refresh on 401 errors
 
 ### Backend Rules
+
 1. **ALWAYS** hash refresh tokens before DB storage
 2. **ROTATE** refresh tokens on every use
 3. **LIMIT** active sessions per user (currently 5)
@@ -247,6 +264,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 5. **ENABLE** CORS credentials
 
 ### Security Checklist
+
 - [x] httpOnly cookies prevent XSS
 - [x] SameSite attribute prevents CSRF
 - [x] Refresh tokens hashed in database
@@ -261,21 +279,25 @@ NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 ## 🐛 Troubleshooting
 
 ### Cookies Not Being Set
+
 - Check CORS `credentials: true`
 - Verify `withCredentials: true` in frontend
 - Ensure origin matches exactly
 
 ### 401 on Protected Routes
+
 - Verify cookies in browser DevTools
 - Check access token hasn't expired
 - Test refresh endpoint
 
 ### Refresh Not Working
+
 - Verify both cookies present
 - Check refresh token in database
 - Ensure token hasn't expired (30 days)
 
 ### CORS Errors
+
 - Cannot use `origin: '*'` with credentials
 - Must specify exact origin URL
 - Check preflight OPTIONS requests
@@ -287,10 +309,10 @@ Refresh tokens are stored in the User model:
 ```typescript
 {
   refreshTokens: [
-    "$2a$10$hashed_token_1",
-    "$2a$10$hashed_token_2",
+    '$2a$10$hashed_token_1',
+    '$2a$10$hashed_token_2',
     // ... up to 5 tokens
-  ]
+  ];
 }
 ```
 
@@ -309,7 +331,7 @@ Your implementation is complete when:
 ✅ Cookies have HttpOnly flag  
 ✅ CORS allows credentials  
 ✅ Frontend uses withCredentials  
-✅ Automatic refresh works  
+✅ Automatic refresh works
 
 ## 📞 Support
 

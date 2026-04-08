@@ -3,6 +3,7 @@
 ## Authentication APIs
 
 ### 1. Register Student
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -11,6 +12,7 @@ curl -X POST http://localhost:5001/api/v1/auth/register \
 ```
 
 ### 2. Register Instructor
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -19,6 +21,7 @@ curl -X POST http://localhost:5001/api/v1/auth/register \
 ```
 
 ### 3. Register Admin
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -27,6 +30,7 @@ curl -X POST http://localhost:5001/api/v1/auth/register \
 ```
 
 ### 4. Register Super Admin
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -35,6 +39,7 @@ curl -X POST http://localhost:5001/api/v1/auth/register \
 ```
 
 ### 5. Login
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -43,12 +48,14 @@ curl -X POST http://localhost:5001/api/v1/auth/login \
 ```
 
 ### 6. Get Profile
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/auth/profile \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 ### 7. Refresh Token
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/refresh-token \
   -b cookies.txt \
@@ -56,6 +63,7 @@ curl -X POST http://localhost:5001/api/v1/auth/refresh-token \
 ```
 
 ### 8. Logout
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/logout \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
@@ -63,6 +71,7 @@ curl -X POST http://localhost:5001/api/v1/auth/logout \
 ```
 
 ### 9. Logout All Devices
+
 ```bash
 curl -X POST http://localhost:5001/api/v1/auth/logout-all \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
@@ -73,18 +82,21 @@ curl -X POST http://localhost:5001/api/v1/auth/logout-all \
 ## User Management APIs
 
 ### 10. Get All Users (Admin/Super Admin Only)
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/users \
   -H "Authorization: Bearer ADMIN_ACCESS_TOKEN"
 ```
 
 ### 11. Get User By ID (Own Profile or Admin)
+
 ```bash
 curl -X GET http://localhost:5001/api/v1/users/USER_ID \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 ### 12. Update User (Own Profile or Admin)
+
 ```bash
 curl -X PATCH http://localhost:5001/api/v1/users/USER_ID \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
@@ -93,6 +105,7 @@ curl -X PATCH http://localhost:5001/api/v1/users/USER_ID \
 ```
 
 ### 13. Delete User (Admin/Super Admin Only)
+
 ```bash
 curl -X DELETE http://localhost:5001/api/v1/users/USER_ID \
   -H "Authorization: Bearer ADMIN_ACCESS_TOKEN"
@@ -103,6 +116,7 @@ curl -X DELETE http://localhost:5001/api/v1/users/USER_ID \
 ## System APIs
 
 ### 14. Health Check
+
 ```bash
 curl -X GET http://localhost:5001/health
 ```
@@ -161,6 +175,7 @@ curl -s -X POST http://localhost:5001/api/v1/auth/logout \
 ## Testing Different Roles
 
 ### Test Student Access
+
 ```bash
 # Register as student
 curl -X POST http://localhost:5001/api/v1/auth/register \
@@ -174,6 +189,7 @@ curl -X GET http://localhost:5001/api/v1/users \
 ```
 
 ### Test Instructor Access
+
 ```bash
 # Register as instructor
 curl -X POST http://localhost:5001/api/v1/auth/register \
@@ -187,6 +203,7 @@ curl -X GET http://localhost:5001/api/v1/auth/profile \
 ```
 
 ### Test Admin Access
+
 ```bash
 # Register as admin
 curl -X POST http://localhost:5001/api/v1/auth/register \
@@ -203,25 +220,26 @@ curl -X GET http://localhost:5001/api/v1/users \
 
 ## API Endpoints Summary
 
-| Method | Endpoint | Auth | Role | Description |
-|--------|----------|------|------|-------------|
-| POST | `/auth/register` | No | - | Register new user (role required) |
-| POST | `/auth/login` | No | - | Login user |
-| POST | `/auth/refresh-token` | No | - | Refresh access token |
-| GET | `/auth/profile` | Yes | All | Get own profile |
-| POST | `/auth/logout` | Yes | All | Logout current device |
-| POST | `/auth/logout-all` | Yes | All | Logout all devices |
-| GET | `/users` | Yes | Admin, Super Admin | Get all users |
-| GET | `/users/:id` | Yes | Own or Admin | Get user by ID |
-| PATCH | `/users/:id` | Yes | Own or Admin | Update user |
-| DELETE | `/users/:id` | Yes | Admin, Super Admin | Delete user |
-| GET | `/health` | No | - | Health check |
+| Method | Endpoint              | Auth | Role               | Description                       |
+| ------ | --------------------- | ---- | ------------------ | --------------------------------- |
+| POST   | `/auth/register`      | No   | -                  | Register new user (role required) |
+| POST   | `/auth/login`         | No   | -                  | Login user                        |
+| POST   | `/auth/refresh-token` | No   | -                  | Refresh access token              |
+| GET    | `/auth/profile`       | Yes  | All                | Get own profile                   |
+| POST   | `/auth/logout`        | Yes  | All                | Logout current device             |
+| POST   | `/auth/logout-all`    | Yes  | All                | Logout all devices                |
+| GET    | `/users`              | Yes  | Admin, Super Admin | Get all users                     |
+| GET    | `/users/:id`          | Yes  | Own or Admin       | Get user by ID                    |
+| PATCH  | `/users/:id`          | Yes  | Own or Admin       | Update user                       |
+| DELETE | `/users/:id`          | Yes  | Admin, Super Admin | Delete user                       |
+| GET    | `/health`             | No   | -                  | Health check                      |
 
 ---
 
 ## Response Examples
 
 ### Success Response
+
 ```json
 {
   "success": true,
@@ -239,6 +257,7 @@ curl -X GET http://localhost:5001/api/v1/users \
 ```
 
 ### Error Response
+
 ```json
 {
   "success": false,
@@ -250,6 +269,7 @@ curl -X GET http://localhost:5001/api/v1/users \
 ```
 
 ### Validation Error
+
 ```json
 {
   "success": false,
@@ -278,6 +298,7 @@ curl -X GET http://localhost:5001/api/v1/users \
 6. **Save token**: Store access token in variable for reuse
 
 ### Install jq (for pretty JSON)
+
 ```bash
 # Windows (using chocolatey)
 choco install jq

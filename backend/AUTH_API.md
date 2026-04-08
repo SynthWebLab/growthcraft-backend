@@ -1,16 +1,19 @@
 # Authentication API Documentation
 
 ## Overview
+
 JWT-based authentication system with secure password hashing and token management.
 
 ## Endpoints
 
 ### 1. Register User
+
 **POST** `/api/v1/auth/register`
 
 Register a new student account.
 
 **Request Body:**
+
 ```json
 {
   "fullName": "John Doe",
@@ -21,12 +24,14 @@ Register a new student account.
 ```
 
 **Validation Rules:**
+
 - `fullName`: 2-100 characters
 - `email`: Valid email format
 - `phone`: Valid phone number format
 - `password`: Min 8 characters, must contain uppercase, lowercase, and number
 
 **Success Response (201):**
+
 ```json
 {
   "success": true,
@@ -46,6 +51,7 @@ Register a new student account.
 ```
 
 **Error Response (409):**
+
 ```json
 {
   "success": false,
@@ -59,11 +65,13 @@ Register a new student account.
 ---
 
 ### 2. Login User
+
 **POST** `/api/v1/auth/login`
 
 Authenticate existing user.
 
 **Request Body:**
+
 ```json
 {
   "email": "john.doe@example.com",
@@ -72,6 +80,7 @@ Authenticate existing user.
 ```
 
 **Success Response (200):**
+
 ```json
 {
   "success": true,
@@ -91,6 +100,7 @@ Authenticate existing user.
 ```
 
 **Error Response (401):**
+
 ```json
 {
   "success": false,
@@ -104,16 +114,19 @@ Authenticate existing user.
 ---
 
 ### 3. Get User Profile
+
 **GET** `/api/v1/auth/profile`
 
 Get authenticated user's profile (Protected route).
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Success Response (200):**
+
 ```json
 {
   "success": true,
@@ -135,7 +148,7 @@ Authorization: Bearer <access_token>
 ## Security Features
 
 1. **Password Hashing**: bcrypt with 12 salt rounds
-2. **JWT Tokens**: 
+2. **JWT Tokens**:
    - Access Token: 15 minutes expiry
    - Refresh Token: 7 days expiry (stored in httpOnly cookie)
 3. **Token Payload**: userId, email, role

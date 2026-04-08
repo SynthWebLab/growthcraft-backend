@@ -34,7 +34,8 @@ const DUMMY_COURSES: Course[] = [
     slug: "full-stack-web-development",
     category: "Web Development",
     subcategory: "Full Stack",
-    description: "Master modern web development with React, Node.js, and MongoDB",
+    description:
+      "Master modern web development with React, Node.js, and MongoDB",
     duration: "12 weeks",
     level: "Beginner to Advanced",
     price: 15999,
@@ -46,7 +47,11 @@ const DUMMY_COURSES: Course[] = [
     highlights: ["Live projects", "1-on-1 mentorship", "Job placement support"],
     curriculum: {},
     prerequisites: ["Basic HTML/CSS", "JavaScript fundamentals"],
-    learning_outcomes: ["Build full-stack applications", "Deploy to production", "Work with databases"],
+    learning_outcomes: [
+      "Build full-stack applications",
+      "Deploy to production",
+      "Work with databases",
+    ],
     instructor_name: "Rajesh Kumar",
     instructor_bio: "10+ years experience in web development",
     is_published: true,
@@ -59,7 +64,8 @@ const DUMMY_COURSES: Course[] = [
     slug: "data-science-machine-learning",
     category: "Data Science",
     subcategory: "Machine Learning",
-    description: "Learn Python, ML algorithms, and build real-world AI projects",
+    description:
+      "Learn Python, ML algorithms, and build real-world AI projects",
     duration: "16 weeks",
     level: "Intermediate",
     price: 18999,
@@ -71,7 +77,11 @@ const DUMMY_COURSES: Course[] = [
     highlights: ["Industry projects", "Kaggle competitions", "Certificate"],
     curriculum: {},
     prerequisites: ["Python basics", "Statistics fundamentals"],
-    learning_outcomes: ["Build ML models", "Data analysis", "Deploy AI solutions"],
+    learning_outcomes: [
+      "Build ML models",
+      "Data analysis",
+      "Deploy AI solutions",
+    ],
     instructor_name: "Priya Sharma",
     instructor_bio: "Data Scientist at Fortune 500 company",
     is_published: true,
@@ -96,7 +106,11 @@ const DUMMY_COURSES: Course[] = [
     highlights: ["AWS certification prep", "Hands-on labs", "Real projects"],
     curriculum: {},
     prerequisites: ["Basic Linux", "Networking fundamentals"],
-    learning_outcomes: ["Deploy cloud infrastructure", "AWS certification", "DevOps skills"],
+    learning_outcomes: [
+      "Deploy cloud infrastructure",
+      "AWS certification",
+      "DevOps skills",
+    ],
     instructor_name: "Amit Patel",
     instructor_bio: "AWS Certified Solutions Architect",
     is_published: true,
@@ -121,7 +135,11 @@ const DUMMY_COURSES: Course[] = [
     highlights: ["Build 3 apps", "App deployment", "Portfolio projects"],
     curriculum: {},
     prerequisites: ["JavaScript", "React basics"],
-    learning_outcomes: ["Build mobile apps", "Publish to stores", "Mobile UI/UX"],
+    learning_outcomes: [
+      "Build mobile apps",
+      "Publish to stores",
+      "Mobile UI/UX",
+    ],
     instructor_name: "Sneha Reddy",
     instructor_bio: "Mobile developer with 50+ apps published",
     is_published: true,
@@ -140,16 +158,18 @@ export const useCourses = () => {
     try {
       // Simulate API call delay
       await new Promise((resolve) => setTimeout(resolve, 500));
-      
+
       // Filter published courses and sort by featured
-      const publishedCourses = DUMMY_COURSES
-        .filter((course) => course.is_published)
-        .sort((a, b) => {
-          if (a.is_featured && !b.is_featured) return -1;
-          if (!a.is_featured && b.is_featured) return 1;
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        });
-      
+      const publishedCourses = DUMMY_COURSES.filter(
+        (course) => course.is_published,
+      ).sort((a, b) => {
+        if (a.is_featured && !b.is_featured) return -1;
+        if (!a.is_featured && b.is_featured) return 1;
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      });
+
       setCourses(publishedCourses);
     } catch (err: any) {
       setError(err.message);
@@ -173,20 +193,20 @@ export const useCourse = (slug: string) => {
   useEffect(() => {
     const fetchCourse = async () => {
       if (!slug) return;
-      
+
       setIsLoading(true);
       try {
         // Simulate API call delay
         await new Promise((resolve) => setTimeout(resolve, 300));
-        
+
         const foundCourse = DUMMY_COURSES.find(
-          (c) => c.slug === slug && c.is_published
+          (c) => c.slug === slug && c.is_published,
         );
-        
+
         if (!foundCourse) {
           throw new Error("Course not found");
         }
-        
+
         setCourse(foundCourse);
       } catch (err: any) {
         setError(err.message);
@@ -202,23 +222,29 @@ export const useCourse = (slug: string) => {
 };
 
 export const useCategories = () => {
-  const [categories, setCategories] = useState<{ name: string; count: number }[]>([]);
+  const [categories, setCategories] = useState<
+    { name: string; count: number }[]
+  >([]);
 
   useEffect(() => {
     const fetchCategories = async () => {
       // Simulate API call delay
       await new Promise((resolve) => setTimeout(resolve, 200));
-      
+
       const categoryCounts: Record<string, number> = {};
-      
-      DUMMY_COURSES
-        .filter((course) => course.is_published)
-        .forEach((course) => {
-          categoryCounts[course.category] = (categoryCounts[course.category] || 0) + 1;
-        });
-      
+
+      DUMMY_COURSES.filter((course) => course.is_published).forEach(
+        (course) => {
+          categoryCounts[course.category] =
+            (categoryCounts[course.category] || 0) + 1;
+        },
+      );
+
       setCategories(
-        Object.entries(categoryCounts).map(([name, count]) => ({ name, count }))
+        Object.entries(categoryCounts).map(([name, count]) => ({
+          name,
+          count,
+        })),
       );
     };
 

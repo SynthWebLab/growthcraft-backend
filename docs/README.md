@@ -28,14 +28,18 @@ This folder contains the complete documentation for the GrowthCraft EdTech SaaS 
 ## 🚀 Quick Start
 
 ### For Backend Developers
+
 Read [BACKEND_STRUCTURE.md](./BACKEND_STRUCTURE.md) to understand:
+
 - How the auth module is organized
 - Layered architecture (Routes → Controllers → Services → Repositories)
 - Where to add new features
 - How data flows through the system
 
 ### For Frontend Developers
+
 Read [FRONTEND_STRUCTURE.md](./FRONTEND_STRUCTURE.md) to understand:
+
 - How Next.js 14 App Router works
 - How the auth feature is organized
 - Where components, hooks, and services go
@@ -47,11 +51,13 @@ Read [FRONTEND_STRUCTURE.md](./FRONTEND_STRUCTURE.md) to understand:
 ## 🏗️ Architecture Overview
 
 ### Backend (Node.js + Express + TypeScript + MongoDB)
+
 ```
 Routes → Middleware → Controllers → Services → Repositories → Database
 ```
 
 ### Frontend (Next.js 14 + TypeScript + Tailwind + Shadcn)
+
 ```
 Pages → Components → Hooks → Services → API Client → Backend
 ```
@@ -89,26 +95,31 @@ growthcraft/
 ## 🎯 Key Principles
 
 ### 1. Feature-Based Organization
+
 - Each feature (auth, courses, etc.) is self-contained
 - Easy to add new features
 - Clear module boundaries
 
 ### 2. Layered Architecture
+
 - Clear separation of concerns
 - Each layer has a single responsibility
 - Easy to test and maintain
 
 ### 3. DRY (Don't Repeat Yourself)
+
 - Shared utilities in `/common` (backend) and `/lib` (frontend)
 - No code duplication
 - Centralized constants, errors, and types
 
 ### 4. Type Safety
+
 - Strict TypeScript everywhere
 - No `any` types
 - Shared types between frontend and backend (future)
 
 ### 5. Scalability
+
 - Easy to extract features into microservices
 - Horizontal scaling ready
 - Production-ready architecture
@@ -118,6 +129,7 @@ growthcraft/
 ## 📝 Documentation Standards
 
 Each documentation file includes:
+
 - Complete folder structure
 - Explanation of each folder's purpose
 - File-by-file breakdown
@@ -131,6 +143,7 @@ Each documentation file includes:
 ## 🔄 Keeping Documentation Updated
 
 When adding new features or files:
+
 1. Update the relevant structure document (BACKEND_STRUCTURE.md or FRONTEND_STRUCTURE.md)
 2. Add explanations for new folders/files
 3. Update file counts
@@ -141,15 +154,18 @@ When adding new features or files:
 ## 💡 Tips
 
 ### Finding Files
+
 - Backend: Feature files in `/modules/[feature]`, shared files in `/common`
 - Frontend: Feature files in `/features/[feature]`, shared files in `/lib`
 
 ### Adding New Features
+
 - Follow the same structure as existing features (auth)
 - Keep features self-contained
 - Use shared utilities from `/common` (backend) or `/lib` (frontend)
 
 ### Import Paths
+
 - Backend: Use relative imports or path aliases
 - Frontend: Use `@/` alias (e.g., `@/features/auth/hooks/useAuth`)
 

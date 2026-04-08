@@ -1,15 +1,18 @@
 # Swagger/OpenAPI Documentation Setup
 
 ## Overview
+
 This project now includes automatic API documentation using Swagger/OpenAPI 3.0. All your API endpoints are automatically documented and accessible through an interactive UI.
 
 ## Access Documentation
 
 ### Development
+
 - **Swagger UI**: http://localhost:5000/api-docs
 - **OpenAPI JSON**: http://localhost:5000/api-docs.json
 
 ### Production
+
 - Update the server URL in `src/config/swagger.config.ts` to match your production domain
 
 ## Features
@@ -24,7 +27,9 @@ This project now includes automatic API documentation using Swagger/OpenAPI 3.0.
 ## How It Works
 
 ### 1. Configuration
+
 The Swagger configuration is in `src/config/swagger.config.ts`:
+
 - API metadata (title, version, description)
 - Server URLs (development/production)
 - Security schemes (cookie authentication)
@@ -32,6 +37,7 @@ The Swagger configuration is in `src/config/swagger.config.ts`:
 - Tags for grouping endpoints
 
 ### 2. JSDoc Annotations
+
 API endpoints are documented using JSDoc comments in route files:
 
 ```typescript
@@ -60,7 +66,9 @@ router.post('/login', authController.login);
 ```
 
 ### 3. Auto-Discovery
+
 Swagger automatically scans these file patterns:
+
 - `./src/routes/**/*.ts`
 - `./src/modules/**/routes/*.ts`
 - `./src/modules/**/controllers/*.ts`
@@ -104,6 +112,7 @@ router.get('/your-endpoint', yourController.yourMethod);
 ## Common Patterns
 
 ### Protected Endpoint (Requires Authentication)
+
 ```typescript
 /**
  * @swagger
@@ -115,6 +124,7 @@ router.get('/your-endpoint', yourController.yourMethod);
 ```
 
 ### Request Body
+
 ```typescript
 /**
  * @swagger
@@ -138,6 +148,7 @@ router.get('/your-endpoint', yourController.yourMethod);
 ```
 
 ### Path Parameters
+
 ```typescript
 /**
  * @swagger
@@ -153,6 +164,7 @@ router.get('/your-endpoint', yourController.yourMethod);
 ```
 
 ### Query Parameters
+
 ```typescript
 /**
  * @swagger
@@ -187,8 +199,9 @@ components: {
 ```
 
 Then reference it in your routes:
+
 ```typescript
-$ref: '#/components/schemas/YourNewSchema'
+$ref: '#/components/schemas/YourNewSchema';
 ```
 
 ## Testing with Swagger UI
@@ -204,6 +217,7 @@ $ref: '#/components/schemas/YourNewSchema'
 ### Testing Protected Endpoints
 
 Since this API uses HTTP-only cookies:
+
 1. First, call `/auth/login` or `/auth/register` via Swagger UI
 2. The cookies will be automatically set in your browser
 3. Now you can test protected endpoints
@@ -212,17 +226,25 @@ Since this API uses HTTP-only cookies:
 ## Customization
 
 ### Change UI Theme
+
 Edit `src/app.ts`:
+
 ```typescript
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'Your API Docs',
-  customfavIcon: '/path/to/favicon.ico',
-}));
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Your API Docs',
+    customfavIcon: '/path/to/favicon.ico',
+  })
+);
 ```
 
 ### Add More Tags
+
 Edit `src/config/swagger.config.ts`:
+
 ```typescript
 tags: [
   { name: 'Auth', description: 'Authentication endpoints' },
@@ -232,7 +254,9 @@ tags: [
 ```
 
 ### Add Production Server
+
 Edit `src/config/swagger.config.ts`:
+
 ```typescript
 servers: [
   {
@@ -260,16 +284,19 @@ servers: [
 ## Troubleshooting
 
 ### Documentation not showing up
+
 - Check that your route file matches the patterns in `swagger.config.ts`
 - Ensure JSDoc comments use `@swagger` tag
 - Restart the server after adding new documentation
 
 ### Syntax errors in Swagger UI
+
 - Validate your YAML syntax in JSDoc comments
 - Check indentation (use spaces, not tabs)
 - Ensure all referenced schemas exist
 
 ### Authentication not working
+
 - Make sure you've logged in first via Swagger UI
 - Check that cookies are enabled in your browser
 - Verify the security scheme is correctly defined
