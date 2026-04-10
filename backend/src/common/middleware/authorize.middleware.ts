@@ -180,11 +180,11 @@ export const authorizeOwnership = (paramName: string = 'userId') => {
       const resourceUserId = req.params[paramName] || req.body[paramName];
       const authenticatedUserId = authReq.user.userId;
 
-      // Allow if user owns the resource OR is admin/super_admin
+      // Allow if user owns the resource OR has elevated permissions (college/hiring_partner)
       const userRole = authReq.user.role as UserRole;
-      const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.SUPER_ADMIN;
+      const hasElevatedAccess = userRole === UserRole.COLLEGE || userRole === UserRole.HIRING_PARTNER;
 
-      if (resourceUserId !== authenticatedUserId && !isAdmin) {
+      if (resourceUserId !== authenticatedUserId && !hasElevatedAccess) {
         logger.warn(`Unauthorized ownership access attempt by user ${authenticatedUserId}`);
         res.status(403).json({
           success: false,

@@ -38,8 +38,8 @@ export class AuthValidator {
       body('role')
         .notEmpty()
         .withMessage('Role is required')
-        .isIn(['student', 'instructor', 'admin', 'super_admin'])
-        .withMessage('Invalid role. Must be one of: student, instructor, admin, super_admin'),
+        .isIn(['student', 'college', 'mentor', 'ambassador', 'hiring_partner'])
+        .withMessage('Invalid role. Must be one of: student, college, mentor, ambassador, hiring_partner'),
     ];
   }
 

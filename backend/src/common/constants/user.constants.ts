@@ -1,8 +1,9 @@
 export enum UserRole {
   STUDENT = 'student',
+  COLLEGE = 'college',
   MENTOR = 'mentor',
-  ADMIN = 'admin',
-  SUPER_ADMIN = 'super_admin',
+  AMBASSADOR = 'ambassador',
+  HIRING_PARTNER = 'hiring_partner',
 }
 
 export const USER_ROLES = Object.values(UserRole);
@@ -10,9 +11,10 @@ export const USER_ROLES = Object.values(UserRole);
 // Role hierarchy (higher number = more permissions)
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   [UserRole.STUDENT]: 1,
-  [UserRole.MENTOR]: 2,
-  [UserRole.ADMIN]: 3,
-  [UserRole.SUPER_ADMIN]: 4,
+  [UserRole.AMBASSADOR]: 2,
+  [UserRole.MENTOR]: 3,
+  [UserRole.COLLEGE]: 4,
+  [UserRole.HIRING_PARTNER]: 5,
 };
 
 // Permissions for each role
@@ -23,6 +25,18 @@ export const ROLE_PERMISSIONS = {
     'read:courses',
     'enroll:courses',
     'submit:assignments',
+    'read:mentors',
+    'book:sessions',
+  ],
+  [UserRole.COLLEGE]: [
+    'read:own_profile',
+    'update:own_profile',
+    'read:courses',
+    'read:students',
+    'manage:college_students',
+    'read:analytics',
+    'create:college_programs',
+    'update:college_programs',
   ],
   [UserRole.MENTOR]: [
     'read:own_profile',
@@ -33,32 +47,26 @@ export const ROLE_PERMISSIONS = {
     'delete:own_courses',
     'read:students',
     'grade:assignments',
+    'manage:sessions',
+    'provide:mentorship',
   ],
-  [UserRole.ADMIN]: [
+  [UserRole.AMBASSADOR]: [
     'read:own_profile',
     'update:own_profile',
     'read:courses',
-    'create:courses',
-    'update:courses',
-    'delete:courses',
-    'read:users',
-    'create:users',
-    'update:users',
-    'read:analytics',
+    'promote:platform',
+    'refer:students',
+    'read:referrals',
+    'earn:rewards',
   ],
-  [UserRole.SUPER_ADMIN]: [
+  [UserRole.HIRING_PARTNER]: [
     'read:own_profile',
     'update:own_profile',
-    'read:courses',
-    'create:courses',
-    'update:courses',
-    'delete:courses',
-    'read:users',
-    'create:users',
-    'update:users',
-    'delete:users',
+    'read:students',
+    'post:jobs',
+    'manage:jobs',
+    'view:candidates',
+    'schedule:interviews',
     'read:analytics',
-    'manage:system',
-    'manage:roles',
   ],
 };

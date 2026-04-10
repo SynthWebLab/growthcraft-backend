@@ -82,7 +82,7 @@ router.use(authenticate);
  */
 router.get(
   '/',
-  authorize([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+  authorize([UserRole.COLLEGE, UserRole.HIRING_PARTNER]),
   (req: Request, res: Response, next: NextFunction) => {
     void userController.getAllUsers(req, res, next);
   }
@@ -274,7 +274,7 @@ router.patch(
  */
 router.delete(
   '/:userId',
-  authorizeMinRole(UserRole.ADMIN),
+  authorizeMinRole(UserRole.COLLEGE),
   (req: Request, res: Response, next: NextFunction) => {
     void userController.deleteUser(req, res, next);
   }
