@@ -366,7 +366,11 @@
                   },
                   "enum": {
                     "type": "array",
-                    "example": ["user", "admin", "super_admin"],
+                    "example": [
+                      "user",
+                      "admin",
+                      "super_admin"
+                    ],
                     "items": {
                       "type": "string"
                     }
