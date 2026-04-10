@@ -35,14 +35,17 @@ export class RedisConfig {
         password: config.REDIS_PASSWORD || undefined,
         socket: {
           connectTimeout: 10000,
+          keepAlive: 30000, // Send keepalive packets every 30 seconds
           reconnectStrategy: (retries) => {
             if (retries > 10) {
               logger.error('Redis reconnection failed after 10 attempts');
               return new Error('Redis reconnection failed');
             }
+            // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1600ms, 3000ms (max)
             return Math.min(retries * 100, 3000);
           },
         },
+        pingInterval: 60000, // Ping server every 60 seconds to keep connection alive
       });
 
       // Handle Redis events

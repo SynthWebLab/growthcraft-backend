@@ -6,7 +6,7 @@ export class DatabaseConfig {
   private static instance: DatabaseConfig;
   private isConnected = false;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): DatabaseConfig {
     if (!DatabaseConfig.instance) {
@@ -28,6 +28,9 @@ export class DatabaseConfig {
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
+        heartbeatFrequencyMS: 10000, // Check connection health every 10 seconds
+        retryWrites: true,
+        retryReads: true,
       });
 
       this.isConnected = true;
