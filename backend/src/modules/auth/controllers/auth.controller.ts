@@ -77,9 +77,10 @@ export class AuthController {
 
       res.status(201).json({
         success: true,
-        message: 'User registered successfully',
+        message: 'User registered successfully. Please check your email to verify your account.',
         data: {
           user: result.user,
+          requiresEmailVerification: !result.user.isEmailVerified,
           // DEVELOPMENT ONLY: Show tokens in response for testing
           ...(config.NODE_ENV === 'development' && {
             tokens: {
@@ -143,13 +144,17 @@ export class AuthController {
 
       if (
         error.message === 'Invalid email or password' ||
-        error.message === 'Account is deactivated'
+        error.message === 'Account is deactivated' ||
+        error.message === 'Email not verified. Please verify your email before logging in.'
       ) {
-        res.status(401).json({
+        const statusCode = error.message.includes('Email not verified') ? 403 : 401;
+        res.status(statusCode).json({
           success: false,
           error: {
             message: error.message,
-            code: 'AUTHENTICATION_FAILED',
+            code: error.message.includes('Email not verified')
+              ? 'EMAIL_NOT_VERIFIED'
+              : 'AUTHENTICATION_FAILED',
           },
         });
         return;
@@ -301,6 +306,211 @@ export class AuthController {
         message: 'Logged out from all devices successfully',
       });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  public async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email, otp } = req.body;
+
+      if (!email || !otp) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Email and OTP are required',
+            code: 'MISSING_FIELDS',
+          },
+        });
+        return;
+      }
+
+      // Validate OTP format (should be 6 digits)
+      if (!/^\d{6}$/.test(otp)) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Invalid OTP format. OTP must be 6 digits.',
+            code: 'INVALID_OTP_FORMAT',
+          },
+        });
+        return;
+      }
+
+      const result = await authService.verifyEmail(email, otp);
+
+      res.status(200).json({
+        success: true,
+        message: 'Email verified successfully',
+        data: {
+          user: result.user,
+        },
+      });
+    } catch (error: any) {
+      logger.error('Email verification controller error:', error);
+
+      if (
+        error.message.includes('Invalid OTP') ||
+        error.message.includes('OTP has expired') ||
+        error.message.includes('Maximum verification attempts') ||
+        error.message.includes('No verification OTP found')
+      ) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'VERIFICATION_FAILED',
+          },
+        });
+        return;
+      }
+
+      if (error.message === 'User not found') {
+        res.status(404).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'USER_NOT_FOUND',
+          },
+        });
+        return;
+      }
+
+      next(error);
+    }
+  }
+
+  public async resendVerificationEmail(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Email is required',
+            code: 'MISSING_EMAIL',
+          },
+        });
+        return;
+      }
+
+      await authService.resendVerificationOTP(email);
+
+      res.status(200).json({
+        success: true,
+        message: 'Verification OTP sent successfully',
+      });
+    } catch (error: any) {
+      logger.error('Resend verification OTP controller error:', error);
+
+      if (error.message === 'User not found' || error.message === 'Email is already verified') {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'RESEND_FAILED',
+          },
+        });
+        return;
+      }
+
+      if (error.message.includes('Please wait')) {
+        res.status(429).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'RATE_LIMIT_EXCEEDED',
+          },
+        });
+        return;
+      }
+
+      next(error);
+    }
+  }
+
+  public async requestPasswordReset(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Email is required',
+            code: 'MISSING_EMAIL',
+          },
+        });
+        return;
+      }
+
+      await authService.requestPasswordReset(email);
+
+      // Always return success to prevent email enumeration
+      res.status(200).json({
+        success: true,
+        message: 'If the email exists, a password reset link has been sent',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Token and new password are required',
+            code: 'MISSING_FIELDS',
+          },
+        });
+        return;
+      }
+
+      if (newPassword.length < 8) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Password must be at least 8 characters',
+            code: 'INVALID_PASSWORD',
+          },
+        });
+        return;
+      }
+
+      await authService.resetPassword(token, newPassword);
+
+      res.status(200).json({
+        success: true,
+        message: 'Password reset successfully',
+      });
+    } catch (error: any) {
+      logger.error('Password reset controller error:', error);
+
+      if (error.message === 'Invalid or expired reset token') {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'INVALID_TOKEN',
+          },
+        });
+        return;
+      }
+
       next(error);
     }
   }

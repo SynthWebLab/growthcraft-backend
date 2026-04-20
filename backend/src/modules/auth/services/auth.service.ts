@@ -3,6 +3,8 @@ import { RegisterDto, RegisterResponseDto } from '../dto/register.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
 import { logger } from '@/common/utils/logger.util';
 import { tokenService } from './token.service';
+import { emailService } from '@/common/services/email.service';
+import { generateVerificationToken, generateOTP, hashToken } from '@/common/utils/token.util';
 
 export class AuthService {
   private static instance: AuthService;
@@ -24,16 +26,31 @@ export class AuthService {
         throw new Error('User with this email already exists');
       }
 
+      // Generate OTP
+      const otp = generateOTP();
+      const hashedOTP = hashToken(otp);
+
       // Create new user
       const user = new User({
         fullName: registerDto.fullName,
         email: registerDto.email,
         phone: registerDto.phone,
         password: registerDto.password,
-        role: registerDto.role, // Role is now required
+        role: registerDto.role,
+        emailVerificationOTP: hashedOTP,
+        emailVerificationOTPExpires: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+        emailVerificationOTPAttempts: 0,
       });
 
       await user.save();
+
+      // Send verification OTP (non-blocking - don't fail registration if email fails)
+      try {
+        await emailService.sendVerificationOTP(user.email, otp, user.fullName);
+      } catch (emailError) {
+        logger.error('Failed to send verification OTP:', emailError);
+        // Continue with registration even if email fails
+      }
 
       // Generate tokens (JWT access + crypto refresh)
       const tokens = tokenService.generateTokenPair({
@@ -82,6 +99,11 @@ export class AuthService {
       const isPasswordValid = await user.comparePassword(password);
       if (!isPasswordValid) {
         throw new Error('Invalid email or password');
+      }
+
+      // Check if email is verified
+      if (!user.isEmailVerified) {
+        throw new Error('Email not verified. Please verify your email before logging in.');
       }
 
       // Generate new tokens (JWT access + crypto refresh)
@@ -174,6 +196,194 @@ export class AuthService {
       logger.info(`User logged out from all devices: ${userId}`);
     } catch (error: any) {
       logger.error('Logout all error:', error);
+      throw error;
+    }
+  }
+
+  public async verifyEmail(
+    email: string,
+    otp: string
+  ): Promise<{ user: { email: string; fullName: string } }> {
+    try {
+      const hashedOTP = hashToken(otp);
+
+      const user = await User.findOne({ email }).select(
+        '+emailVerificationOTP +emailVerificationOTPExpires +emailVerificationOTPAttempts'
+      );
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Check if already verified
+      if (user.isEmailVerified) {
+        logger.info(`Email already verified for user: ${user.email}`);
+        return {
+          user: {
+            email: user.email,
+            fullName: user.fullName,
+          },
+        };
+      }
+
+      // Check if OTP exists
+      if (!user.emailVerificationOTP || !user.emailVerificationOTPExpires) {
+        throw new Error('No verification OTP found. Please request a new one.');
+      }
+
+      // Check if OTP has expired
+      if (user.emailVerificationOTPExpires.getTime() < Date.now()) {
+        throw new Error('OTP has expired. Please request a new one.');
+      }
+
+      // Check attempts limit (max 5 attempts)
+      if (user.emailVerificationOTPAttempts && user.emailVerificationOTPAttempts >= 5) {
+        // Clear the OTP to force user to request a new one
+        user.emailVerificationOTP = undefined;
+        user.emailVerificationOTPExpires = undefined;
+        user.emailVerificationOTPAttempts = 0;
+        await user.save();
+        throw new Error('Maximum verification attempts exceeded. Please request a new OTP.');
+      }
+
+      // Verify OTP
+      if (user.emailVerificationOTP !== hashedOTP) {
+        // Increment attempts
+        user.emailVerificationOTPAttempts = (user.emailVerificationOTPAttempts || 0) + 1;
+        await user.save();
+
+        const remainingAttempts = 5 - user.emailVerificationOTPAttempts;
+        throw new Error(
+          `Invalid OTP. You have ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`
+        );
+      }
+
+      // OTP is valid - verify email
+      user.isEmailVerified = true;
+      user.emailVerificationOTP = undefined;
+      user.emailVerificationOTPExpires = undefined;
+      user.emailVerificationOTPAttempts = 0;
+      await user.save();
+
+      logger.info(`Email verified successfully for user: ${user.email}`);
+
+      // Send welcome email after successful verification
+      try {
+        await emailService.sendWelcomeEmail(user.email, user.fullName);
+      } catch (emailError) {
+        logger.error('Failed to send welcome email:', emailError);
+        // Don't fail verification if welcome email fails
+      }
+
+      return {
+        user: {
+          email: user.email,
+          fullName: user.fullName,
+        },
+      };
+    } catch (error: any) {
+      logger.error('Email verification error:', error);
+      throw error;
+    }
+  }
+
+  public async resendVerificationOTP(email: string): Promise<void> {
+    try {
+      const user = await User.findOne({ email }).select(
+        '+emailVerificationOTP +emailVerificationOTPExpires +emailVerificationOTPAttempts'
+      );
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (user.isEmailVerified) {
+        throw new Error('Email is already verified');
+      }
+
+      // Rate limiting: Check if last OTP was sent recently (within 2 minutes)
+      if (user.emailVerificationOTPExpires) {
+        const otpAge = Date.now() - (user.emailVerificationOTPExpires.getTime() - 10 * 60 * 1000);
+        const twoMinutes = 2 * 60 * 1000;
+
+        if (otpAge < twoMinutes) {
+          const waitTime = Math.ceil((twoMinutes - otpAge) / 1000);
+          throw new Error(`Please wait ${waitTime} seconds before requesting another OTP`);
+        }
+      }
+
+      // Generate new OTP
+      const otp = generateOTP();
+      const hashedOTP = hashToken(otp);
+
+      user.emailVerificationOTP = hashedOTP;
+      user.emailVerificationOTPExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      user.emailVerificationOTPAttempts = 0; // Reset attempts
+      await user.save();
+
+      // Send verification OTP
+      await emailService.sendVerificationOTP(user.email, otp, user.fullName);
+
+      logger.info(`Verification OTP resent to: ${user.email}`);
+    } catch (error: any) {
+      logger.error('Resend verification OTP error:', error);
+      throw error;
+    }
+  }
+
+  public async requestPasswordReset(email: string): Promise<void> {
+    try {
+      const user = await User.findOne({ email }).select('+passwordResetToken +passwordResetExpires');
+
+      if (!user) {
+        // Don't reveal if user exists or not for security
+        logger.info(`Password reset requested for non-existent email: ${email}`);
+        return;
+      }
+
+      // Generate reset token
+      const resetToken = generateVerificationToken();
+      const hashedToken = hashToken(resetToken);
+
+      user.passwordResetToken = hashedToken;
+      user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      await user.save();
+
+      // Send password reset email
+      await emailService.sendPasswordResetEmail(
+        user.email,
+        resetToken,
+        user.fullName
+      );
+
+      logger.info(`Password reset email sent to: ${user.email}`);
+    } catch (error: any) {
+      logger.error('Password reset request error:', error);
+      throw error;
+    }
+  }
+
+  public async resetPassword(token: string, newPassword: string): Promise<void> {
+    try {
+      const hashedToken = hashToken(token);
+
+      const user = await User.findOne({
+        passwordResetToken: hashedToken,
+        passwordResetExpires: { $gt: Date.now() },
+      }).select('+passwordResetToken +passwordResetExpires +password');
+
+      if (!user) {
+        throw new Error('Invalid or expired reset token');
+      }
+
+      user.password = newPassword;
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      await user.save();
+
+      logger.info(`Password reset successfully for user: ${user.email}`);
+    } catch (error: any) {
+      logger.error('Password reset error:', error);
       throw error;
     }
   }

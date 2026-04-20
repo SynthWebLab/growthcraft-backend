@@ -18,6 +18,11 @@ export interface IUser extends Document {
   role: UserRole;
   isEmailVerified: boolean;
   isActive: boolean;
+  emailVerificationOTP?: string;
+  emailVerificationOTPExpires?: Date;
+  emailVerificationOTPAttempts?: number;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
   refreshTokens: IRefreshToken[];
   createdAt: Date;
   updatedAt: Date;
@@ -65,6 +70,27 @@ const userSchema = new Schema<IUser>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    emailVerificationOTP: {
+      type: String,
+      select: false,
+    },
+    emailVerificationOTPExpires: {
+      type: Date,
+      select: false,
+    },
+    emailVerificationOTPAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    passwordResetToken: {
+      type: String,
+      select: false,
+    },
+    passwordResetExpires: {
+      type: Date,
+      select: false,
     },
     refreshTokens: {
       type: [
