@@ -34,24 +34,26 @@ export class RedisConfig {
         url: config.REDIS_URL,
         password: config.REDIS_PASSWORD || undefined,
         socket: {
-          connectTimeout: 10000,
+          connectTimeout: 5000, // Reduced timeout to fail faster
           keepAlive: 30000, // Send keepalive packets every 30 seconds
           reconnectStrategy: (retries) => {
-            if (retries > 10) {
-              logger.error('Redis reconnection failed after 10 attempts');
-              return new Error('Redis reconnection failed');
+            // Only try 3 times during initial connection
+            if (retries > 3) {
+              logger.warn('Redis reconnection stopped after 3 attempts. App will run without Redis.');
+              return false; // Stop reconnecting
             }
-            // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1600ms, 3000ms (max)
-            return Math.min(retries * 100, 3000);
+            // Quick retries: 500ms, 1000ms, 1500ms
+            return retries * 500;
           },
         },
         pingInterval: 60000, // Ping server every 60 seconds to keep connection alive
       });
 
-      // Handle Redis events
+      // Handle Redis events - don't let errors crash the app
       this.client.on('error', (error) => {
-        logger.error('Redis client error:', error);
+        logger.warn('Redis client error (non-critical):', error.message);
         this.isConnected = false;
+        // Don't throw - just log
       });
 
       this.client.on('connect', () => {
@@ -59,29 +61,44 @@ export class RedisConfig {
       });
 
       this.client.on('ready', () => {
-        logger.info('Redis client ready');
+        logger.info('✓ Redis client ready and connected');
         this.isConnected = true;
       });
 
       this.client.on('reconnecting', () => {
-        logger.warn('Redis client reconnecting...');
+        logger.info('Redis client reconnecting...');
         this.isConnected = false;
       });
 
       this.client.on('end', () => {
-        logger.warn('Redis client connection ended');
+        logger.info('Redis client connection ended');
         this.isConnected = false;
       });
 
-      // Connect to Redis
-      await this.client.connect();
-      logger.info('Redis connected successfully');
-    } catch (error) {
-      logger.error('Redis connection failed:', error);
+      // Connect to Redis with timeout
+      const connectPromise = this.client.connect();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Redis connection timeout')), 5000)
+      );
+
+      await Promise.race([connectPromise, timeoutPromise]);
+      logger.info('✓ Redis connected successfully');
+    } catch (error: any) {
+      logger.warn('⚠ Redis connection failed:', error.message);
+      logger.warn('⚠ Application will continue without Redis (features like rate limiting may be affected)');
+      
+      // Clean up failed client
+      if (this.client) {
+        try {
+          await this.client.disconnect();
+        } catch (e) {
+          // Ignore disconnect errors
+        }
+      }
+      
       this.client = null;
       this.isConnected = false;
       // Don't throw error - allow app to run without Redis
-      logger.warn('Application will continue without Redis');
     }
   }
 

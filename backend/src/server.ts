@@ -21,12 +21,18 @@ const startServer = async () => {
   try {
     // Connect to database
     await databaseConfig.connect();
-    logger.info('Database connected successfully');
+    logger.info('✓ Database connected successfully');
 
-    // Connect to Redis (optional)
-    await redisConfig.connect();
-    if (redisConfig.getConnectionStatus()) {
-      logger.info('Redis connected successfully');
+    // Connect to Redis (optional - app will work without it)
+    try {
+      await redisConfig.connect();
+      if (redisConfig.getConnectionStatus()) {
+        logger.info('✓ Redis connected successfully');
+      } else {
+        logger.warn('⚠ Redis not connected - continuing without Redis');
+      }
+    } catch (error) {
+      logger.warn('⚠ Redis connection failed - continuing without Redis');
     }
 
     // Start listening
@@ -44,9 +50,11 @@ const startServer = async () => {
         logger.info('HTTP server closed');
 
         try {
-          // Disconnect Redis
-          await redisConfig.disconnect();
-          logger.info('Redis disconnected');
+          // Disconnect Redis (if connected)
+          if (redisConfig.getConnectionStatus()) {
+            await redisConfig.disconnect();
+            logger.info('Redis disconnected');
+          }
 
           // Disconnect Database
           await databaseConfig.disconnect();
