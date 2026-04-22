@@ -2,8 +2,7 @@ export enum UserRole {
   STUDENT = 'student',
   COLLEGE = 'college',
   MENTOR = 'mentor',
-  AMBASSADOR = 'ambassador',
-  HIRING_PARTNER = 'hiring_partner',
+  EMPLOYER = 'employer',
 }
 
 export const USER_ROLES = Object.values(UserRole);
@@ -11,10 +10,9 @@ export const USER_ROLES = Object.values(UserRole);
 // Role hierarchy (higher number = more permissions)
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   [UserRole.STUDENT]: 1,
-  [UserRole.AMBASSADOR]: 2,
-  [UserRole.MENTOR]: 3,
-  [UserRole.COLLEGE]: 4,
-  [UserRole.HIRING_PARTNER]: 5,
+  [UserRole.MENTOR]: 2,
+  [UserRole.COLLEGE]: 3,
+  [UserRole.EMPLOYER]: 4,
 };
 
 // Permissions for each role
@@ -50,16 +48,7 @@ export const ROLE_PERMISSIONS = {
     'manage:sessions',
     'provide:mentorship',
   ],
-  [UserRole.AMBASSADOR]: [
-    'read:own_profile',
-    'update:own_profile',
-    'read:courses',
-    'promote:platform',
-    'refer:students',
-    'read:referrals',
-    'earn:rewards',
-  ],
-  [UserRole.HIRING_PARTNER]: [
+  [UserRole.EMPLOYER]: [
     'read:own_profile',
     'update:own_profile',
     'read:students',

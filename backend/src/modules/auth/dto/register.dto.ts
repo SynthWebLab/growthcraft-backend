@@ -17,6 +17,17 @@ export interface RegisterDto {
     state: string;
     website?: string;
   };
+  // Employer-specific fields (optional, only for employer role)
+  employerData?: {
+    companyName: string;
+    contactPerson: string;
+    industry: string;
+    officialEmail: string;
+    phone: string;
+    companySize: string;
+    website?: string;
+    hiringNeeds?: string;
+  };
 }
 
 export interface RegisterResponseDto {
@@ -37,5 +48,11 @@ export interface RegisterResponseDto {
     collegeName: string;
     city: string;
     state: string;
+  };
+  employerProfile?: {
+    id: string;
+    companyName: string;
+    industry: string;
+    companySize: string;
   };
 }

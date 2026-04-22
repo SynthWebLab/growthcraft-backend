@@ -92,6 +92,11 @@ export class AuthController {
         responseData.collegeProfile = result.collegeProfile;
       }
 
+      // Add employer profile to response if available
+      if (result.employerProfile) {
+        responseData.employerProfile = result.employerProfile;
+      }
+
       res.status(201).json({
         success: true,
         message: 'User registered successfully. Please check your email to verify your account.',
@@ -112,6 +117,17 @@ export class AuthController {
       }
 
       if (error.message === 'Failed to create college profile. Please try again.') {
+        res.status(500).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'PROFILE_CREATION_FAILED',
+          },
+        });
+        return;
+      }
+
+      if (error.message === 'Failed to create employer profile. Please try again.') {
         res.status(500).json({
           success: false,
           error: {

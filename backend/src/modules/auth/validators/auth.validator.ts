@@ -38,8 +38,8 @@ export class AuthValidator {
       body('role')
         .notEmpty()
         .withMessage('Role is required')
-        .isIn(['student', 'college', 'mentor', 'ambassador', 'hiring_partner'])
-        .withMessage('Invalid role. Must be one of: student, college, mentor, ambassador, hiring_partner'),
+        .isIn(['student', 'college', 'mentor', 'employer'])
+        .withMessage('Invalid role. Must be one of: student, college, mentor, employer'),
 
       // College-specific validations (conditional)
       body('collegeData.institutionName')
@@ -105,6 +105,70 @@ export class AuthValidator {
         .trim()
         .isURL()
         .withMessage('Please provide a valid website URL'),
+
+      // Employer-specific validations (conditional)
+      body('employerData.companyName')
+        .if(body('role').equals('employer'))
+        .trim()
+        .notEmpty()
+        .withMessage('Company name is required for employer registration')
+        .isLength({ min: 2, max: 200 })
+        .withMessage('Company name must be between 2 and 200 characters'),
+
+      body('employerData.contactPerson')
+        .if(body('role').equals('employer'))
+        .trim()
+        .notEmpty()
+        .withMessage('Contact person name is required for employer registration')
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Contact person name must be between 2 and 100 characters'),
+
+      body('employerData.industry')
+        .if(body('role').equals('employer'))
+        .trim()
+        .notEmpty()
+        .withMessage('Industry is required for employer registration')
+        .isIn(['IT/Software', 'Fintech', 'E-Commerce', 'Healthcare', 'EdTech', 'Startup', 'Other'])
+        .withMessage('Invalid industry. Must be one of: IT/Software, Fintech, E-Commerce, Healthcare, EdTech, Startup, Other'),
+
+      body('employerData.officialEmail')
+        .if(body('role').equals('employer'))
+        .trim()
+        .notEmpty()
+        .withMessage('Official email is required for employer registration')
+        .isEmail()
+        .withMessage('Please provide a valid official email')
+        .normalizeEmail(),
+
+      body('employerData.phone')
+        .if(body('role').equals('employer'))
+        .trim()
+        .notEmpty()
+        .withMessage('Company phone number is required')
+        .matches(/^\+?[\d\s-()]+$/)
+        .withMessage('Please provide a valid phone number'),
+
+      body('employerData.companySize')
+        .if(body('role').equals('employer'))
+        .trim()
+        .notEmpty()
+        .withMessage('Company size is required for employer registration')
+        .isIn(['1-50', '51-200', '201-500', '500+'])
+        .withMessage('Invalid company size. Must be one of: 1-50, 51-200, 201-500, 500+'),
+
+      body('employerData.website')
+        .if(body('role').equals('employer'))
+        .optional()
+        .trim()
+        .isURL()
+        .withMessage('Please provide a valid website URL'),
+
+      body('employerData.hiringNeeds')
+        .if(body('role').equals('employer'))
+        .optional()
+        .trim()
+        .isLength({ max: 1000 })
+        .withMessage('Hiring needs cannot exceed 1000 characters'),
     ];
   }
 

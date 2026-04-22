@@ -1,0 +1,177 @@
+{
+  "info": {
+    "name": "Employer Registration Examples",
+    "description": "Complete employer registration examples with all fields",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Register Employer - Complete (IT/Software)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Jane Doe\",\n  \"email\": \"hr@techcorp.com\",\n  \"phone\": \"+91-98765-33333\",\n  \"password\": \"EmployerPass123\",\n  \"role\": \"employer\",\n  \"employerData\": {\n    \"companyName\": \"Acme Technologies\",\n    \"contactPerson\": \"Jane Doe\",\n    \"industry\": \"IT/Software\",\n    \"officialEmail\": \"hr@techcorp.com\",\n    \"phone\": \"+91-98765-33333\",\n    \"companySize\": \"51-200\",\n    \"website\": \"https://techcorp.com\",\n    \"hiringNeeds\": \"Looking for full-stack developers with 2+ years experience in React and Node.js. Must have strong problem-solving skills.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Complete employer registration with all fields including hiring needs"
+      },
+      "response": []
+    },
+    {
+      "name": "2. Register Employer - Fintech Startup",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Michael Chen\",\n  \"email\": \"hiring@fintechstartup.com\",\n  \"phone\": \"+91-98765-44444\",\n  \"password\": \"SecurePass456\",\n  \"role\": \"employer\",\n  \"employerData\": {\n    \"companyName\": \"FinTech Innovations\",\n    \"contactPerson\": \"Michael Chen\",\n    \"industry\": \"Fintech\",\n    \"officialEmail\": \"hiring@fintechstartup.com\",\n    \"phone\": \"+91-98765-44444\",\n    \"companySize\": \"1-50\",\n    \"website\": \"https://fintechstartup.com\",\n    \"hiringNeeds\": \"Seeking blockchain developers and financial analysts for our growing team.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Fintech startup employer registration"
+      },
+      "response": []
+    },
+    {
+      "name": "3. Register Employer - Healthcare (Large)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Dr. Sarah Williams\",\n  \"email\": \"recruitment@healthcorp.com\",\n  \"phone\": \"+91-98765-55555\",\n  \"password\": \"HealthPass789\",\n  \"role\": \"employer\",\n  \"employerData\": {\n    \"companyName\": \"HealthCorp Solutions\",\n    \"contactPerson\": \"Dr. Sarah Williams\",\n    \"industry\": \"Healthcare\",\n    \"officialEmail\": \"recruitment@healthcorp.com\",\n    \"phone\": \"+91-98765-55555\",\n    \"companySize\": \"500+\",\n    \"website\": \"https://healthcorp.com\",\n    \"hiringNeeds\": \"Hiring healthcare IT specialists, data scientists, and medical software engineers.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Large healthcare company employer registration"
+      },
+      "response": []
+    },
+    {
+      "name": "4. Register Employer - E-Commerce (Without Website)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Raj Kumar\",\n  \"email\": \"hr@ecommerce.com\",\n  \"phone\": \"+91-98765-66666\",\n  \"password\": \"EcomPass123\",\n  \"role\": \"employer\",\n  \"employerData\": {\n    \"companyName\": \"ShopEasy India\",\n    \"contactPerson\": \"Raj Kumar\",\n    \"industry\": \"E-Commerce\",\n    \"officialEmail\": \"hr@ecommerce.com\",\n    \"phone\": \"+91-98765-66666\",\n    \"companySize\": \"201-500\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "E-commerce employer registration without optional fields (website, hiring needs)"
+      },
+      "response": []
+    },
+    {
+      "name": "5. Register Employer - EdTech",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Priya Sharma\",\n  \"email\": \"talent@edtech.com\",\n  \"phone\": \"+91-98765-77777\",\n  \"password\": \"EdTechPass456\",\n  \"role\": \"employer\",\n  \"employerData\": {\n    \"companyName\": \"LearnTech Solutions\",\n    \"contactPerson\": \"Priya Sharma\",\n    \"industry\": \"EdTech\",\n    \"officialEmail\": \"talent@edtech.com\",\n    \"phone\": \"+91-98765-77777\",\n    \"companySize\": \"51-200\",\n    \"website\": \"https://learntech.com\",\n    \"hiringNeeds\": \"Looking for content creators, instructional designers, and platform developers.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "EdTech company employer registration"
+      },
+      "response": []
+    },
+    {
+      "name": "6. Validation Error - Missing Required Fields",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Test User\",\n  \"email\": \"test@company.com\",\n  \"phone\": \"+91-98765-88888\",\n  \"password\": \"TestPass123\",\n  \"role\": \"employer\",\n  \"employerData\": {\n    \"companyName\": \"Test Company\",\n    \"contactPerson\": \"Test User\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Test with missing required fields (industry, officialEmail, phone, companySize) - should return validation error"
+      },
+      "response": []
+    },
+    {
+      "name": "7. Validation Error - Invalid Industry",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Test User\",\n  \"email\": \"test2@company.com\",\n  \"phone\": \"+91-98765-99999\",\n  \"password\": \"TestPass123\",\n  \"role\": \"employer\",\n  \"employerData\": {\n    \"companyName\": \"Test Company\",\n    \"contactPerson\": \"Test User\",\n    \"industry\": \"InvalidIndustry\",\n    \"officialEmail\": \"test@company.com\",\n    \"phone\": \"+91-98765-99999\",\n    \"companySize\": \"51-200\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Test with invalid industry value - should return validation error"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}

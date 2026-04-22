@@ -82,7 +82,7 @@ router.use(authenticate);
  */
 router.get(
   '/',
-  authorize([UserRole.COLLEGE, UserRole.HIRING_PARTNER]),
+  authorize([UserRole.COLLEGE, UserRole.EMPLOYER]),
   (req: Request, res: Response, next: NextFunction) => {
     void userController.getAllUsers(req, res, next);
   }

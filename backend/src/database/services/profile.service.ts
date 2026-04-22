@@ -4,39 +4,28 @@ import {
   StudentProfile,
   CollegeProfile,
   MentorProfile,
-  AmbassadorProfile,
-  HiringPartnerProfile,
+  EmployerProfile,
   IStudentProfile,
   ICollegeProfile,
   IMentorProfile,
-  IAmbassadorProfile,
-  IHiringPartnerProfile,
+  IEmployerProfile,
 } from '../models';
-
-type ProfileModel =
-  | typeof StudentProfile
-  | typeof CollegeProfile
-  | typeof MentorProfile
-  | typeof AmbassadorProfile
-  | typeof HiringPartnerProfile;
 
 type ProfileDocument =
   | IStudentProfile
   | ICollegeProfile
   | IMentorProfile
-  | IAmbassadorProfile
-  | IHiringPartnerProfile;
+  | IEmployerProfile;
 
 /**
  * Get the appropriate profile model based on user role
  */
-export const getProfileModel = (role: UserRole): ProfileModel | null => {
-  const modelMap: Record<UserRole, ProfileModel> = {
+export const getProfileModel = (role: UserRole): any => {
+  const modelMap: Record<UserRole, any> = {
     [UserRole.STUDENT]: StudentProfile,
     [UserRole.COLLEGE]: CollegeProfile,
     [UserRole.MENTOR]: MentorProfile,
-    [UserRole.AMBASSADOR]: AmbassadorProfile,
-    [UserRole.HIRING_PARTNER]: HiringPartnerProfile,
+    [UserRole.EMPLOYER]: EmployerProfile,
   };
 
   return modelMap[role] || null;

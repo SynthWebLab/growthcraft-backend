@@ -1,5 +1,6 @@
 import { User, IUser } from '@/database/models/User.model';
 import { CollegeProfile } from '@/database/models/CollegeProfile.model';
+import { EmployerProfile } from '@/database/models/EmployerProfile.model';
 import { RegisterDto, RegisterResponseDto } from '../dto/register.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
 import { logger } from '@/common/utils/logger.util';
@@ -77,6 +78,35 @@ export class AuthService {
         }
       }
 
+      // Create employer profile if role is employer
+      let employerProfile = null;
+      if (registerDto.role === 'employer' && registerDto.employerData) {
+        try {
+          employerProfile = new EmployerProfile({
+            userId: user._id,
+            companyName: registerDto.employerData.companyName,
+            contactPerson: {
+              name: registerDto.employerData.contactPerson,
+              email: registerDto.employerData.officialEmail,
+              phone: registerDto.employerData.phone,
+            },
+            industry: registerDto.employerData.industry,
+            companySize: registerDto.employerData.companySize,
+            website: registerDto.employerData.website || undefined,
+            hiringNeeds: registerDto.employerData.hiringNeeds || undefined,
+            isVerified: false,
+          });
+
+          await employerProfile.save();
+          logger.info(`Employer profile created for user: ${user.email}`);
+        } catch (profileError) {
+          // If employer profile creation fails, delete the user to maintain consistency
+          await User.findByIdAndDelete(user._id);
+          logger.error('Failed to create employer profile, rolling back user creation:', profileError);
+          throw new Error('Failed to create employer profile. Please try again.');
+        }
+      }
+
       // Send verification OTP (non-blocking - don't fail registration if email fails)
       try {
         await emailService.sendVerificationOTP(user.email, otp, user.fullName);
@@ -116,6 +146,16 @@ export class AuthService {
           collegeName: collegeProfile.collegeName,
           city: collegeProfile.address.city,
           state: collegeProfile.address.state,
+        };
+      }
+
+      // Add employer profile data to response if created
+      if (employerProfile) {
+        response.employerProfile = {
+          id: employerProfile._id.toString(),
+          companyName: employerProfile.companyName,
+          industry: employerProfile.industry,
+          companySize: employerProfile.companySize,
         };
       }
 
