@@ -1,6 +1,7 @@
 import { User, IUser } from '@/database/models/User.model';
 import { CollegeProfile } from '@/database/models/CollegeProfile.model';
 import { EmployerProfile } from '@/database/models/EmployerProfile.model';
+import { MentorProfile } from '@/database/models/MentorProfile.model';
 import { RegisterDto, RegisterResponseDto } from '../dto/register.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
 import { logger } from '@/common/utils/logger.util';
@@ -107,6 +108,29 @@ export class AuthService {
         }
       }
 
+      // Create mentor profile if role is mentor
+      let mentorProfile = null;
+      if (registerDto.role === 'mentor' && registerDto.mentorData) {
+        try {
+          mentorProfile = new MentorProfile({
+            userId: user._id,
+            experienceYears: registerDto.mentorData.experienceYears,
+            areaOfExpertise: registerDto.mentorData.areaOfExpertise,
+            currentOrganization: registerDto.mentorData.currentOrganization,
+            bio: registerDto.mentorData.bio,
+            isVerified: false,
+          });
+
+          await mentorProfile.save();
+          logger.info(`Mentor profile created for user: ${user.email}`);
+        } catch (profileError) {
+          // If mentor profile creation fails, delete the user to maintain consistency
+          await User.findByIdAndDelete(user._id);
+          logger.error('Failed to create mentor profile, rolling back user creation:', profileError);
+          throw new Error('Failed to create mentor profile. Please try again.');
+        }
+      }
+
       // Send verification OTP (non-blocking - don't fail registration if email fails)
       try {
         await emailService.sendVerificationOTP(user.email, otp, user.fullName);
@@ -156,6 +180,16 @@ export class AuthService {
           companyName: employerProfile.companyName,
           industry: employerProfile.industry,
           companySize: employerProfile.companySize,
+        };
+      }
+
+      // Add mentor profile data to response if created
+      if (mentorProfile) {
+        response.mentorProfile = {
+          id: mentorProfile._id.toString(),
+          experienceYears: mentorProfile.experienceYears,
+          areaOfExpertise: mentorProfile.areaOfExpertise,
+          currentOrganization: mentorProfile.currentOrganization,
         };
       }
 

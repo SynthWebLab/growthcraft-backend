@@ -97,6 +97,11 @@ export class AuthController {
         responseData.employerProfile = result.employerProfile;
       }
 
+      // Add mentor profile to response if available
+      if (result.mentorProfile) {
+        responseData.mentorProfile = result.mentorProfile;
+      }
+
       res.status(201).json({
         success: true,
         message: 'User registered successfully. Please check your email to verify your account.',
@@ -128,6 +133,17 @@ export class AuthController {
       }
 
       if (error.message === 'Failed to create employer profile. Please try again.') {
+        res.status(500).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'PROFILE_CREATION_FAILED',
+          },
+        });
+        return;
+      }
+
+      if (error.message === 'Failed to create mentor profile. Please try again.') {
         res.status(500).json({
           success: false,
           error: {

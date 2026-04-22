@@ -2,11 +2,11 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IMentorProfile extends Document {
   userId: mongoose.Types.ObjectId;
-  expertise: string[];
-  bio?: string;
-  experience: number; // years of experience
-  company?: string;
-  designation?: string;
+  experienceYears: number;
+  areaOfExpertise: string;
+  currentOrganization: string;
+  bio: string;
+  // Additional fields for later use
   hourlyRate?: number;
   availability: {
     day: string;
@@ -30,26 +30,33 @@ const mentorProfileSchema = new Schema<IMentorProfile>(
       required: true,
       unique: true,
     },
-    expertise: {
-      type: [String],
-      required: [true, 'At least one area of expertise is required'],
-    },
-    bio: {
-      type: String,
-      maxlength: [500, 'Bio cannot exceed 500 characters'],
-    },
-    experience: {
+    experienceYears: {
       type: Number,
       required: [true, 'Years of experience is required'],
       min: [0, 'Experience cannot be negative'],
     },
-    company: {
+    areaOfExpertise: {
       type: String,
+      required: [true, 'Area of expertise is required'],
+      enum: [
+        'Web Development',
+        'Data Science & AI',
+        'Mobile Development',
+        'DevOps & Cloud',
+        'UI/UX Design',
+        'Cybersecurity',
+        'Other',
+      ],
+    },
+    currentOrganization: {
+      type: String,
+      required: [true, 'Current organization is required'],
       trim: true,
     },
-    designation: {
+    bio: {
       type: String,
-      trim: true,
+      required: [true, 'Bio is required'],
+      maxlength: [1000, 'Bio cannot exceed 1000 characters'],
     },
     hourlyRate: {
       type: Number,
@@ -105,7 +112,7 @@ const mentorProfileSchema = new Schema<IMentorProfile>(
 
 // Index for faster queries
 mentorProfileSchema.index({ userId: 1 });
-mentorProfileSchema.index({ expertise: 1 });
+mentorProfileSchema.index({ areaOfExpertise: 1 });
 mentorProfileSchema.index({ rating: -1 });
 
 export const MentorProfile = mongoose.model<IMentorProfile>('MentorProfile', mentorProfileSchema);

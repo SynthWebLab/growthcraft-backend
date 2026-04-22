@@ -28,6 +28,13 @@ export interface RegisterDto {
     website?: string;
     hiringNeeds?: string;
   };
+  // Mentor-specific fields (optional, only for mentor role)
+  mentorData?: {
+    experienceYears: number;
+    areaOfExpertise: string;
+    currentOrganization: string;
+    bio: string;
+  };
 }
 
 export interface RegisterResponseDto {
@@ -54,5 +61,11 @@ export interface RegisterResponseDto {
     companyName: string;
     industry: string;
     companySize: string;
+  };
+  mentorProfile?: {
+    id: string;
+    experienceYears: number;
+    areaOfExpertise: string;
+    currentOrganization: string;
   };
 }

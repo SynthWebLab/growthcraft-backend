@@ -169,6 +169,48 @@ export class AuthValidator {
         .trim()
         .isLength({ max: 1000 })
         .withMessage('Hiring needs cannot exceed 1000 characters'),
+
+      // Mentor-specific validations (conditional)
+      body('mentorData.experienceYears')
+        .if(body('role').equals('mentor'))
+        .notEmpty()
+        .withMessage('Years of experience is required for mentor registration')
+        .isInt({ min: 0, max: 50 })
+        .withMessage('Experience must be a number between 0 and 50 years'),
+
+      body('mentorData.areaOfExpertise')
+        .if(body('role').equals('mentor'))
+        .trim()
+        .notEmpty()
+        .withMessage('Area of expertise is required for mentor registration')
+        .isIn([
+          'Web Development',
+          'Data Science & AI',
+          'Mobile Development',
+          'DevOps & Cloud',
+          'UI/UX Design',
+          'Cybersecurity',
+          'Other',
+        ])
+        .withMessage(
+          'Invalid area of expertise. Must be one of: Web Development, Data Science & AI, Mobile Development, DevOps & Cloud, UI/UX Design, Cybersecurity, Other'
+        ),
+
+      body('mentorData.currentOrganization')
+        .if(body('role').equals('mentor'))
+        .trim()
+        .notEmpty()
+        .withMessage('Current organization is required for mentor registration')
+        .isLength({ min: 2, max: 200 })
+        .withMessage('Current organization must be between 2 and 200 characters'),
+
+      body('mentorData.bio')
+        .if(body('role').equals('mentor'))
+        .trim()
+        .notEmpty()
+        .withMessage('Bio is required for mentor registration')
+        .isLength({ min: 10, max: 1000 })
+        .withMessage('Bio must be between 10 and 1000 characters'),
     ];
   }
 
