@@ -6,6 +6,17 @@ export interface RegisterDto {
   phone: string;
   password: string;
   role: UserRole; // Required field
+  // College-specific fields (optional, only for college role)
+  collegeData?: {
+    institutionName: string;
+    contactPerson: string;
+    designation: string;
+    officialEmail: string;
+    phone: string;
+    city: string;
+    state: string;
+    website?: string;
+  };
 }
 
 export interface RegisterResponseDto {
@@ -20,5 +31,11 @@ export interface RegisterResponseDto {
   tokens: {
     accessToken: string;
     refreshToken: string;
+  };
+  collegeProfile?: {
+    id: string;
+    collegeName: string;
+    city: string;
+    state: string;
   };
 }

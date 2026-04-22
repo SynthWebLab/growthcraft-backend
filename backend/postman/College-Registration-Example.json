@@ -1,0 +1,108 @@
+{
+  "info": {
+    "name": "College Registration Example",
+    "description": "Example requests for college registration flow",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register College - Complete",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Dr. Sharma\",\n  \"email\": \"admin@abcollege.edu\",\n  \"phone\": \"+91-98765-12310\",\n  \"password\": \"SecurePass123\",\n  \"role\": \"college\",\n  \"collegeData\": {\n    \"institutionName\": \"ABC Engineering College\",\n    \"contactPerson\": \"Dr. Sharma\",\n    \"designation\": \"HOD / TPO\",\n    \"officialEmail\": \"admin@abcollege.edu\",\n    \"phone\": \"+91-98765-12310\",\n    \"city\": \"Guwahati\",\n    \"state\": \"Assam\",\n    \"website\": \"https://abcollege.edu\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Complete college registration with all required fields"
+      },
+      "response": []
+    },
+    {
+      "name": "Register College - Without Website",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Dr. Kumar\",\n  \"email\": \"principal@xyztech.edu\",\n  \"phone\": \"+91-98765-54321\",\n  \"password\": \"SecurePass456\",\n  \"role\": \"college\",\n  \"collegeData\": {\n    \"institutionName\": \"XYZ Technical Institute\",\n    \"contactPerson\": \"Dr. Kumar\",\n    \"designation\": \"Principal\",\n    \"officialEmail\": \"principal@xyztech.edu\",\n    \"phone\": \"+91-98765-54321\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "College registration without optional website field"
+      },
+      "response": []
+    },
+    {
+      "name": "Register College - Validation Error",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Dr. Patel\",\n  \"email\": \"admin@college.edu\",\n  \"phone\": \"+91-98765-11111\",\n  \"password\": \"SecurePass789\",\n  \"role\": \"college\",\n  \"collegeData\": {\n    \"institutionName\": \"PQR College\",\n    \"contactPerson\": \"Dr. Patel\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Example of validation error - missing required fields (designation, officialEmail, phone, city, state)"
+      },
+      "response": []
+    },
+    {
+      "name": "Register Student - For Comparison",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe@student.com\",\n  \"phone\": \"+91-98765-99999\",\n  \"password\": \"StudentPass123\",\n  \"role\": \"student\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Student registration (no collegeData required) - for comparison"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}

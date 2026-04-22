@@ -1,4 +1,5 @@
 import { User, IUser } from '@/database/models/User.model';
+import { CollegeProfile } from '@/database/models/CollegeProfile.model';
 import { RegisterDto, RegisterResponseDto } from '../dto/register.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
 import { logger } from '@/common/utils/logger.util';
@@ -44,6 +45,38 @@ export class AuthService {
 
       await user.save();
 
+      // Create college profile if role is college
+      let collegeProfile = null;
+      if (registerDto.role === 'college' && registerDto.collegeData) {
+        try {
+          collegeProfile = new CollegeProfile({
+            userId: user._id,
+            collegeName: registerDto.collegeData.institutionName,
+            address: {
+              city: registerDto.collegeData.city,
+              state: registerDto.collegeData.state,
+              country: 'India', // Default country, can be made dynamic
+            },
+            contactPerson: {
+              name: registerDto.collegeData.contactPerson,
+              designation: registerDto.collegeData.designation,
+              email: registerDto.collegeData.officialEmail,
+              phone: registerDto.collegeData.phone,
+            },
+            website: registerDto.collegeData.website || undefined,
+            isVerified: false,
+          });
+
+          await collegeProfile.save();
+          logger.info(`College profile created for user: ${user.email}`);
+        } catch (profileError) {
+          // If college profile creation fails, delete the user to maintain consistency
+          await User.findByIdAndDelete(user._id);
+          logger.error('Failed to create college profile, rolling back user creation:', profileError);
+          throw new Error('Failed to create college profile. Please try again.');
+        }
+      }
+
       // Send verification OTP (non-blocking - don't fail registration if email fails)
       try {
         await emailService.sendVerificationOTP(user.email, otp, user.fullName);
@@ -64,7 +97,7 @@ export class AuthService {
 
       logger.info(`User registered successfully: ${user.email}`);
 
-      return {
+      const response: RegisterResponseDto = {
         user: {
           id: user._id.toString(),
           fullName: user.fullName,
@@ -75,6 +108,18 @@ export class AuthService {
         },
         tokens,
       };
+
+      // Add college profile data to response if created
+      if (collegeProfile) {
+        response.collegeProfile = {
+          id: collegeProfile._id.toString(),
+          collegeName: collegeProfile.collegeName,
+          city: collegeProfile.address.city,
+          state: collegeProfile.address.state,
+        };
+      }
+
+      return response;
     } catch (error: any) {
       logger.error('Registration error:', error);
       throw error;

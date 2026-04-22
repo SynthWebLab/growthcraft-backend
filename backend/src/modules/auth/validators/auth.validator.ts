@@ -40,6 +40,71 @@ export class AuthValidator {
         .withMessage('Role is required')
         .isIn(['student', 'college', 'mentor', 'ambassador', 'hiring_partner'])
         .withMessage('Invalid role. Must be one of: student, college, mentor, ambassador, hiring_partner'),
+
+      // College-specific validations (conditional)
+      body('collegeData.institutionName')
+        .if(body('role').equals('college'))
+        .trim()
+        .notEmpty()
+        .withMessage('Institution name is required for college registration')
+        .isLength({ min: 2, max: 200 })
+        .withMessage('Institution name must be between 2 and 200 characters'),
+
+      body('collegeData.contactPerson')
+        .if(body('role').equals('college'))
+        .trim()
+        .notEmpty()
+        .withMessage('Contact person name is required for college registration')
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Contact person name must be between 2 and 100 characters'),
+
+      body('collegeData.designation')
+        .if(body('role').equals('college'))
+        .trim()
+        .notEmpty()
+        .withMessage('Designation is required for college registration')
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Designation must be between 2 and 100 characters'),
+
+      body('collegeData.officialEmail')
+        .if(body('role').equals('college'))
+        .trim()
+        .notEmpty()
+        .withMessage('Official email is required for college registration')
+        .isEmail()
+        .withMessage('Please provide a valid official email')
+        .normalizeEmail(),
+
+      body('collegeData.phone')
+        .if(body('role').equals('college'))
+        .trim()
+        .notEmpty()
+        .withMessage('College phone number is required')
+        .matches(/^\+?[\d\s-()]+$/)
+        .withMessage('Please provide a valid phone number'),
+
+      body('collegeData.city')
+        .if(body('role').equals('college'))
+        .trim()
+        .notEmpty()
+        .withMessage('City is required for college registration')
+        .isLength({ min: 2, max: 100 })
+        .withMessage('City must be between 2 and 100 characters'),
+
+      body('collegeData.state')
+        .if(body('role').equals('college'))
+        .trim()
+        .notEmpty()
+        .withMessage('State is required for college registration')
+        .isLength({ min: 2, max: 100 })
+        .withMessage('State must be between 2 and 100 characters'),
+
+      body('collegeData.website')
+        .if(body('role').equals('college'))
+        .optional()
+        .trim()
+        .isURL()
+        .withMessage('Please provide a valid website URL'),
     ];
   }
 

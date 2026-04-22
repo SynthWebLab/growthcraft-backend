@@ -75,20 +75,27 @@ export class AuthController {
       // Set httpOnly cookies
       this.setTokenCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
 
+      const responseData: any = {
+        user: result.user,
+        requiresEmailVerification: !result.user.isEmailVerified,
+        // DEVELOPMENT ONLY: Show tokens in response for testing
+        ...(config.NODE_ENV === 'development' && {
+          tokens: {
+            accessToken: result.tokens.accessToken,
+            refreshToken: result.tokens.refreshToken,
+          },
+        }),
+      };
+
+      // Add college profile to response if available
+      if (result.collegeProfile) {
+        responseData.collegeProfile = result.collegeProfile;
+      }
+
       res.status(201).json({
         success: true,
         message: 'User registered successfully. Please check your email to verify your account.',
-        data: {
-          user: result.user,
-          requiresEmailVerification: !result.user.isEmailVerified,
-          // DEVELOPMENT ONLY: Show tokens in response for testing
-          ...(config.NODE_ENV === 'development' && {
-            tokens: {
-              accessToken: result.tokens.accessToken,
-              refreshToken: result.tokens.refreshToken,
-            },
-          }),
-        },
+        data: responseData,
       });
     } catch (error: any) {
       logger.error('Register controller error:', error);
@@ -99,6 +106,17 @@ export class AuthController {
           error: {
             message: error.message,
             code: 'USER_EXISTS',
+          },
+        });
+        return;
+      }
+
+      if (error.message === 'Failed to create college profile. Please try again.') {
+        res.status(500).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'PROFILE_CREATION_FAILED',
           },
         });
         return;
