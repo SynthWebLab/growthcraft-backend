@@ -431,9 +431,13 @@ router.post('/resend-verification', (req: Request, res: Response, next: NextFunc
  *                   type: string
  *                   example: If the email exists, a password reset link has been sent
  */
-router.post('/forgot-password', (req: Request, res: Response, next: NextFunction) => {
-  void authController.requestPasswordReset(req, res, next);
-});
+router.post(
+  '/forgot-password',
+  AuthValidator.forgotPassword(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void authController.requestPasswordReset(req, res, next);
+  }
+);
 
 /**
  * @swagger
@@ -480,8 +484,80 @@ router.post('/forgot-password', (req: Request, res: Response, next: NextFunction
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/reset-password', (req: Request, res: Response, next: NextFunction) => {
-  void authController.resetPassword(req, res, next);
-});
+router.post(
+  '/reset-password',
+  AuthValidator.resetPassword(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void authController.resetPassword(req, res, next);
+  }
+);
+
+/**
+ * @swagger
+ * /auth/change-password:
+ *   post:
+ *     summary: Change password for authenticated user
+ *     tags: [Auth]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: CurrentPass123!
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 example: NewSecurePass123!
+ *               confirmPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: NewSecurePass123!
+ *                 description: Optional confirmation field
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Password changed successfully
+ *       400:
+ *         description: Invalid current password or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - not logged in
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post(
+  '/change-password',
+  authenticate,
+  AuthValidator.changePassword(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void authController.changePassword(req, res, next);
+  }
+);
 
 export default router;

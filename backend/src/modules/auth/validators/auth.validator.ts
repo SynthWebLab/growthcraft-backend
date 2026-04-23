@@ -1,4 +1,5 @@
 import { body, ValidationChain } from 'express-validator';
+import { PasswordValidator } from '@/common/validators/password.validator';
 
 export class AuthValidator {
   public static register(): ValidationChain[] {
@@ -25,15 +26,8 @@ export class AuthValidator {
         .matches(/^\+?[\d\s-()]+$/)
         .withMessage('Please provide a valid phone number'),
 
-      body('password')
-        .notEmpty()
-        .withMessage('Password is required')
-        .isLength({ min: 8 })
-        .withMessage('Password must be at least 8 characters')
-        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-        .withMessage(
-          'Password must contain at least one uppercase letter, one lowercase letter, and one number'
-        ),
+      // Use centralized password validation
+      PasswordValidator.passwordRules('password'),
 
       body('role')
         .notEmpty()
@@ -225,6 +219,46 @@ export class AuthValidator {
         .normalizeEmail(),
 
       body('password').notEmpty().withMessage('Password is required'),
+    ];
+  }
+
+  public static forgotPassword(): ValidationChain[] {
+    return [
+      body('email')
+        .trim()
+        .notEmpty()
+        .withMessage('Email is required')
+        .isEmail()
+        .withMessage('Please provide a valid email')
+        .normalizeEmail(),
+    ];
+  }
+
+  public static resetPassword(): ValidationChain[] {
+    return [
+      body('token')
+        .trim()
+        .notEmpty()
+        .withMessage('Reset token is required')
+        .isLength({ min: 32 })
+        .withMessage('Invalid reset token format'),
+
+      // Use centralized password validation
+      PasswordValidator.passwordRules('newPassword'),
+    ];
+  }
+
+  public static changePassword(): ValidationChain[] {
+    return [
+      body('currentPassword')
+        .notEmpty()
+        .withMessage('Current password is required'),
+
+      // Use centralized password validation
+      PasswordValidator.passwordRules('newPassword'),
+      
+      // Use centralized password confirmation validation
+      PasswordValidator.confirmPasswordRules('newPassword', 'confirmPassword'),
     ];
   }
 }

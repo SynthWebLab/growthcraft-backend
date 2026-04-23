@@ -506,6 +506,45 @@ export class AuthService {
       throw error;
     }
   }
+
+  public async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+  ): Promise<void> {
+    try {
+      // Find user with password field
+      const user = await User.findById(userId).select('+password');
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Verify current password
+      const isPasswordValid = await user.comparePassword(currentPassword);
+      if (!isPasswordValid) {
+        throw new Error('Current password is incorrect');
+      }
+
+      // Check if new password is same as current password
+      const isSamePassword = await user.comparePassword(newPassword);
+      if (isSamePassword) {
+        throw new Error('New password must be different from current password');
+      }
+
+      // Update password
+      user.password = newPassword;
+      await user.save();
+
+      // Optional: Invalidate all refresh tokens to force re-login on all devices
+      // await tokenService.removeAllRefreshTokens(userId);
+
+      logger.info(`Password changed successfully for user: ${user.email}`);
+    } catch (error: any) {
+      logger.error('Change password error:', error);
+      throw error;
+    }
+  }
 }
 
 export const authService = AuthService.getInstance();
