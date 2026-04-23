@@ -261,4 +261,37 @@ export class AuthValidator {
       PasswordValidator.confirmPasswordRules('newPassword', 'confirmPassword'),
     ];
   }
+
+  public static verifyEmail(): ValidationChain[] {
+    return [
+      body('email')
+        .trim()
+        .notEmpty()
+        .withMessage('Email is required')
+        .isEmail()
+        .withMessage('Please provide a valid email')
+        .normalizeEmail(),
+
+      body('otp')
+        .trim()
+        .notEmpty()
+        .withMessage('OTP is required')
+        .matches(/^\d{6}$/)
+        .withMessage('OTP must be exactly 6 digits')
+        .isLength({ min: 6, max: 6 })
+        .withMessage('OTP must be exactly 6 digits'),
+    ];
+  }
+
+  public static resendVerificationOTP(): ValidationChain[] {
+    return [
+      body('email')
+        .trim()
+        .notEmpty()
+        .withMessage('Email is required')
+        .isEmail()
+        .withMessage('Please provide a valid email')
+        .normalizeEmail(),
+    ];
+  }
 }

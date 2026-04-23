@@ -1,0 +1,511 @@
+{
+  "info": {
+    "name": "Verify Email OTP Examples",
+    "description": "Examples for testing the email verification OTP endpoint",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Verify Email - Success",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "verify-email"]
+        },
+        "description": "Successfully verify email with correct OTP"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "verify-email"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Email verified successfully\",\n  \"data\": {\n    \"user\": {\n      \"email\": \"test@example.com\",\n      \"fullName\": \"Test User\"\n    }\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "2. Verify Email - Missing Fields",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "verify-email"]
+        },
+        "description": "Attempt to verify without providing OTP"
+      },
+      "response": [
+        {
+          "name": "Validation Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "verify-email"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"Validation failed\",\n    \"code\": \"VALIDATION_ERROR\",\n    \"details\": [\n      {\n        \"type\": \"field\",\n        \"msg\": \"OTP is required\",\n        \"path\": \"otp\",\n        \"location\": \"body\"\n      }\n    ]\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "3. Verify Email - Invalid OTP Format (Not 6 Digits)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"12345\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "verify-email"]
+        },
+        "description": "Attempt to verify with OTP that is not 6 digits"
+      },
+      "response": [
+        {
+          "name": "Validation Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"12345\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "verify-email"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"Validation failed\",\n    \"code\": \"VALIDATION_ERROR\",\n    \"details\": [\n      {\n        \"type\": \"field\",\n        \"msg\": \"OTP must be exactly 6 digits\",\n        \"path\": \"otp\",\n        \"location\": \"body\"\n      }\n    ]\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "4. Verify Email - Invalid OTP Format (Contains Letters)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"12AB56\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "verify-email"]
+        },
+        "description": "Attempt to verify with OTP containing non-numeric characters"
+      },
+      "response": [
+        {
+          "name": "Validation Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"12AB56\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "verify-email"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"Validation failed\",\n    \"code\": \"VALIDATION_ERROR\",\n    \"details\": [\n      {\n        \"type\": \"field\",\n        \"msg\": \"OTP must be exactly 6 digits\",\n        \"path\": \"otp\",\n        \"location\": \"body\"\n      }\n    ]\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "5. Verify Email - Invalid Email Format",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"invalid-email\",\n  \"otp\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "verify-email"]
+        },
+        "description": "Attempt to verify with invalid email format"
+      },
+      "response": [
+        {
+          "name": "Validation Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"invalid-email\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "verify-email"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"Validation failed\",\n    \"code\": \"VALIDATION_ERROR\",\n    \"details\": [\n      {\n        \"type\": \"field\",\n        \"msg\": \"Please provide a valid email\",\n        \"path\": \"email\",\n        \"location\": \"body\"\n      }\n    ]\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "6. Verify Email - Wrong OTP (Attempts Remaining)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"000000\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "verify-email"]
+        },
+        "description": "Attempt to verify with incorrect OTP"
+      },
+      "response": [
+        {
+          "name": "Invalid OTP",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"000000\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "verify-email"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"Invalid OTP. You have 4 attempts remaining.\",\n    \"code\": \"VERIFICATION_FAILED\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "7. Verify Email - Expired OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "verify-email"]
+        },
+        "description": "Attempt to verify with expired OTP (after 10 minutes)"
+      },
+      "response": [
+        {
+          "name": "OTP Expired",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "verify-email"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"OTP has expired. Please request a new one.\",\n    \"code\": \"VERIFICATION_FAILED\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "8. Verify Email - Max Attempts Exceeded",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"000000\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "verify-email"]
+        },
+        "description": "Attempt to verify after exceeding maximum attempts (5)"
+      },
+      "response": [
+        {
+          "name": "Max Attempts",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"000000\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "verify-email"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"Maximum verification attempts exceeded. Please request a new OTP.\",\n    \"code\": \"VERIFICATION_FAILED\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "9. Verify Email - User Not Found",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"nonexistent@example.com\",\n  \"otp\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "verify-email"]
+        },
+        "description": "Attempt to verify email for non-existent user"
+      },
+      "response": [
+        {
+          "name": "User Not Found",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nonexistent@example.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/verify-email",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "verify-email"]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"User not found\",\n    \"code\": \"USER_NOT_FOUND\"\n  }\n}"
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5001",
+      "type": "string"
+    }
+  ]
+}

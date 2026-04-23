@@ -343,9 +343,13 @@ router.post('/logout-all', authenticate, (req: Request, res: Response, next: Nex
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/verify-email', (req: Request, res: Response, next: NextFunction) => {
-  void authController.verifyEmail(req, res, next);
-});
+router.post(
+  '/verify-email',
+  AuthValidator.verifyEmail(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void authController.verifyEmail(req, res, next);
+  }
+);
 
 /**
  * @swagger
@@ -393,9 +397,13 @@ router.post('/verify-email', (req: Request, res: Response, next: NextFunction) =
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/resend-verification', (req: Request, res: Response, next: NextFunction) => {
-  void authController.resendVerificationEmail(req, res, next);
-});
+router.post(
+  '/resend-verification',
+  AuthValidator.resendVerificationOTP(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void authController.resendVerificationEmail(req, res, next);
+  }
+);
 
 /**
  * @swagger

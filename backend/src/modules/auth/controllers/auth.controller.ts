@@ -362,30 +362,21 @@ export class AuthController {
 
   public async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      // Validate request
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Validation failed',
+            code: 'VALIDATION_ERROR',
+            details: errors.array(),
+          },
+        });
+        return;
+      }
+
       const { email, otp } = req.body;
-
-      if (!email || !otp) {
-        res.status(400).json({
-          success: false,
-          error: {
-            message: 'Email and OTP are required',
-            code: 'MISSING_FIELDS',
-          },
-        });
-        return;
-      }
-
-      // Validate OTP format (should be 6 digits)
-      if (!/^\d{6}$/.test(otp)) {
-        res.status(400).json({
-          success: false,
-          error: {
-            message: 'Invalid OTP format. OTP must be 6 digits.',
-            code: 'INVALID_OTP_FORMAT',
-          },
-        });
-        return;
-      }
 
       const result = await authService.verifyEmail(email, otp);
 
@@ -436,18 +427,21 @@ export class AuthController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const { email } = req.body;
-
-      if (!email) {
+      // Validate request
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
           error: {
-            message: 'Email is required',
-            code: 'MISSING_EMAIL',
+            message: 'Validation failed',
+            code: 'VALIDATION_ERROR',
+            details: errors.array(),
           },
         });
         return;
       }
+
+      const { email } = req.body;
 
       await authService.resendVerificationOTP(email);
 
