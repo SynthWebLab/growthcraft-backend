@@ -179,10 +179,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": {
+                  "success": {
                     "example": "any"
                   },
-                  "otp": {
+                  "error": {
                     "example": "any"
                   }
                 }
@@ -212,7 +212,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": {
+                  "success": {
+                    "example": "any"
+                  },
+                  "error": {
                     "example": "any"
                   }
                 }

@@ -1,0 +1,368 @@
+{
+  "info": {
+    "name": "Resend Verification OTP Examples",
+    "description": "Examples for testing the resend verification OTP endpoint",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Resend OTP - Success",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/resend-verification",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "resend-verification"]
+        },
+        "description": "Successfully resend verification OTP to an unverified email"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/resend-verification",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "resend-verification"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Verification OTP sent successfully\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "2. Resend OTP - Missing Email",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/resend-verification",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "resend-verification"]
+        },
+        "description": "Attempt to resend OTP without providing email"
+      },
+      "response": [
+        {
+          "name": "Validation Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/resend-verification",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "resend-verification"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"Validation failed\",\n    \"code\": \"VALIDATION_ERROR\",\n    \"details\": [\n      {\n        \"type\": \"field\",\n        \"msg\": \"Email is required\",\n        \"path\": \"email\",\n        \"location\": \"body\"\n      }\n    ]\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "3. Resend OTP - Invalid Email Format",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"invalid-email\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/resend-verification",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "resend-verification"]
+        },
+        "description": "Attempt to resend OTP with invalid email format"
+      },
+      "response": [
+        {
+          "name": "Validation Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"invalid-email\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/resend-verification",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "resend-verification"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"Validation failed\",\n    \"code\": \"VALIDATION_ERROR\",\n    \"details\": [\n      {\n        \"type\": \"field\",\n        \"msg\": \"Please provide a valid email\",\n        \"path\": \"email\",\n        \"location\": \"body\"\n      }\n    ]\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "4. Resend OTP - User Not Found",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"nonexistent@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/resend-verification",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "resend-verification"]
+        },
+        "description": "Attempt to resend OTP for non-existent user"
+      },
+      "response": [
+        {
+          "name": "User Not Found",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nonexistent@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/resend-verification",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "resend-verification"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"User not found\",\n    \"code\": \"RESEND_FAILED\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "5. Resend OTP - Already Verified",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"verified@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/resend-verification",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "resend-verification"]
+        },
+        "description": "Attempt to resend OTP for already verified email"
+      },
+      "response": [
+        {
+          "name": "Already Verified",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"verified@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/resend-verification",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "resend-verification"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"Email is already verified\",\n    \"code\": \"RESEND_FAILED\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "6. Resend OTP - Rate Limited",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/resend-verification",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "resend-verification"]
+        },
+        "description": "Attempt to resend OTP too quickly (within 2 minutes)"
+      },
+      "response": [
+        {
+          "name": "Rate Limited",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/auth/resend-verification",
+              "host": ["{{BASE_URL}}"],
+              "path": ["api", "v1", "auth", "resend-verification"]
+            }
+          },
+          "status": "Too Many Requests",
+          "code": 429,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"error\": {\n    \"message\": \"Please wait 45 seconds before requesting another OTP\",\n    \"code\": \"RATE_LIMIT_EXCEEDED\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "7. Complete Flow - Register + Resend + Verify",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Test User\",\n  \"email\": \"newuser@example.com\",\n  \"phone\": \"+1234567890\",\n  \"password\": \"Test123!\",\n  \"role\": \"student\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/auth/register",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "auth", "register"]
+        },
+        "description": "Step 1: Register a new user (OTP sent automatically)"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5001",
+      "type": "string"
+    }
+  ]
+}
