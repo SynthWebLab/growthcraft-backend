@@ -490,6 +490,20 @@ export class AuthController {
     next: NextFunction
   ): Promise<void> {
     try {
+      // Validate request
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Validation failed',
+            code: 'VALIDATION_ERROR',
+            details: errors.array(),
+          },
+        });
+        return;
+      }
+
       const { email } = req.body;
 
       if (!email) {
@@ -517,6 +531,20 @@ export class AuthController {
 
   public async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      // Validate request
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Validation failed',
+            code: 'VALIDATION_ERROR',
+            details: errors.array(),
+          },
+        });
+        return;
+      }
+
       const { token, newPassword } = req.body;
 
       if (!token || !newPassword) {
@@ -556,6 +584,74 @@ export class AuthController {
           error: {
             message: error.message,
             code: 'INVALID_TOKEN',
+          },
+        });
+        return;
+      }
+
+      next(error);
+    }
+  }
+
+  public async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Validate request
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Validation failed',
+            code: 'VALIDATION_ERROR',
+            details: errors.array(),
+          },
+        });
+        return;
+      }
+
+      const userId = (req as any).user.userId;
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: 'Current password and new password are required',
+            code: 'MISSING_FIELDS',
+          },
+        });
+        return;
+      }
+
+      await authService.changePassword(userId, currentPassword, newPassword);
+
+      res.status(200).json({
+        success: true,
+        message: 'Password changed successfully',
+      });
+    } catch (error: any) {
+      logger.error('Change password controller error:', error);
+
+      if (
+        error.message === 'Current password is incorrect' ||
+        error.message === 'New password must be different from current password'
+      ) {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'PASSWORD_CHANGE_FAILED',
+          },
+        });
+        return;
+      }
+
+      if (error.message === 'User not found') {
+        res.status(404).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'USER_NOT_FOUND',
           },
         });
         return;

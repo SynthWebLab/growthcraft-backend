@@ -239,7 +239,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": {
+                  "success": {
+                    "example": "any"
+                  },
+                  "error": {
                     "example": "any"
                   }
                 }
@@ -266,10 +269,46 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "token": {
+                  "success": {
                     "example": "any"
                   },
-                  "newPassword": {
+                  "error": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "example": "any"
+                  },
+                  "error": {
                     "example": "any"
                   }
                 }
