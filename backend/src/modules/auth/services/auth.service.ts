@@ -6,8 +6,10 @@ import { RegisterDto, RegisterResponseDto } from '../dto/register.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
 import { logger } from '@/common/utils/logger.util';
 import { tokenService } from './token.service';
+import { redisTokenService } from './redis-token.service';
 import { emailService } from '@/common/services/email.service';
 import { generateVerificationToken, generateOTP, hashToken } from '@/common/utils/token.util';
+import { jwtConfig } from '@/config/jwt.config';
 
 export class AuthService {
   private static instance: AuthService;
@@ -146,8 +148,17 @@ export class AuthService {
         role: user.role,
       });
 
-      // Store hashed refresh token
-      await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+      // Store refresh token in Redis (fallback to MongoDB if Redis unavailable)
+      try {
+        if (redisTokenService.isAvailable()) {
+          await redisTokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+        } else {
+          await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+        }
+      } catch (error) {
+        logger.warn('Failed to store token in Redis, falling back to MongoDB');
+        await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+      }
 
       logger.info(`User registered successfully: ${user.email}`);
 
@@ -232,8 +243,17 @@ export class AuthService {
         role: user.role,
       });
 
-      // Store hashed refresh token
-      await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+      // Store refresh token in Redis (fallback to MongoDB if Redis unavailable)
+      try {
+        if (redisTokenService.isAvailable()) {
+          await redisTokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+        } else {
+          await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+        }
+      } catch (error) {
+        logger.warn('Failed to store token in Redis, falling back to MongoDB');
+        await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+      }
 
       logger.info(`User logged in successfully: ${user.email}`);
 
@@ -275,20 +295,45 @@ export class AuthService {
         throw new Error('Account is deactivated');
       }
 
-      // Rotate refresh token with reuse detection enabled
-      const tokens = await tokenService.rotateRefreshToken(
-        userId,
-        refreshToken,
-        {
+      let tokens: RefreshTokenResponseDto;
+
+      // Try Redis first, fallback to MongoDB
+      if (redisTokenService.isAvailable()) {
+        // Validate token from Redis
+        const metadata = await redisTokenService.validateRefreshToken(refreshToken);
+        
+        if (!metadata || metadata.userId !== userId) {
+          throw new Error('Invalid or expired refresh token');
+        }
+
+        // Remove old token
+        await redisTokenService.removeRefreshToken(userId, refreshToken);
+
+        // Generate new token pair
+        tokens = tokenService.generateTokenPair({
           userId: user._id.toString(),
           email: user.email,
           role: user.role,
-        },
-        {
-          deviceInfo,
-          detectReuse: true, // Enable token reuse detection
-        }
-      );
+        });
+
+        // Store new token in Redis
+        await redisTokenService.storeRefreshToken(userId, tokens.refreshToken, deviceInfo);
+      } else {
+        // Fallback to MongoDB token rotation
+        tokens = await tokenService.rotateRefreshToken(
+          userId,
+          refreshToken,
+          {
+            userId: user._id.toString(),
+            email: user.email,
+            role: user.role,
+          },
+          {
+            deviceInfo,
+            detectReuse: true,
+          }
+        );
+      }
 
       logger.info(`Token refreshed for user: ${user.email}`);
 
@@ -301,7 +346,12 @@ export class AuthService {
 
   public async logout(userId: string, refreshToken: string): Promise<void> {
     try {
-      await tokenService.removeRefreshToken(userId, refreshToken);
+      // Try Redis first, fallback to MongoDB
+      if (redisTokenService.isAvailable()) {
+        await redisTokenService.removeRefreshToken(userId, refreshToken);
+      } else {
+        await tokenService.removeRefreshToken(userId, refreshToken);
+      }
       logger.info(`User logged out: ${userId}`);
     } catch (error: any) {
       logger.error('Logout error:', error);
@@ -311,7 +361,12 @@ export class AuthService {
 
   public async logoutAll(userId: string): Promise<void> {
     try {
-      await tokenService.removeAllRefreshTokens(userId);
+      // Try Redis first, fallback to MongoDB
+      if (redisTokenService.isAvailable()) {
+        await redisTokenService.removeAllRefreshTokens(userId);
+      } else {
+        await tokenService.removeAllRefreshTokens(userId);
+      }
       logger.info(`User logged out from all devices: ${userId}`);
     } catch (error: any) {
       logger.error('Logout all error:', error);
