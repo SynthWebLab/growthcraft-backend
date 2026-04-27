@@ -87,9 +87,9 @@ export class TokenService {
         throw new Error('User not found');
       }
 
-      // Calculate expiration date (30 days from now)
+      // Calculate expiration date (7 days from now)
       const expiresAt = new Date();
-      const refreshExpiresIn = config.JWT_REFRESH_EXPIRES_IN || '30d';
+      const refreshExpiresIn = config.JWT_REFRESH_EXPIRES_IN || '7d';
       const match = refreshExpiresIn.match(/^(\d+)([smhd])$/);
 
       if (match) {

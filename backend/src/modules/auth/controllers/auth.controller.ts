@@ -33,12 +33,12 @@ export class AuthController {
       path: '/',
     });
 
-    // Refresh token cookie (30 days)
+    // Refresh token cookie (7 days)
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
     });
   }
