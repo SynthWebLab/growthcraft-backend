@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserRole, ROLE_HIERARCHY, ROLE_PERMISSIONS } from '@/common/constants/user.constants';
-import { AuthRequest } from './authenticate.middleware';
 import { logger } from '@/common/utils/logger.util';
 
 /**
@@ -10,9 +9,7 @@ import { logger } from '@/common/utils/logger.util';
 export const authorize = (allowedRoles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      const authReq = req as AuthRequest;
-
-      if (!authReq.user) {
+      if (!req.user) {
         res.status(401).json({
           success: false,
           error: {
@@ -23,11 +20,11 @@ export const authorize = (allowedRoles: UserRole[]) => {
         return;
       }
 
-      const userRole = authReq.user.role as UserRole;
+      const userRole = req.user.role as UserRole;
 
       if (!allowedRoles.includes(userRole)) {
         logger.warn(
-          `Unauthorized access attempt by user ${authReq.user.userId} with role ${userRole}`
+          `Unauthorized access attempt by user ${req.user.userId} with role ${userRole}`
         );
         res.status(403).json({
           success: false,
@@ -61,9 +58,7 @@ export const authorize = (allowedRoles: UserRole[]) => {
 export const authorizeMinRole = (minRole: UserRole) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      const authReq = req as AuthRequest;
-
-      if (!authReq.user) {
+      if (!req.user) {
         res.status(401).json({
           success: false,
           error: {
@@ -74,13 +69,13 @@ export const authorizeMinRole = (minRole: UserRole) => {
         return;
       }
 
-      const userRole = authReq.user.role as UserRole;
+      const userRole = req.user.role as UserRole;
       const userRoleLevel = ROLE_HIERARCHY[userRole];
       const minRoleLevel = ROLE_HIERARCHY[minRole];
 
       if (userRoleLevel < minRoleLevel) {
         logger.warn(
-          `Unauthorized access attempt by user ${authReq.user.userId} with role ${userRole}`
+          `Unauthorized access attempt by user ${req.user.userId} with role ${userRole}`
         );
         res.status(403).json({
           success: false,
@@ -113,9 +108,7 @@ export const authorizeMinRole = (minRole: UserRole) => {
 export const authorizePermission = (permission: string) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      const authReq = req as AuthRequest;
-
-      if (!authReq.user) {
+      if (!req.user) {
         res.status(401).json({
           success: false,
           error: {
@@ -126,12 +119,12 @@ export const authorizePermission = (permission: string) => {
         return;
       }
 
-      const userRole = authReq.user.role as UserRole;
+      const userRole = req.user.role as UserRole;
       const userPermissions = ROLE_PERMISSIONS[userRole] || [];
 
       if (!userPermissions.includes(permission)) {
         logger.warn(
-          `Unauthorized access attempt by user ${authReq.user.userId} - missing permission: ${permission}`
+          `Unauthorized access attempt by user ${req.user.userId} - missing permission: ${permission}`
         );
         res.status(403).json({
           success: false,
@@ -164,9 +157,7 @@ export const authorizePermission = (permission: string) => {
 export const authorizeOwnership = (paramName: string = 'userId') => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      const authReq = req as AuthRequest;
-
-      if (!authReq.user) {
+      if (!req.user) {
         res.status(401).json({
           success: false,
           error: {
@@ -178,10 +169,10 @@ export const authorizeOwnership = (paramName: string = 'userId') => {
       }
 
       const resourceUserId = req.params[paramName] || req.body[paramName];
-      const authenticatedUserId = authReq.user.userId;
+      const authenticatedUserId = req.user.userId;
 
       // Allow if user owns the resource OR has elevated permissions (college/employer)
-      const userRole = authReq.user.role as UserRole;
+      const userRole = req.user.role as UserRole;
       const hasElevatedAccess = userRole === UserRole.COLLEGE || userRole === UserRole.EMPLOYER;
 
       if (resourceUserId !== authenticatedUserId && !hasElevatedAccess) {

@@ -1,8 +1,8 @@
 {
   "watch": ["src"],
-  "ext": "ts,json",
+  "ext": "ts,json,d.ts",
   "ignore": ["src/**/*.test.ts", "src/**/*.spec.ts"],
-  "exec": "ts-node -r tsconfig-paths/register src/server.ts",
+  "exec": "ts-node -r tsconfig-paths/register --files src/server.ts",
   "env": {
     "NODE_ENV": "development"
   },
