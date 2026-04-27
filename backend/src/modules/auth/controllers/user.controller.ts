@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { User } from '@/database/models/User.model';
-import { AuthRequest } from '@/common/middleware/authenticate.middleware';
 import { logger } from '@/common/utils/logger.util';
 
 export class UserController {
@@ -104,10 +103,9 @@ export class UserController {
   public async deleteUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { userId } = req.params;
-      const authReq = req as AuthRequest;
 
       // Prevent self-deletion
-      if (authReq.user?.userId === userId) {
+      if (req.user?.userId === userId) {
         res.status(400).json({
           success: false,
           error: {
