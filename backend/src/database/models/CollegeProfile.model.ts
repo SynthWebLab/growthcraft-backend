@@ -103,8 +103,7 @@ const collegeProfileSchema = new Schema<ICollegeProfile>(
   }
 );
 
-// Index for faster queries
-collegeProfileSchema.index({ userId: 1 });
+// Index for faster queries (userId index already created by unique: true)
 collegeProfileSchema.index({ collegeName: 1 });
 
 export const CollegeProfile = mongoose.model<ICollegeProfile>('CollegeProfile', collegeProfileSchema);

@@ -110,8 +110,7 @@ const mentorProfileSchema = new Schema<IMentorProfile>(
   }
 );
 
-// Index for faster queries
-mentorProfileSchema.index({ userId: 1 });
+// Index for faster queries (userId index already created by unique: true)
 mentorProfileSchema.index({ areaOfExpertise: 1 });
 mentorProfileSchema.index({ rating: -1 });
 

@@ -73,8 +73,7 @@ const employerProfileSchema = new Schema<IEmployerProfile>(
   }
 );
 
-// Index for faster queries
-employerProfileSchema.index({ userId: 1 });
+// Index for faster queries (userId index already created by unique: true)
 employerProfileSchema.index({ companyName: 1 });
 employerProfileSchema.index({ industry: 1 });
 

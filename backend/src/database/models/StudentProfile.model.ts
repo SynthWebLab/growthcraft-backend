@@ -105,7 +105,6 @@ const studentProfileSchema = new Schema<IStudentProfile>(
   }
 );
 
-// Index for faster queries
-studentProfileSchema.index({ userId: 1 });
+// Index already created by unique: true on userId field
 
 export const StudentProfile = mongoose.model<IStudentProfile>('StudentProfile', studentProfileSchema);
