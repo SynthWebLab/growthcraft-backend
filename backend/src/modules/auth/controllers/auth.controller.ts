@@ -24,12 +24,12 @@ export class AuthController {
   private setTokenCookies(res: Response, accessToken: string, refreshToken: string): void {
     const isProduction = config.NODE_ENV === 'production';
 
-    // Access token cookie (15 minutes)
+    // Access token cookie (1 minute for testing)
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 1 * 60 * 1000, // 1 minute
       path: '/',
     });
 
@@ -78,13 +78,6 @@ export class AuthController {
       const responseData: any = {
         user: result.user,
         requiresEmailVerification: !result.user.isEmailVerified,
-        // DEVELOPMENT ONLY: Show tokens in response for testing
-        ...(config.NODE_ENV === 'development' && {
-          tokens: {
-            accessToken: result.tokens.accessToken,
-            refreshToken: result.tokens.refreshToken,
-          },
-        }),
       };
 
       // Add college profile to response if available
@@ -256,12 +249,14 @@ export class AuthController {
         return;
       }
 
-      // Get userId from access_token cookie (even if expired, we can decode it)
-      const expiredAccessToken = req.cookies.access_token;
+      // Decode userId from refreshToken (not from access_token!)
       let userId: string | undefined;
-
-      if (expiredAccessToken) {
-        const decoded = jwtConfig.decodeToken(expiredAccessToken);
+      try {
+        const decoded = jwtConfig.verifyRefreshToken(refreshToken);
+        userId = decoded?.userId;
+      } catch (error) {
+        // If refresh token is invalid/expired, try to decode without verification
+        const decoded = jwtConfig.decodeToken(refreshToken);
         userId = decoded?.userId;
       }
 
