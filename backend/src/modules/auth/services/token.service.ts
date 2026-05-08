@@ -56,14 +56,14 @@ export class TokenService {
   }
 
   /**
-   * Generate access token (JWT) and refresh token (crypto random)
+   * Generate access token (JWT) and refresh token (JWT)
    */
   public generateTokenPair(payload: TokenPayload): TokenPair {
     // Generate JWT access token
     const accessToken = jwtConfig.generateAccessToken(payload);
 
-    // Generate cryptographically secure refresh token
-    const refreshToken = this.generateRefreshToken();
+    // Generate JWT refresh token (contains userId, email, role)
+    const refreshToken = jwtConfig.generateRefreshToken(payload);
 
     return {
       accessToken,
