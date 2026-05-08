@@ -184,6 +184,10 @@ router.get('/filters/options', (req: Request, res: Response, next: NextFunction)
  *   get:
  *     summary: Get all courses with filtering, search, and pagination
  *     tags: [Courses]
+ *     description: |
+ *       Supports both offset-based pagination (page/limit) and cursor-based pagination (cursor/useCursor).
+ *       Cursor-based pagination is recommended for SSG and better performance.
+ *       Results are cached in Redis for 5 minutes.
  *     parameters:
  *       - in: query
  *         name: page
@@ -191,7 +195,7 @@ router.get('/filters/options', (req: Request, res: Response, next: NextFunction)
  *           type: integer
  *           minimum: 1
  *           default: 1
- *         description: Page number for pagination
+ *         description: Page number for offset-based pagination
  *       - in: query
  *         name: limit
  *         schema:
@@ -200,6 +204,17 @@ router.get('/filters/options', (req: Request, res: Response, next: NextFunction)
  *           maximum: 50
  *           default: 10
  *         description: Number of items per page
+ *       - in: query
+ *         name: cursor
+ *         schema:
+ *           type: string
+ *         description: Cursor for cursor-based pagination (base64 encoded)
+ *       - in: query
+ *         name: useCursor
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Enable cursor-based pagination (automatically enabled if cursor is provided)
  *       - in: query
  *         name: category
  *         schema:
@@ -263,39 +278,70 @@ router.get('/filters/options', (req: Request, res: Response, next: NextFunction)
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Courses retrieved successfully
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Course'
- *                 meta:
- *                   type: object
+ *               oneOf:
+ *                 - type: object
+ *                   description: Offset-based pagination response
  *                   properties:
- *                     timestamp:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *                     message:
  *                       type: string
- *                       format: date-time
- *                     pagination:
+ *                       example: Courses retrieved successfully
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Course'
+ *                     meta:
  *                       type: object
  *                       properties:
- *                         page:
- *                           type: integer
- *                           example: 1
- *                         limit:
- *                           type: integer
- *                           example: 10
- *                         total:
- *                           type: integer
- *                           example: 50
- *                         totalPages:
- *                           type: integer
- *                           example: 5
+ *                         timestamp:
+ *                           type: string
+ *                           format: date-time
+ *                         pagination:
+ *                           type: object
+ *                           properties:
+ *                             page:
+ *                               type: integer
+ *                               example: 1
+ *                             limit:
+ *                               type: integer
+ *                               example: 10
+ *                             total:
+ *                               type: integer
+ *                               example: 50
+ *                             totalPages:
+ *                               type: integer
+ *                               example: 5
+ *                 - type: object
+ *                   description: Cursor-based pagination response
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *                     message:
+ *                       type: string
+ *                       example: Courses retrieved successfully
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         items:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/Course'
+ *                         nextCursor:
+ *                           type: string
+ *                           nullable: true
+ *                           example: eyJpZCI6IjYwN2YxZjc3YmNmODZjZDc5OTQzOTAxMSIsInNvcnRGaWVsZCI6ImNyZWF0ZWRBdCIsInNvcnRWYWx1ZSI6IjIwMjQtMDEtMTVUMTA6MzA6MDAuMDAwWiJ9
+ *                         hasMore:
+ *                           type: boolean
+ *                           example: true
+ *                     meta:
+ *                       type: object
+ *                       properties:
+ *                         timestamp:
+ *                           type: string
+ *                           format: date-time
  *       400:
  *         description: Validation error
  *         content:

@@ -22,6 +22,7 @@ export class CourseController {
   /**
    * Get all courses with filtering, search, and pagination
    * GET /api/v1/courses
+   * Supports both offset-based (page/limit) and cursor-based (cursor/useCursor) pagination
    */
   public async getCourses(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -38,14 +39,21 @@ export class CourseController {
 
       // Extract query parameters
       const queryParams: CourseQueryParams = {
+        // Offset-based pagination
         page: req.query.page ? parseInt(req.query.page as string) : undefined,
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        
+        // Cursor-based pagination
+        cursor: req.query.cursor as string,
+        useCursor: req.query.useCursor === 'true' || (!!req.query.cursor && req.query.cursor !== ''),
+        
+        // Filters
         category: req.query.category as any,
         difficultyLevel: req.query.difficultyLevel as any,
         minPrice: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
         maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
         minRating: req.query.minRating ? parseFloat(req.query.minRating as string) : undefined,
-        tags: req.query.tags as string | string[],
+        tags: req.query.tags as string,
         search: req.query.search as string,
         sortBy: req.query.sortBy as any,
         sortOrder: req.query.sortOrder as any,
@@ -54,13 +62,27 @@ export class CourseController {
       // Get courses from service
       const result = await courseService.getCourses(queryParams);
 
-      // Send paginated response
-      SuccessResponseHelper.paginated(
-        res,
-        result.courses,
-        result.pagination,
-        'Courses retrieved successfully'
-      );
+      // Check if cursor-based or offset-based response
+      if ('nextCursor' in result) {
+        // Cursor-based response
+        SuccessResponseHelper.ok(
+          res,
+          {
+            items: result.items,
+            nextCursor: result.nextCursor,
+            hasMore: result.hasMore,
+          },
+          'Courses retrieved successfully'
+        );
+      } else {
+        // Offset-based response (original format)
+        SuccessResponseHelper.paginated(
+          res,
+          result.courses,
+          result.pagination,
+          'Courses retrieved successfully'
+        );
+      }
     } catch (error: any) {
       logger.error('Get courses controller error:', error);
       next(error);
