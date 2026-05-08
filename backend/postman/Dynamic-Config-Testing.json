@@ -1,0 +1,195 @@
+{
+  "info": {
+    "name": "Dynamic Config Testing",
+    "description": "Test dynamic course configuration endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Configurations",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/config",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "config"]
+        },
+        "description": "Get all dynamic configurations (categories, difficulty levels, course types)"
+      }
+    },
+    {
+      "name": "Get Categories",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/config/categories",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "config", "categories"]
+        },
+        "description": "Get all course categories from database"
+      }
+    },
+    {
+      "name": "Get Difficulty Levels",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/config/difficulty-levels",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "config", "difficulty-levels"]
+        },
+        "description": "Get all difficulty levels from database"
+      }
+    },
+    {
+      "name": "Get Course Types",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/config/course-types",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "config", "course-types"]
+        },
+        "description": "Get all course types from database"
+      }
+    },
+    {
+      "name": "Get Filter Options (with courseTypes)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/filters/options",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "filters", "options"]
+        },
+        "description": "Get all filter options including dynamic courseTypes"
+      }
+    },
+    {
+      "name": "Update Categories (Admin)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"values\": [\"MERN\", \"UI/UX\", \"DataScience\", \"DevOps\", \"Mobile\", \"Blockchain\"]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/config/categories",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "config", "categories"]
+        },
+        "description": "Update categories configuration (adds Mobile and Blockchain)"
+      }
+    },
+    {
+      "name": "Update Difficulty Levels (Admin)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"values\": [\"Beginner\", \"Intermediate\", \"Advanced\", \"Expert\"]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/config/difficultyLevels",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "config", "difficultyLevels"]
+        },
+        "description": "Update difficulty levels (adds Expert level)"
+      }
+    },
+    {
+      "name": "Update Course Types (Admin)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"values\": [\"Course\", \"Bootcamp\", \"Workshop\", \"Masterclass\"]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/config/courseTypes",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "config", "courseTypes"]
+        },
+        "description": "Update course types (adds Workshop and Masterclass)"
+      }
+    },
+    {
+      "name": "Clear Cache (Admin)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/config/clear-cache",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "config", "clear-cache"]
+        },
+        "description": "Clear configuration cache to apply changes immediately"
+      }
+    },
+    {
+      "name": "Restore Default Categories",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"values\": [\"MERN\", \"UI/UX\", \"DataScience\", \"DevOps\", \"Other\"]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/config/categories",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "config", "categories"]
+        },
+        "description": "Restore default categories"
+      }
+    }
+  ]
+}

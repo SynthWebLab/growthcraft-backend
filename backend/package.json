@@ -11,6 +11,8 @@
     "test:watch": "jest --watch",
     "test:connections": "node scripts/test-connections.js",
     "test:email": "ts-node scripts/test-email.ts",
+    "seed:courses": "ts-node scripts/seed-courses.ts",
+    "init:config": "ts-node scripts/init-course-config.ts",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.{ts,json}\"",

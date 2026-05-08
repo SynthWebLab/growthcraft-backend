@@ -1,0 +1,326 @@
+{
+  "info": {
+    "name": "Dynamic Status Testing",
+    "description": "Test dynamic status computation for courses and bootcamps",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Courses",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses"]
+        },
+        "description": "Get all courses with dynamic status computation"
+      }
+    },
+    {
+      "name": "Get All Courses (Paginated)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses?page=1&limit=5",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        },
+        "description": "Get courses with pagination"
+      }
+    },
+    {
+      "name": "Get Active Course",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/slug/javascript-zero-to-hero",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "slug", "javascript-zero-to-hero"]
+        },
+        "description": "Get an active course. Expected: status='Active', primaryCTA='Enroll Now', canEnroll=true"
+      }
+    },
+    {
+      "name": "Get Draft Course",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/slug/advanced-typescript",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "slug", "advanced-typescript"]
+        },
+        "description": "Get a draft course. Expected: status='Draft', primaryCTA='Request Callback', canEnroll=false"
+      }
+    },
+    {
+      "name": "Get Bootcamp - Seats Available",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/slug/fullstack-bootcamp",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "slug", "fullstack-bootcamp"]
+        },
+        "description": "Get bootcamp with seats available. Note: May show as Draft if registration deadline passed"
+      }
+    },
+    {
+      "name": "Get Bootcamp - Full",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/slug/data-science-bootcamp-batch-2",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "slug", "data-science-bootcamp-batch-2"]
+        },
+        "description": "Get bootcamp with no seats available. Expected: availableSeats=0, primaryCTA='Request Callback'"
+      }
+    },
+    {
+      "name": "Get Bootcamp - Already Started",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/slug/devops-bootcamp",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "slug", "devops-bootcamp"]
+        },
+        "description": "Get bootcamp that has already started. Expected: hasStarted=true, canEnroll=false"
+      }
+    },
+    {
+      "name": "Filter by Category",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses?category=MERN",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "category",
+              "value": "MERN"
+            }
+          ]
+        },
+        "description": "Filter courses by category"
+      }
+    },
+    {
+      "name": "Filter by Difficulty",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses?difficultyLevel=Beginner",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "difficultyLevel",
+              "value": "Beginner"
+            }
+          ]
+        },
+        "description": "Filter courses by difficulty level"
+      }
+    },
+    {
+      "name": "Filter by Price Range",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses?minPrice=5000&maxPrice=10000",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "minPrice",
+              "value": "5000"
+            },
+            {
+              "key": "maxPrice",
+              "value": "10000"
+            }
+          ]
+        },
+        "description": "Filter courses by price range"
+      }
+    },
+    {
+      "name": "Search Courses",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses?search=bootcamp",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "search",
+              "value": "bootcamp"
+            }
+          ]
+        },
+        "description": "Search courses by text (title and description)"
+      }
+    },
+    {
+      "name": "Sort by Rating",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses?sortBy=rating&sortOrder=desc",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "sortBy",
+              "value": "rating"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ]
+        },
+        "description": "Sort courses by rating (descending)"
+      }
+    },
+    {
+      "name": "Sort by Price",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses?sortBy=price&sortOrder=asc",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "sortBy",
+              "value": "price"
+            },
+            {
+              "key": "sortOrder",
+              "value": "asc"
+            }
+          ]
+        },
+        "description": "Sort courses by price (ascending)"
+      }
+    },
+    {
+      "name": "Get Filter Options",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses/filters/options",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses", "filters", "options"]
+        },
+        "description": "Get available filter options (categories, difficulty levels, price range, tags)"
+      }
+    },
+    {
+      "name": "Combined Filters",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5001/api/v1/courses?category=MERN&difficultyLevel=Intermediate&minPrice=5000&maxPrice=15000&sortBy=rating&sortOrder=desc&page=1&limit=10",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5001",
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "category",
+              "value": "MERN"
+            },
+            {
+              "key": "difficultyLevel",
+              "value": "Intermediate"
+            },
+            {
+              "key": "minPrice",
+              "value": "5000"
+            },
+            {
+              "key": "maxPrice",
+              "value": "15000"
+            },
+            {
+              "key": "sortBy",
+              "value": "rating"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Test multiple filters combined"
+      }
+    }
+  ]
+}

@@ -1,0 +1,470 @@
+import { Router, Request, Response, NextFunction } from 'express';
+import { courseController } from '../controllers/course.controller';
+import { courseConfigController } from '../controllers/course-config.controller';
+import { CourseValidator } from '../validators/course.validator';
+
+const router = Router();
+
+// ============================================
+// CONFIGURATION ROUTES (Dynamic Data)
+// ============================================
+
+/**
+ * @swagger
+ * /courses/config:
+ *   get:
+ *     summary: Get all course configurations (categories, difficulty levels, course types)
+ *     tags: [Course Config]
+ *     description: Returns all dynamic configuration values from database
+ *     responses:
+ *       200:
+ *         description: Configurations retrieved successfully
+ */
+router.get('/config', (req: Request, res: Response, next: NextFunction) => {
+  void courseConfigController.getAllConfigs(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/config/categories:
+ *   get:
+ *     summary: Get all course categories
+ *     tags: [Course Config]
+ *     description: Returns dynamic list of course categories from database
+ *     responses:
+ *       200:
+ *         description: Categories retrieved successfully
+ */
+router.get('/config/categories', (req: Request, res: Response, next: NextFunction) => {
+  void courseConfigController.getCategories(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/config/difficulty-levels:
+ *   get:
+ *     summary: Get all difficulty levels
+ *     tags: [Course Config]
+ *     description: Returns dynamic list of difficulty levels from database
+ *     responses:
+ *       200:
+ *         description: Difficulty levels retrieved successfully
+ */
+router.get('/config/difficulty-levels', (req: Request, res: Response, next: NextFunction) => {
+  void courseConfigController.getDifficultyLevels(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/config/course-types:
+ *   get:
+ *     summary: Get all course types
+ *     tags: [Course Config]
+ *     description: Returns dynamic list of course types from database
+ *     responses:
+ *       200:
+ *         description: Course types retrieved successfully
+ */
+router.get('/config/course-types', (req: Request, res: Response, next: NextFunction) => {
+  void courseConfigController.getCourseTypes(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/config/{key}:
+ *   put:
+ *     summary: Update configuration (Admin only)
+ *     tags: [Course Config]
+ *     description: Update dynamic configuration values
+ *     parameters:
+ *       - in: path
+ *         name: key
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [categories, difficultyLevels, courseTypes]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               values:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Configuration updated successfully
+ */
+router.put('/config/:key', (req: Request, res: Response, next: NextFunction) => {
+  void courseConfigController.updateConfig(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/config/clear-cache:
+ *   post:
+ *     summary: Clear configuration cache (Admin only)
+ *     tags: [Course Config]
+ *     responses:
+ *       200:
+ *         description: Cache cleared successfully
+ */
+router.post('/config/clear-cache', (req: Request, res: Response, next: NextFunction) => {
+  void courseConfigController.clearCache(req, res, next);
+});
+
+// ============================================
+// FILTER OPTIONS ROUTE
+// ============================================
+
+/**
+ * @swagger
+ * /courses/filters/options:
+ *   get:
+ *     summary: Get available filter options
+ *     tags: [Courses]
+ *     description: Returns available categories, difficulty levels, price range, and tags for filtering courses
+ *     responses:
+ *       200:
+ *         description: Filter options retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Filter options retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     categories:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["MERN", "UI/UX", "DataScience", "DevOps", "Other"]
+ *                     difficultyLevels:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["Beginner", "Intermediate", "Advanced"]
+ *                     courseTypes:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["Course", "Bootcamp"]
+ *                     priceRange:
+ *                       type: object
+ *                       properties:
+ *                         min:
+ *                           type: number
+ *                           example: 0
+ *                         max:
+ *                           type: number
+ *                           example: 15000
+ *                     tags:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["JavaScript", "React", "Node.js"]
+ */
+router.get('/filters/options', (req: Request, res: Response, next: NextFunction) => {
+  void courseController.getFilterOptions(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses:
+ *   get:
+ *     summary: Get all courses with filtering, search, and pagination
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [MERN, UI/UX, DataScience, DevOps, Other]
+ *         description: Filter by course category
+ *       - in: query
+ *         name: difficultyLevel
+ *         schema:
+ *           type: string
+ *           enum: [Beginner, Intermediate, Advanced]
+ *         description: Filter by difficulty level
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Minimum price filter
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Maximum price filter
+ *       - in: query
+ *         name: minRating
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *           maximum: 5
+ *         description: Minimum rating filter
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: string
+ *         description: Filter by tags (comma-separated)
+ *         example: JavaScript,React
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           maxLength: 100
+ *         description: Search query for title and description
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [title, price, rating, enrollmentCount, createdAt, duration]
+ *           default: createdAt
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
+ *     responses:
+ *       200:
+ *         description: Courses retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Courses retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Course'
+ *                 meta:
+ *                   type: object
+ *                   properties:
+ *                     timestamp:
+ *                       type: string
+ *                       format: date-time
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 10
+ *                         total:
+ *                           type: integer
+ *                           example: 50
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 5
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/', CourseValidator.getCourses(), (req: Request, res: Response, next: NextFunction) => {
+  void courseController.getCourses(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/slug/{slug}:
+ *   get:
+ *     summary: Get course by slug
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course slug (URL-friendly identifier)
+ *         example: javascript-zero-to-hero
+ *     responses:
+ *       200:
+ *         description: Course retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Course retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     course:
+ *                       $ref: '#/components/schemas/Course'
+ *       404:
+ *         description: Course not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/slug/:slug', (req: Request, res: Response, next: NextFunction) => {
+  void courseController.getCourseBySlug(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/{id}:
+ *   get:
+ *     summary: Get course by ID
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Course retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Course retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     course:
+ *                       $ref: '#/components/schemas/Course'
+ *       404:
+ *         description: Course not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
+  void courseController.getCourseById(req, res, next);
+});
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Course:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           example: 507f1f77bcf86cd799439011
+ *         title:
+ *           type: string
+ *           example: JavaScript Zero to Hero
+ *         description:
+ *           type: string
+ *           example: The only JS course you need. Closures, async, DOM, ES6+, and 30+ hands-on projects
+ *         category:
+ *           type: string
+ *           enum: [MERN, UI/UX, DataScience, DevOps, Other]
+ *           example: MERN
+ *         difficultyLevel:
+ *           type: string
+ *           enum: [Beginner, Intermediate, Advanced]
+ *           example: Beginner
+ *         duration:
+ *           type: number
+ *           description: Duration in hours
+ *           example: 70
+ *         lessonsCount:
+ *           type: number
+ *           example: 52
+ *         price:
+ *           type: number
+ *           example: 4499
+ *         originalPrice:
+ *           type: number
+ *           example: 7999
+ *         rating:
+ *           type: number
+ *           minimum: 0
+ *           maximum: 5
+ *           example: 4.9
+ *         instructor:
+ *           type: object
+ *           properties:
+ *             name:
+ *               type: string
+ *               example: Ananya Iyer
+ *             avatar:
+ *               type: string
+ *               example: https://example.com/avatar.jpg
+ *         thumbnail:
+ *           type: string
+ *           example: https://example.com/course-thumbnail.jpg
+ *         isActive:
+ *           type: boolean
+ *           example: true
+ *         tags:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["JavaScript", "ES6", "DOM"]
+ *         enrollmentCount:
+ *           type: number
+ *           example: 1250
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ */
+
+export default router;
