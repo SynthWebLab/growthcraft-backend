@@ -1,0 +1,200 @@
+{
+  "info": {
+    "name": "Course Enrollment & Callback Examples",
+    "description": "Examples for course enrollment and callback request APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Enroll in Course",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "description": "JWT access token from login"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Sandipan Goswami\",\n  \"email\": \"sandipan.goswami@syntheticweb.in\",\n  \"phone\": \"5000100424\",\n  \"enrollmentNumber\": \"2021CS001\",\n  \"collegeName\": \"Data Science & A.I-Bootcamp\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/courses/:courseId/enroll",
+          "host": ["{{baseUrl}}"],
+          "path": ["courses", ":courseId", "enroll"],
+          "variable": [
+            {
+              "key": "courseId",
+              "value": "{{courseId}}",
+              "description": "Course ID to enroll in"
+            }
+          ]
+        },
+        "description": "Enroll a user in a course. Requires authentication."
+      },
+      "response": []
+    },
+    {
+      "name": "2. Request Callback",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "description": "JWT access token from login"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Sandipan Goswami\",\n  \"email\": \"sandipan.goswami@syntheticweb.in\",\n  \"phone\": \"5000100424\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/courses/:courseId/request-callback",
+          "host": ["{{baseUrl}}"],
+          "path": ["courses", ":courseId", "request-callback"],
+          "variable": [
+            {
+              "key": "courseId",
+              "value": "{{courseId}}",
+              "description": "Course ID to request callback for"
+            }
+          ]
+        },
+        "description": "Request a callback for a course. Requires authentication."
+      },
+      "response": []
+    },
+    {
+      "name": "3. Get My Enrollments",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "description": "JWT access token from login"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/courses/enrollments/my-enrollments",
+          "host": ["{{baseUrl}}"],
+          "path": ["courses", "enrollments", "my-enrollments"]
+        },
+        "description": "Get all enrollments for the authenticated user."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Get My Callback Requests",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "description": "JWT access token from login"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/courses/callbacks/my-requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["courses", "callbacks", "my-requests"]
+        },
+        "description": "Get all callback requests for the authenticated user."
+      },
+      "response": []
+    },
+    {
+      "name": "5. Check Enrollment Status",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "description": "JWT access token from login"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/courses/:courseId/enrollment-status",
+          "host": ["{{baseUrl}}"],
+          "path": ["courses", ":courseId", "enrollment-status"],
+          "variable": [
+            {
+              "key": "courseId",
+              "value": "{{courseId}}",
+              "description": "Course ID to check enrollment status"
+            }
+          ]
+        },
+        "description": "Check if the authenticated user is enrolled in a specific course."
+      },
+      "response": []
+    },
+    {
+      "name": "6. Enroll in Course (Without Optional Fields)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "description": "JWT access token from login"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1234567890\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/courses/:courseId/enroll",
+          "host": ["{{baseUrl}}"],
+          "path": ["courses", ":courseId", "enroll"],
+          "variable": [
+            {
+              "key": "courseId",
+              "value": "{{courseId}}",
+              "description": "Course ID to enroll in"
+            }
+          ]
+        },
+        "description": "Enroll in a course without optional fields (enrollmentNumber and collegeName)."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string",
+      "description": "JWT access token obtained from login"
+    },
+    {
+      "key": "courseId",
+      "value": "",
+      "type": "string",
+      "description": "Course ID for enrollment/callback"
+    }
+  ]
+}

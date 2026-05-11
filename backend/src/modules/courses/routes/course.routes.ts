@@ -1,7 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { courseController } from '../controllers/course.controller';
 import { courseConfigController } from '../controllers/course-config.controller';
+import { enrollmentController } from '../controllers/enrollment.controller';
 import { CourseValidator } from '../validators/course.validator';
+import { EnrollmentValidator } from '../validators/enrollment.validator';
+import { authenticate } from '@/common/middleware/authenticate.middleware';
 
 const router = Router();
 
@@ -392,6 +395,187 @@ router.get('/slug/:slug', (req: Request, res: Response, next: NextFunction) => {
  */
 router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
   void courseController.getCourseById(req, res, next);
+});
+
+// ============================================
+// ENROLLMENT ROUTES
+// ============================================
+
+/**
+ * @swagger
+ * /courses/{courseId}/enroll:
+ *   post:
+ *     summary: Enroll in a course
+ *     tags: [Course Enrollment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fullName
+ *               - email
+ *               - phone
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *                 example: Sandipan Goswami
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: sandipan.goswami@syntheticweb.in
+ *               phone:
+ *                 type: string
+ *                 example: "5000100424"
+ *               enrollmentNumber:
+ *                 type: string
+ *                 example: "2021CS001"
+ *               collegeName:
+ *                 type: string
+ *                 example: "Data Science & A.I-Bootcamp"
+ *     responses:
+ *       201:
+ *         description: Successfully enrolled in the course
+ *       400:
+ *         description: Validation error or course not available
+ *       401:
+ *         description: Unauthorized
+ *       409:
+ *         description: Already enrolled in this course
+ */
+router.post(
+  '/:courseId/enroll',
+  authenticate,
+  EnrollmentValidator.enrollCourse(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void enrollmentController.enrollInCourse(req, res, next);
+  }
+);
+
+/**
+ * @swagger
+ * /courses/{courseId}/request-callback:
+ *   post:
+ *     summary: Request callback for a course
+ *     tags: [Course Enrollment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fullName
+ *               - email
+ *               - phone
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *                 example: Sandipan Goswami
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: sandipan.goswami@syntheticweb.in
+ *               phone:
+ *                 type: string
+ *                 example: "5000100424"
+ *     responses:
+ *       201:
+ *         description: Callback request created successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       409:
+ *         description: Already have a pending callback request
+ */
+router.post(
+  '/:courseId/request-callback',
+  authenticate,
+  EnrollmentValidator.requestCallback(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void enrollmentController.requestCallback(req, res, next);
+  }
+);
+
+/**
+ * @swagger
+ * /courses/enrollments/my-enrollments:
+ *   get:
+ *     summary: Get user's course enrollments
+ *     tags: [Course Enrollment]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Enrollments retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/enrollments/my-enrollments', authenticate, (req: Request, res: Response, next: NextFunction) => {
+  void enrollmentController.getMyEnrollments(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/callbacks/my-requests:
+ *   get:
+ *     summary: Get user's callback requests
+ *     tags: [Course Enrollment]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Callback requests retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/callbacks/my-requests', authenticate, (req: Request, res: Response, next: NextFunction) => {
+  void enrollmentController.getMyCallbackRequests(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/{courseId}/enrollment-status:
+ *   get:
+ *     summary: Check if user is enrolled in a course
+ *     tags: [Course Enrollment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Enrollment status retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/:courseId/enrollment-status', authenticate, (req: Request, res: Response, next: NextFunction) => {
+  void enrollmentController.checkEnrollmentStatus(req, res, next);
 });
 
 /**
