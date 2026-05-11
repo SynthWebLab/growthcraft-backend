@@ -54,7 +54,11 @@ export class CourseController {
         maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
         minRating: req.query.minRating ? parseFloat(req.query.minRating as string) : undefined,
         tags: req.query.tags as string,
+        
+        // Search (supports both 'q' and 'search' for backward compatibility)
+        q: req.query.q as string,
         search: req.query.search as string,
+        
         sortBy: req.query.sortBy as any,
         sortOrder: req.query.sortOrder as any,
       };

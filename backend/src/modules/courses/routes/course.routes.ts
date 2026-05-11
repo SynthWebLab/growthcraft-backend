@@ -253,11 +253,18 @@ router.get('/filters/options', (req: Request, res: Response, next: NextFunction)
  *         description: Filter by tags (comma-separated)
  *         example: JavaScript,React
  *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *           maxLength: 100
+ *         description: Search query for title and description (recommended - shorter parameter name)
+ *         example: javascript react
+ *       - in: query
  *         name: search
  *         schema:
  *           type: string
  *           maxLength: 100
- *         description: Search query for title and description
+ *         description: Search query for title and description (alternative to 'q' for backward compatibility)
  *       - in: query
  *         name: sortBy
  *         schema:

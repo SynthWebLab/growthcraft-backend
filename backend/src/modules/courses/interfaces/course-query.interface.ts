@@ -17,7 +17,8 @@ export interface CourseQueryParams {
   minRating?: number;
   tags?: string; // Always a string (comma-separated) after validation
 
-  // Search
+  // Search (supports both 'q' and 'search' for backward compatibility)
+  q?: string;
   search?: string;
 
   // Sorting

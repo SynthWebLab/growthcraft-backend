@@ -11,6 +11,7 @@
     "test:watch": "jest --watch",
     "test:connections": "node scripts/test-connections.js",
     "test:email": "ts-node scripts/test-email.ts",
+    "test:search": "ts-node scripts/test-search.ts",
     "seed:courses": "ts-node scripts/seed-courses.ts",
     "seed:bootcamps": "ts-node scripts/seed-bootcamps.ts",
     "init:config": "ts-node scripts/init-course-config.ts",
