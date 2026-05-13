@@ -6,3 +6,5 @@ export { MentorProfile, IMentorProfile } from './MentorProfile.model';
 export { EmployerProfile, IEmployerProfile } from './EmployerProfile.model';
 export { Course, ICourse } from './Course.model';
 export { CourseConfig, ICourseConfig } from './CourseConfig.model';
+export { Bootcamp, IBootcamp } from './Bootcamp.model';
+export { Reservation, IReservation } from './Reservation.model';

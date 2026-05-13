@@ -7,7 +7,7 @@ export class CourseValidator {
    */
   public static getCourses(): ValidationChain[] {
     return [
-      // Pagination
+      // Offset-based pagination
       query('page')
         .optional()
         .isInt({ min: 1 })
@@ -19,6 +19,20 @@ export class CourseValidator {
         .isInt({ min: 1, max: 50 })
         .withMessage('Limit must be between 1 and 50')
         .toInt(),
+
+      // Cursor-based pagination
+      query('cursor')
+        .optional()
+        .isString()
+        .trim()
+        .notEmpty()
+        .withMessage('Cursor must be a non-empty string'),
+
+      query('useCursor')
+        .optional()
+        .isBoolean()
+        .withMessage('useCursor must be a boolean')
+        .toBoolean(),
 
       // Filtering - values are now dynamic from database
       query('category')
