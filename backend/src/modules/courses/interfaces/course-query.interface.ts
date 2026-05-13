@@ -1,9 +1,13 @@
 import { CourseCategory, DifficultyLevel } from '@/database/models/Course.model';
 
 export interface CourseQueryParams {
-  // Pagination
+  // Pagination (offset-based)
   page?: number;
   limit?: number;
+
+  // Pagination (cursor-based)
+  cursor?: string; // Base64 encoded cursor for cursor-based pagination
+  useCursor?: boolean; // Flag to enable cursor-based pagination
 
   // Filtering
   category?: CourseCategory;
@@ -11,9 +15,10 @@ export interface CourseQueryParams {
   minPrice?: number;
   maxPrice?: number;
   minRating?: number;
-  tags?: string | string[];
+  tags?: string; // Always a string (comma-separated) after validation
 
-  // Search
+  // Search (supports both 'q' and 'search' for backward compatibility)
+  q?: string;
   search?: string;
 
   // Sorting
@@ -29,4 +34,11 @@ export interface PaginatedCoursesResponse {
     total: number;
     totalPages: number;
   };
+}
+
+export interface CursorPaginatedCoursesResponse {
+  items: any[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  total?: number; // Optional, can be expensive to calculate
 }
