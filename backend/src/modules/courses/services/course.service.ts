@@ -257,8 +257,10 @@ export class CourseService {
     }
 
     // Search filter (text search on title and description)
-    if (queryParams.search && queryParams.search.trim()) {
-      filter.$text = { $search: queryParams.search.trim() };
+    // Support both 'q' and 'search' parameters (q takes precedence)
+    const searchQuery = queryParams.q || queryParams.search;
+    if (searchQuery && searchQuery.trim()) {
+      filter.$text = { $search: searchQuery.trim() };
     }
 
     return filter;
@@ -273,7 +275,8 @@ export class CourseService {
     const sort: Record<string, 1 | -1 | any> = { [sortBy]: sortOrder };
 
     // If searching, add text score for relevance sorting
-    if (queryParams.search && queryParams.search.trim()) {
+    const searchQuery = queryParams.q || queryParams.search;
+    if (searchQuery && searchQuery.trim()) {
       sort.score = { $meta: 'textScore' };
     }
 
@@ -418,6 +421,72 @@ export class CourseService {
       return course;
     } catch (error: any) {
       logger.error('Get course by slug error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search courses by text query
+   * Dedicated helper function for full-text search on title, description, and tags
+   * @param q - Search query string
+   * @param options - Optional filters and pagination
+   * @returns Array of matching courses sorted by relevance
+   */
+  public async searchCourses(
+    q: string,
+    options?: {
+      limit?: number;
+      category?: string;
+      difficultyLevel?: string;
+      minPrice?: number;
+      maxPrice?: number;
+      minRating?: number;
+    }
+  ): Promise<ICourse[]> {
+    try {
+      if (!q || !q.trim()) {
+        logger.warn('Empty search query provided to searchCourses');
+        return [];
+      }
+
+      const filter: FilterQuery<ICourse> = {
+        isActive: true,
+        $text: { $search: q.trim() },
+      };
+
+      // Apply optional filters
+      if (options?.category) {
+        filter.category = options.category;
+      }
+      if (options?.difficultyLevel) {
+        filter.difficultyLevel = options.difficultyLevel;
+      }
+      if (options?.minPrice !== undefined || options?.maxPrice !== undefined) {
+        filter.price = {};
+        if (options.minPrice !== undefined) {
+          filter.price.$gte = options.minPrice;
+        }
+        if (options.maxPrice !== undefined) {
+          filter.price.$lte = options.maxPrice;
+        }
+      }
+      if (options?.minRating !== undefined) {
+        filter.rating = { $gte: options.minRating };
+      }
+
+      const limit = Math.min(50, Math.max(1, options?.limit || 20));
+
+      // Execute search query sorted by text relevance score
+      const courses = await Course.find(filter)
+        .sort({ score: { $meta: 'textScore' } }) // Sort by relevance
+        .limit(limit)
+        .exec();
+
+      logger.info(`Search query "${q}" returned ${courses.length} results`);
+
+      return courses;
+    } catch (error: any) {
+      logger.error('Search courses error:', error);
       throw error;
     }
   }

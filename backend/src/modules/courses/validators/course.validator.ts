@@ -72,7 +72,14 @@ export class CourseValidator {
         .isString()
         .withMessage('Tags must be a string (comma-separated)'),
 
-      // Search
+      // Search (supports both 'q' and 'search' for backward compatibility)
+      query('q')
+        .optional()
+        .isString()
+        .trim()
+        .isLength({ min: 1, max: 100 })
+        .withMessage('Search query must be between 1 and 100 characters'),
+
       query('search')
         .optional()
         .isString()
