@@ -194,6 +194,73 @@ export class CatalogueController {
       next(error);
     }
   }
+
+  /**
+   * Get training programs (public endpoint)
+   * GET /api/v1/training-programs
+   */
+  public async getTrainingPrograms(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const queryParams: CatalogueQueryParams = {
+        type: 'training-program',
+        cursor: req.query.cursor as string,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        page: req.query.page ? parseInt(req.query.page as string) : undefined,
+        category: req.query.category ? (req.query.category as string).trim() : undefined,
+        level: req.query.level ? (req.query.level as string).trim() : undefined,
+        mode: req.query.mode ? (req.query.mode as string).trim() as any : undefined,
+        status: req.query.status ? (req.query.status as string).trim() : undefined,
+        minPrice: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
+        maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
+        minRating: req.query.minRating ? parseFloat(req.query.minRating as string) : undefined,
+        tags: req.query.tags ? (req.query.tags as string).trim() : undefined,
+        search: req.query.search ? (req.query.search as string).trim() : undefined,
+        sortBy: req.query.sortBy as any,
+        sortOrder: req.query.sortOrder as any,
+      };
+
+      const result = await catalogueService.getTrainingPrograms(queryParams);
+
+      res.status(200).json(result);
+    } catch (error: any) {
+      logger.error('Get training programs controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get detailed training program by slug (public endpoint)
+   * GET /api/v1/training-programs/:slug
+   */
+  public async getTrainingProgramDetailBySlug(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { slug } = req.params;
+
+      const programDetail = await catalogueService.getTrainingProgramDetailBySlug(slug);
+
+      res.status(200).json(programDetail);
+    } catch (error: any) {
+      logger.error('Get training program detail by slug controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get detailed training program by ID (public endpoint)
+   * GET /api/v1/training-programs/id/:id
+   */
+  public async getTrainingProgramDetailById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const programDetail = await catalogueService.getTrainingProgramDetailById(id);
+
+      res.status(200).json(programDetail);
+    } catch (error: any) {
+      logger.error('Get training program detail by ID controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const catalogueController = CatalogueController.getInstance();

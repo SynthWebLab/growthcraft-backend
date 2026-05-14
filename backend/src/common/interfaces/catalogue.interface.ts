@@ -3,7 +3,7 @@
  * Used by both courses and bootcamps
  */
 
-export type CatalogueItemType = 'course' | 'bootcamp';
+export type CatalogueItemType = 'course' | 'bootcamp' | 'training-program';
 
 export interface CatalogueItem {
   // Common fields
@@ -49,10 +49,27 @@ export interface CatalogueItem {
   skillsCovered?: string[];
   mentorNames?: string[];
   
+  // For training programs
+  level?: string;
+  durationBadge?: string; // e.g., "40 Days"
+  toolsCovered?: string[];
+  displayTools?: string[]; // Max 4 tools for display
+  mentors?: Array<{
+    name: string;
+    avatar?: string;
+    designation?: string;
+  }>;
+  isFeeOnRequest?: boolean;
+  certificateOffered?: boolean;
+  placementAssistance?: boolean;
+  projectsCount?: number;
+  primaryCTA?: string;
+  secondaryCTA?: string | null;
+  
   // Status
   status: string;
   canEnroll?: boolean; // For courses
-  canRegister?: boolean; // For bootcamps
+  canRegister?: boolean; // For bootcamps and training programs
   
   // Timestamps
   createdAt: string;

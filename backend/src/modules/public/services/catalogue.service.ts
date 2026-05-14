@@ -1,5 +1,6 @@
 import { Course, ICourse } from '@/database/models/Course.model';
 import { Bootcamp, IBootcamp } from '@/database/models/Bootcamp.model';
+import { TrainingProgram, ITrainingProgram } from '@/database/models/TrainingProgram.model';
 import { CourseModule, ICourseModule } from '@/database/models/CourseModule.model';
 import { CourseFAQ, ICourseFAQ } from '@/database/models/CourseFAQ.model';
 import { CourseBatch, ICourseBatch } from '@/database/models/CourseBatch.model';
@@ -648,6 +649,265 @@ export class CatalogueService {
       return result;
     } catch (error: any) {
       logger.error('Get bootcamp detail by ID error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get training programs with filtering and pagination
+   */
+  public async getTrainingPrograms(queryParams: CatalogueQueryParams): Promise<CataloguePaginatedResponse> {
+    try {
+      const cacheKey = this.generateCacheKey({ ...queryParams, type: 'training-program' });
+
+      // Try cache
+      const cachedData = await this.getFromCache(cacheKey);
+      if (cachedData) {
+        logger.info(`Cache hit for training programs: ${cacheKey}`);
+        return cachedData;
+      }
+
+      logger.info(`Cache miss for training programs: ${cacheKey}`);
+
+      const limit = Math.min(50, Math.max(1, queryParams.limit || 10));
+      const sortBy = queryParams.sortBy || 'createdAt';
+      const sortOrder = queryParams.sortOrder === 'asc' ? 1 : -1;
+
+      const programs = await this.fetchTrainingPrograms(queryParams, sortBy, sortOrder, limit + 1);
+      const items = programs.map(this.mapTrainingProgramToCatalogueItem);
+
+      // Apply cursor filtering if provided
+      let filteredItems = items;
+      if (queryParams.cursor) {
+        const cursorData = this.decodeCursor(queryParams.cursor);
+        if (!cursorData) {
+          throw new ValidationError('Invalid cursor format', [
+            { field: 'cursor', message: 'The provided cursor is invalid or expired', value: queryParams.cursor },
+          ]);
+        }
+        filteredItems = this.filterByCursor(items, cursorData, sortBy, sortOrder);
+      }
+
+      // Paginate
+      const hasMore = filteredItems.length > limit;
+      const paginatedItems = hasMore ? filteredItems.slice(0, limit) : filteredItems;
+
+      // Generate next cursor
+      let nextCursor: string | null = null;
+      if (hasMore && paginatedItems.length > 0) {
+        const lastItem = paginatedItems[paginatedItems.length - 1];
+        const sortValue = this.getSortValue(lastItem, sortBy);
+        nextCursor = this.encodeCursor(lastItem.id, sortBy, sortValue);
+      }
+
+      const result: CataloguePaginatedResponse = {
+        items: paginatedItems,
+        nextCursor,
+      };
+
+      // Cache the result
+      await this.setCache(cacheKey, result);
+
+      logger.info(`Retrieved ${paginatedItems.length} training programs (hasMore: ${hasMore})`);
+
+      return result;
+    } catch (error: any) {
+      logger.error('Get training programs error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch training programs based on query parameters
+   */
+  private async fetchTrainingPrograms(
+    queryParams: CatalogueQueryParams,
+    sortBy: string,
+    sortOrder: number,
+    limit: number
+  ): Promise<ITrainingProgram[]> {
+    const filter: any = { isActive: true, isDraft: false };
+
+    // Only show published programs
+    if (queryParams.status) {
+      filter.status = queryParams.status;
+    } else {
+      filter.status = { $in: ['Open', 'Closed', 'Completed'] };
+    }
+
+    // Apply filters
+    if (queryParams.category) filter.category = queryParams.category;
+    if (queryParams.level) filter.level = queryParams.level;
+    if (queryParams.mode) filter.mode = queryParams.mode;
+    
+    if (queryParams.minPrice !== undefined || queryParams.maxPrice !== undefined) {
+      filter.price = {};
+      if (queryParams.minPrice !== undefined) filter.price.$gte = queryParams.minPrice;
+      if (queryParams.maxPrice !== undefined) filter.price.$lte = queryParams.maxPrice;
+    }
+    if (queryParams.minRating !== undefined) filter.rating = { $gte: queryParams.minRating };
+    if (queryParams.tags) {
+      const tagsArray = queryParams.tags.split(',').map(tag => tag.trim());
+      if (tagsArray.length > 0) filter.tags = { $in: tagsArray };
+    }
+    if (queryParams.search && queryParams.search.trim()) {
+      filter.$text = { $search: queryParams.search.trim() };
+    }
+
+    const sort: any = { [sortBy]: sortOrder, _id: sortOrder };
+    if (queryParams.search && queryParams.search.trim()) {
+      sort.score = { $meta: 'textScore' };
+    }
+
+    return await TrainingProgram.find(filter).sort(sort).limit(limit).exec();
+  }
+
+  /**
+   * Map training program to catalogue item
+   */
+  private mapTrainingProgramToCatalogueItem(program: ITrainingProgram): CatalogueItem {
+    return {
+      id: program._id.toString(),
+      type: 'training-program',
+      title: program.title,
+      slug: program.slug,
+      description: program.description,
+      category: program.category,
+      price: program.price,
+      originalPrice: program.originalPrice,
+      banner: program.banner,
+      rating: program.rating,
+      tags: program.tags,
+      level: program.level,
+      startDate: program.startDate.toISOString(),
+      endDate: program.endDate.toISOString(),
+      mode: program.mode,
+      duration: program.duration,
+      durationBadge: `${program.duration} Days`,
+      toolsCovered: program.toolsCovered,
+      displayTools: program.toolsCovered.slice(0, 4),
+      skillsCovered: program.skillsCovered,
+      mentors: program.mentors,
+      maxSeats: program.maxSeats,
+      enrolledCount: program.enrolledCount,
+      availableSeats: program.availableSeats,
+      status: program.getStatus(),
+      canRegister: program.canRegister(),
+      isFeeOnRequest: program.isFeeOnRequest,
+      certificateOffered: program.certificateOffered,
+      placementAssistance: program.placementAssistance,
+      projectsCount: program.projectsCount,
+      primaryCTA: program.getPrimaryCTA(),
+      secondaryCTA: program.getSecondaryCTA(),
+      createdAt: program.createdAt.toISOString(),
+      updatedAt: program.updatedAt.toISOString(),
+    };
+  }
+
+  /**
+   * Get detailed training program by slug
+   * Returns 404 if program is not published
+   */
+  public async getTrainingProgramDetailBySlug(slug: string): Promise<any> {
+    try {
+      const cacheKey = `public:training-program:detail:slug:${slug}`;
+
+      // Try cache
+      const cachedData = await this.getFromCache(cacheKey);
+      if (cachedData) {
+        logger.info(`Cache hit for training program detail: ${slug}`);
+        return cachedData;
+      }
+
+      logger.info(`Cache miss for training program detail: ${slug}`);
+
+      // Find training program
+      const program = await TrainingProgram.findOne({ slug, isActive: true }).exec();
+
+      if (!program) {
+        throw new NotFoundError(`Training program with slug '${slug}' not found`, 'TRAINING_PROGRAM_NOT_FOUND');
+      }
+
+      // Check if program is published
+      const now = new Date();
+      if (program.isDraft || (program.publishedAt && now < new Date(program.publishedAt))) {
+        throw new NotFoundError(`Training program with slug '${slug}' is not published`, 'TRAINING_PROGRAM_NOT_PUBLISHED');
+      }
+
+      // Fetch related data in parallel (FAQs can be shared with training programs)
+      const [faqs] = await Promise.all([
+        CourseFAQ.find({ courseId: program._id, isActive: true })
+          .sort({ order: 1 })
+          .exec(),
+      ]);
+
+      const result = {
+        program,
+        faqs,
+      };
+
+      // Cache the result with 10 minutes TTL
+      await this.setCache(cacheKey, result);
+
+      logger.info(`Retrieved detailed training program: ${slug} with ${faqs.length} FAQs`);
+
+      return result;
+    } catch (error: any) {
+      logger.error('Get training program detail by slug error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get detailed training program by ID
+   * Returns 404 if program is not published
+   */
+  public async getTrainingProgramDetailById(programId: string): Promise<any> {
+    try {
+      const cacheKey = `public:training-program:detail:id:${programId}`;
+
+      // Try cache
+      const cachedData = await this.getFromCache(cacheKey);
+      if (cachedData) {
+        logger.info(`Cache hit for training program detail: ${programId}`);
+        return cachedData;
+      }
+
+      logger.info(`Cache miss for training program detail: ${programId}`);
+
+      // Find training program
+      const program = await TrainingProgram.findById(programId).exec();
+
+      if (!program || !program.isActive) {
+        throw new NotFoundError(`Training program with ID '${programId}' not found`, 'TRAINING_PROGRAM_NOT_FOUND');
+      }
+
+      // Check if program is published
+      const now = new Date();
+      if (program.isDraft || (program.publishedAt && now < new Date(program.publishedAt))) {
+        throw new NotFoundError(`Training program with ID '${programId}' is not published`, 'TRAINING_PROGRAM_NOT_PUBLISHED');
+      }
+
+      // Fetch related data in parallel
+      const [faqs] = await Promise.all([
+        CourseFAQ.find({ courseId: program._id, isActive: true })
+          .sort({ order: 1 })
+          .exec(),
+      ]);
+
+      const result = {
+        program,
+        faqs,
+      };
+
+      // Cache the result with 10 minutes TTL
+      await this.setCache(cacheKey, result);
+
+      logger.info(`Retrieved detailed training program: ${programId} with ${faqs.length} FAQs`);
+
+      return result;
+    } catch (error: any) {
+      logger.error('Get training program detail by ID error:', error);
       throw error;
     }
   }

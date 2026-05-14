@@ -373,4 +373,124 @@ router.get('/bootcamps/:slug', (req: Request, res: Response, next: NextFunction)
   void catalogueController.getBootcampDetailBySlug(req, res, next);
 });
 
+/**
+ * @swagger
+ * /training-programs:
+ *   get:
+ *     summary: Get all published training programs (Public SSG endpoint)
+ *     tags: [Public Catalogue]
+ *     description: |
+ *       Returns published training programs (40-day internships) in unified catalogue format.
+ *       Uses cursor-based pagination and Redis caching (TTL: 300s).
+ *       No authentication required.
+ *     parameters:
+ *       - in: query
+ *         name: cursor
+ *         schema:
+ *           type: string
+ *         description: Cursor for pagination (base64 encoded)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter by category/domain
+ *       - in: query
+ *         name: level
+ *         schema:
+ *           type: string
+ *         description: Filter by level
+ *       - in: query
+ *         name: mode
+ *         schema:
+ *           type: string
+ *           enum: [Online, Offline, Hybrid]
+ *         description: Filter by mode
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [Open, Closed, Completed]
+ *         description: Filter by status
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: string
+ *         description: Filter by tags (comma-separated)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search query
+ *     responses:
+ *       200:
+ *         description: Training programs retrieved successfully
+ */
+router.get('/training-programs', (req: Request, res: Response, next: NextFunction) => {
+  void catalogueController.getTrainingPrograms(req, res, next);
+});
+
+/**
+ * @swagger
+ * /training-programs/{slug}:
+ *   get:
+ *     summary: Get detailed training program by slug (Public endpoint)
+ *     tags: [Public Catalogue]
+ *     description: |
+ *       Returns a single training program by its URL-friendly slug with full details.
+ *       Uses Redis caching (TTL: 600s).
+ *       No authentication required.
+ *       Returns 404 if training program is not published.
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Training program slug
+ *     responses:
+ *       200:
+ *         description: Training program retrieved successfully
+ *       404:
+ *         description: Training program not found or not published
+ */
+router.get('/training-programs/:slug', (req: Request, res: Response, next: NextFunction) => {
+  void catalogueController.getTrainingProgramDetailBySlug(req, res, next);
+});
+
+/**
+ * @swagger
+ * /training-programs/id/{id}:
+ *   get:
+ *     summary: Get detailed training program by ID (Public endpoint)
+ *     tags: [Public Catalogue]
+ *     description: |
+ *       Returns a single training program by its MongoDB ID with full details.
+ *       Uses Redis caching (TTL: 600s).
+ *       No authentication required.
+ *       Returns 404 if training program is not published.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Training program MongoDB ID
+ *     responses:
+ *       200:
+ *         description: Training program retrieved successfully
+ *       404:
+ *         description: Training program not found or not published
+ */
+router.get('/training-programs/id/:id', (req: Request, res: Response, next: NextFunction) => {
+  void catalogueController.getTrainingProgramDetailById(req, res, next);
+});
+
 export default router;

@@ -12,4 +12,5 @@ export { CourseModule, ICourseModule, ILesson } from './CourseModule.model';
 export { CourseFAQ, ICourseFAQ } from './CourseFAQ.model';
 export { CourseBatch, ICourseBatch, BatchStatus } from './CourseBatch.model';
 export { Bootcamp, IBootcamp } from './Bootcamp.model';
+export { TrainingProgram, ITrainingProgram, IMentor } from './TrainingProgram.model';
 export { Reservation, IReservation } from './Reservation.model';
