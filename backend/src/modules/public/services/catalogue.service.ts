@@ -1,13 +1,18 @@
 import { Course, ICourse } from '@/database/models/Course.model';
 import { Bootcamp, IBootcamp } from '@/database/models/Bootcamp.model';
+import { CourseModule, ICourseModule } from '@/database/models/CourseModule.model';
+import { CourseFAQ, ICourseFAQ } from '@/database/models/CourseFAQ.model';
+import { CourseBatch, ICourseBatch } from '@/database/models/CourseBatch.model';
 import {
   CatalogueItem,
   CatalogueQueryParams,
   CataloguePaginatedResponse,
 } from '@/common/interfaces/catalogue.interface';
+import { ICourseDetail, IBootcampDetail } from '../interfaces/course-detail.interface';
 import { logger } from '@/common/utils/logger.util';
 import { redisConfig } from '@/config/redis.config';
 import { ValidationError } from '@/common/errors/ValidationError';
+import { NotFoundError } from '@/common/errors/NotFoundError';
 import crypto from 'crypto';
 
 export class CatalogueService {
@@ -397,6 +402,253 @@ export class CatalogueService {
       logger.info(`Cached catalogue data with key: ${key} (TTL: ${this.CACHE_TTL}s)`);
     } catch (error: any) {
       logger.warn('Redis set error (non-critical):', error.message);
+    }
+  }
+
+  /**
+   * Get detailed course by slug with eager-loaded modules, FAQs, and upcoming batches
+   * Returns 404 if course is not published
+   */
+  public async getCourseDetailBySlug(slug: string): Promise<ICourseDetail> {
+    try {
+      const cacheKey = `public:course:detail:slug:${slug}`;
+
+      // Try cache
+      const cachedData = await this.getFromCache(cacheKey);
+      if (cachedData) {
+        logger.info(`Cache hit for course detail: ${slug}`);
+        return cachedData;
+      }
+
+      logger.info(`Cache miss for course detail: ${slug}`);
+
+      // Find course
+      const course = await Course.findOne({ slug, isActive: true }).exec();
+
+      if (!course) {
+        throw new NotFoundError(`Course with slug '${slug}' not found`, 'COURSE_NOT_FOUND');
+      }
+
+      // Check if course is published
+      const now = new Date();
+      if (course.isDraft || (course.publishedAt && now < new Date(course.publishedAt))) {
+        throw new NotFoundError(`Course with slug '${slug}' is not published`, 'COURSE_NOT_PUBLISHED');
+      }
+
+      // Fetch related data in parallel
+      const [modules, faqs, upcomingBatches] = await Promise.all([
+        // Get all active modules sorted by order
+        CourseModule.find({ courseId: course._id, isActive: true })
+          .sort({ order: 1 })
+          .exec(),
+
+        // Get all active FAQs sorted by order
+        CourseFAQ.find({ courseId: course._id, isActive: true })
+          .sort({ order: 1 })
+          .exec(),
+
+        // Get next 3 upcoming batches
+        this.getUpcomingBatches(course._id.toString(), 3),
+      ]);
+
+      const result: ICourseDetail = {
+        course,
+        modules,
+        faqs,
+        upcomingBatches,
+      };
+
+      // Cache the result with 10 minutes TTL
+      await this.setCache(cacheKey, result);
+
+      logger.info(`Retrieved detailed course: ${slug} with ${modules.length} modules, ${faqs.length} FAQs, ${upcomingBatches.length} batches`);
+
+      return result;
+    } catch (error: any) {
+      logger.error('Get course detail by slug error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get detailed course by ID with eager-loaded modules, FAQs, and upcoming batches
+   * Returns 404 if course is not published
+   */
+  public async getCourseDetailById(courseId: string): Promise<ICourseDetail> {
+    try {
+      const cacheKey = `public:course:detail:id:${courseId}`;
+
+      // Try cache
+      const cachedData = await this.getFromCache(cacheKey);
+      if (cachedData) {
+        logger.info(`Cache hit for course detail: ${courseId}`);
+        return cachedData;
+      }
+
+      logger.info(`Cache miss for course detail: ${courseId}`);
+
+      // Find course
+      const course = await Course.findById(courseId).exec();
+
+      if (!course || !course.isActive) {
+        throw new NotFoundError(`Course with ID '${courseId}' not found`, 'COURSE_NOT_FOUND');
+      }
+
+      // Check if course is published
+      const now = new Date();
+      if (course.isDraft || (course.publishedAt && now < new Date(course.publishedAt))) {
+        throw new NotFoundError(`Course with ID '${courseId}' is not published`, 'COURSE_NOT_PUBLISHED');
+      }
+
+      // Fetch related data in parallel
+      const [modules, faqs, upcomingBatches] = await Promise.all([
+        // Get all active modules sorted by order
+        CourseModule.find({ courseId: course._id, isActive: true })
+          .sort({ order: 1 })
+          .exec(),
+
+        // Get all active FAQs sorted by order
+        CourseFAQ.find({ courseId: course._id, isActive: true })
+          .sort({ order: 1 })
+          .exec(),
+
+        // Get next 3 upcoming batches
+        this.getUpcomingBatches(course._id.toString(), 3),
+      ]);
+
+      const result: ICourseDetail = {
+        course,
+        modules,
+        faqs,
+        upcomingBatches,
+      };
+
+      // Cache the result with 10 minutes TTL
+      await this.setCache(cacheKey, result);
+
+      logger.info(`Retrieved detailed course: ${courseId} with ${modules.length} modules, ${faqs.length} FAQs, ${upcomingBatches.length} batches`);
+
+      return result;
+    } catch (error: any) {
+      logger.error('Get course detail by ID error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get upcoming batches for a course
+   * Returns batches where startDate >= today and status in ['Open', 'Filling']
+   * Sorted by startDate ASC
+   */
+  private async getUpcomingBatches(courseId: string, limit: number = 3): Promise<ICourseBatch[]> {
+    try {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0); // Start of today
+
+      const batches = await CourseBatch.find({
+        courseId,
+        isActive: true,
+        startDate: { $gte: now },
+        status: { $in: ['Open', 'Filling'] },
+      })
+        .sort({ startDate: 1 }) // ASC order
+        .limit(limit)
+        .exec();
+
+      return batches;
+    } catch (error: any) {
+      logger.error('Get upcoming batches error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get detailed bootcamp by slug with eager-loaded modules and FAQs
+   * Returns 404 if bootcamp is not published
+   */
+  public async getBootcampDetailBySlug(slug: string): Promise<IBootcampDetail> {
+    try {
+      const cacheKey = `public:bootcamp:detail:slug:${slug}`;
+
+      // Try cache
+      const cachedData = await this.getFromCache(cacheKey);
+      if (cachedData) {
+        logger.info(`Cache hit for bootcamp detail: ${slug}`);
+        return cachedData;
+      }
+
+      logger.info(`Cache miss for bootcamp detail: ${slug}`);
+
+      // Find bootcamp
+      const bootcamp = await Bootcamp.findOne({ slug, isActive: true }).exec();
+
+      if (!bootcamp) {
+        throw new NotFoundError(`Bootcamp with slug '${slug}' not found`, 'BOOTCAMP_NOT_FOUND');
+      }
+
+      // Check if bootcamp is published (status should not be Draft)
+      if (bootcamp.status === 'Draft') {
+        throw new NotFoundError(`Bootcamp with slug '${slug}' is not published`, 'BOOTCAMP_NOT_PUBLISHED');
+      }
+
+      const result: IBootcampDetail = {
+        bootcamp,
+      };
+
+      // Cache the result with 10 minutes TTL
+      await this.setCache(cacheKey, result);
+
+      logger.info(`Retrieved detailed bootcamp: ${slug}`);
+
+      return result;
+    } catch (error: any) {
+      logger.error('Get bootcamp detail by slug error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get detailed bootcamp by ID with eager-loaded modules and FAQs
+   * Returns 404 if bootcamp is not published
+   */
+  public async getBootcampDetailById(bootcampId: string): Promise<IBootcampDetail> {
+    try {
+      const cacheKey = `public:bootcamp:detail:id:${bootcampId}`;
+
+      // Try cache
+      const cachedData = await this.getFromCache(cacheKey);
+      if (cachedData) {
+        logger.info(`Cache hit for bootcamp detail: ${bootcampId}`);
+        return cachedData;
+      }
+
+      logger.info(`Cache miss for bootcamp detail: ${bootcampId}`);
+
+      // Find bootcamp
+      const bootcamp = await Bootcamp.findById(bootcampId).exec();
+
+      if (!bootcamp || !bootcamp.isActive) {
+        throw new NotFoundError(`Bootcamp with ID '${bootcampId}' not found`, 'BOOTCAMP_NOT_FOUND');
+      }
+
+      // Check if bootcamp is published (status should not be Draft)
+      if (bootcamp.status === 'Draft') {
+        throw new NotFoundError(`Bootcamp with ID '${bootcampId}' is not published`, 'BOOTCAMP_NOT_PUBLISHED');
+      }
+
+      const result: IBootcampDetail = {
+        bootcamp,
+      };
+
+      // Cache the result with 10 minutes TTL
+      await this.setCache(cacheKey, result);
+
+      logger.info(`Retrieved detailed bootcamp: ${bootcampId}`);
+
+      return result;
+    } catch (error: any) {
+      logger.error('Get bootcamp detail by ID error:', error);
+      throw error;
     }
   }
 }

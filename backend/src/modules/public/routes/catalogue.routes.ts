@@ -200,14 +200,119 @@ router.get('/bootcamps', (req: Request, res: Response, next: NextFunction) => {
 
 /**
  * @swagger
- * /bootcamps/id/{id}:
+ * /courses/{slug}:
  *   get:
- *     summary: Get bootcamp by ID (Public endpoint)
+ *     summary: Get detailed course by slug (Public endpoint)
  *     tags: [Public Catalogue]
  *     description: |
- *       Returns a single bootcamp by its MongoDB ID.
+ *       Returns a single course by its URL-friendly slug with full details including:
+ *       - Course information
+ *       - Eager-loaded modules (curriculum)
+ *       - Instructor details
+ *       - FAQ section
+ *       - Next 3 upcoming batches (startDate >= today, status in [Open, Filling])
  *       Uses Redis caching (TTL: 600s).
  *       No authentication required.
+ *       Returns 404 if course is not published.
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course slug (e.g., "javascript-masterclass")
+ *     responses:
+ *       200:
+ *         description: Course retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 course:
+ *                   $ref: '#/components/schemas/Course'
+ *                 modules:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CourseModule'
+ *                 faqs:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CourseFAQ'
+ *                 upcomingBatches:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CourseBatch'
+ *       404:
+ *         description: Course not found or not published
+ */
+router.get('/courses/:slug', (req: Request, res: Response, next: NextFunction) => {
+  void catalogueController.getCourseDetailBySlug(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/id/{id}:
+ *   get:
+ *     summary: Get detailed course by ID (Public endpoint)
+ *     tags: [Public Catalogue]
+ *     description: |
+ *       Returns a single course by its MongoDB ID with full details including:
+ *       - Course information
+ *       - Eager-loaded modules (curriculum)
+ *       - Instructor details
+ *       - FAQ section
+ *       - Next 3 upcoming batches (startDate >= today, status in [Open, Filling])
+ *       Uses Redis caching (TTL: 600s).
+ *       No authentication required.
+ *       Returns 404 if course is not published.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course MongoDB ID
+ *     responses:
+ *       200:
+ *         description: Course retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 course:
+ *                   $ref: '#/components/schemas/Course'
+ *                 modules:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CourseModule'
+ *                 faqs:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CourseFAQ'
+ *                 upcomingBatches:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CourseBatch'
+ *       404:
+ *         description: Course not found or not published
+ */
+router.get('/courses/id/:id', (req: Request, res: Response, next: NextFunction) => {
+  void catalogueController.getCourseDetailById(req, res, next);
+});
+
+/**
+ * @swagger
+ * /bootcamps/id/{id}:
+ *   get:
+ *     summary: Get detailed bootcamp by ID (Public endpoint)
+ *     tags: [Public Catalogue]
+ *     description: |
+ *       Returns a single bootcamp by its MongoDB ID with full details.
+ *       Uses Redis caching (TTL: 600s).
+ *       No authentication required.
+ *       Returns 404 if bootcamp is not published.
  *     parameters:
  *       - in: path
  *         name: id
@@ -226,23 +331,24 @@ router.get('/bootcamps', (req: Request, res: Response, next: NextFunction) => {
  *                 bootcamp:
  *                   $ref: '#/components/schemas/Bootcamp'
  *       404:
- *         description: Bootcamp not found
+ *         description: Bootcamp not found or not published
  */
 router.get('/bootcamps/id/:id', (req: Request, res: Response, next: NextFunction) => {
-  void catalogueController.getBootcampById(req, res, next);
+  void catalogueController.getBootcampDetailById(req, res, next);
 });
 
 /**
  * @swagger
  * /bootcamps/{slug}:
  *   get:
- *     summary: Get bootcamp by slug (Public endpoint)
+ *     summary: Get detailed bootcamp by slug (Public endpoint)
  *     tags: [Public Catalogue]
  *     description: |
- *       Returns a single bootcamp by its URL-friendly slug.
+ *       Returns a single bootcamp by its URL-friendly slug with full details.
  *       Uses Redis caching (TTL: 600s).
  *       No authentication required.
  *       Perfect for SSG/SSR bootcamp detail pages.
+ *       Returns 404 if bootcamp is not published.
  *     parameters:
  *       - in: path
  *         name: slug
@@ -261,10 +367,10 @@ router.get('/bootcamps/id/:id', (req: Request, res: Response, next: NextFunction
  *                 bootcamp:
  *                   $ref: '#/components/schemas/Bootcamp'
  *       404:
- *         description: Bootcamp not found
+ *         description: Bootcamp not found or not published
  */
 router.get('/bootcamps/:slug', (req: Request, res: Response, next: NextFunction) => {
-  void catalogueController.getBootcampBySlug(req, res, next);
+  void catalogueController.getBootcampDetailBySlug(req, res, next);
 });
 
 export default router;

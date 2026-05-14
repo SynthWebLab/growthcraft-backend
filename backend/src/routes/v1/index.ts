@@ -10,10 +10,13 @@ const router = Router();
 // Mount routes
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
-router.use('/courses', courseRoutes);
-router.use('/reservations', reservationRoutes);
 
-// Public catalogue routes (no auth required)
+// Public catalogue routes (no auth required) - MUST come before /courses to avoid route conflicts
 router.use('/', publicCatalogueRoutes);
+
+// Course routes (authenticated/admin routes)
+router.use('/courses', courseRoutes);
+
+router.use('/reservations', reservationRoutes);
 
 export default router;

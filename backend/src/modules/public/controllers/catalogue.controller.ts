@@ -122,6 +122,78 @@ export class CatalogueController {
       next(error);
     }
   }
+
+  /**
+   * Get detailed course by slug (public endpoint)
+   * GET /api/v1/courses/:slug
+   * Returns course with eager-loaded modules, instructor, FAQ, and next 3 upcoming batches
+   */
+  public async getCourseDetailBySlug(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { slug } = req.params;
+
+      const courseDetail = await catalogueService.getCourseDetailBySlug(slug);
+
+      res.status(200).json(courseDetail);
+    } catch (error: any) {
+      logger.error('Get course detail by slug controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get detailed course by ID (public endpoint)
+   * GET /api/v1/courses/id/:id
+   * Returns course with eager-loaded modules, instructor, FAQ, and next 3 upcoming batches
+   */
+  public async getCourseDetailById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const courseDetail = await catalogueService.getCourseDetailById(id);
+
+      res.status(200).json(courseDetail);
+    } catch (error: any) {
+      logger.error('Get course detail by ID controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get detailed bootcamp by slug (public endpoint)
+   * GET /api/v1/bootcamps/:slug (enhanced version)
+   * Returns bootcamp with all details
+   */
+  public async getBootcampDetailBySlug(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { slug } = req.params;
+
+      const bootcampDetail = await catalogueService.getBootcampDetailBySlug(slug);
+
+      res.status(200).json(bootcampDetail);
+    } catch (error: any) {
+      logger.error('Get bootcamp detail by slug controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get detailed bootcamp by ID (public endpoint)
+   * GET /api/v1/bootcamps/id/:id (enhanced version)
+   * Returns bootcamp with all details
+   */
+  public async getBootcampDetailById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const bootcampDetail = await catalogueService.getBootcampDetailById(id);
+
+      res.status(200).json(bootcampDetail);
+    } catch (error: any) {
+      logger.error('Get bootcamp detail by ID controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const catalogueController = CatalogueController.getInstance();
