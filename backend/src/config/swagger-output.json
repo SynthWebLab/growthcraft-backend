@@ -565,6 +565,20 @@
             }
           },
           {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "useCursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "category",
             "in": "query",
             "schema": {
@@ -601,6 +615,13 @@
           },
           {
             "name": "tags",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
             "in": "query",
             "schema": {
               "type": "string"
