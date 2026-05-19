@@ -22,12 +22,17 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"fullName\": \"Sandipan Goswami\",\n  \"email\": \"sandipan.goswami@syntheticweb.in\",\n  \"phone\": \"5000100424\",\n  \"enrollmentNumber\": \"2021CS001\",\n  \"collegeName\": \"Data Science & A.I-Bootcamp\"\n}"
+          "raw": "{\n  \"fullName\": \"Sandipan Goswami\",\n  \"email\": \"sandipan.goswami@syntheticweb.in\",\n  \"phone\": \"5000100424\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
         "url": {
-          "raw": "{{baseUrl}}/courses/:courseId/enroll",
+          "raw": "{{baseUrl}}/courses/6a0bfab281ed102d4452e647/enroll",
           "host": ["{{baseUrl}}"],
-          "path": ["courses", ":courseId", "enroll"],
+          "path": ["courses", "6a0bfab281ed102d4452e647", "enroll"],
           "variable": [
             {
               "key": "courseId",
@@ -173,7 +178,7 @@
             }
           ]
         },
-        "description": "Enroll in a course without optional fields (enrollmentNumber and collegeName)."
+        "description": "Enroll in a course with only required fields."
       },
       "response": []
     }

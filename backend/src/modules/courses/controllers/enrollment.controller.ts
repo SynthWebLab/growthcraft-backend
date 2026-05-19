@@ -35,7 +35,7 @@ export class EnrollmentController {
       }
 
       const { courseId } = req.params;
-      const { fullName, email, phone, enrollmentNumber, collegeName } = req.body;
+      const { fullName, email, phone } = req.body;
       const userId = req.user?.userId;
 
       if (!userId) {
@@ -48,8 +48,6 @@ export class EnrollmentController {
         fullName,
         email,
         phone,
-        enrollmentNumber,
-        collegeName,
       });
 
       SuccessResponseHelper.created(

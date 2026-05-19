@@ -491,12 +491,6 @@ router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
  *               phone:
  *                 type: string
  *                 example: "5000100424"
- *               enrollmentNumber:
- *                 type: string
- *                 example: "2021CS001"
- *               collegeName:
- *                 type: string
- *                 example: "Data Science & A.I-Bootcamp"
  *     responses:
  *       201:
  *         description: Successfully enrolled in the course

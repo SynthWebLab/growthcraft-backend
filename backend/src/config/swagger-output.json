@@ -728,12 +728,6 @@
                   },
                   "phone": {
                     "example": "any"
-                  },
-                  "enrollmentNumber": {
-                    "example": "any"
-                  },
-                  "collegeName": {
-                    "example": "any"
                   }
                 }
               }

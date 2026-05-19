@@ -27,18 +27,6 @@ export class EnrollmentValidator {
         .withMessage('Phone number is required')
         .matches(/^\+?[\d\s-()]+$/)
         .withMessage('Please provide a valid phone number'),
-
-      body('enrollmentNumber')
-        .optional()
-        .trim()
-        .isLength({ max: 50 })
-        .withMessage('Enrollment number cannot exceed 50 characters'),
-
-      body('collegeName')
-        .optional()
-        .trim()
-        .isLength({ max: 200 })
-        .withMessage('College name cannot exceed 200 characters'),
     ];
   }
 
