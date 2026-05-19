@@ -396,7 +396,7 @@ export class CourseService {
   }
 
   /**
-   * Get course by slug with Redis caching
+   * Get course by slug with Redis caching and course details
    */
   public async getCourseBySlug(slug: string): Promise<ICourse | null> {
     try {

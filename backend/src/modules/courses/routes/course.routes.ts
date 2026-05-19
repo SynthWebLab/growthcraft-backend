@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { courseController } from '../controllers/course.controller';
 import { courseConfigController } from '../controllers/course-config.controller';
 import { enrollmentController } from '../controllers/enrollment.controller';
+import { courseDetailsController } from '../controllers/course-details.controller';
 import { CourseValidator } from '../validators/course.validator';
 import { EnrollmentValidator } from '../validators/enrollment.validator';
 import { authenticate } from '@/common/middleware/authenticate.middleware';
@@ -629,6 +630,126 @@ router.get('/callbacks/my-requests', authenticate, (req: Request, res: Response,
  */
 router.get('/:courseId/enrollment-status', authenticate, (req: Request, res: Response, next: NextFunction) => {
   void enrollmentController.checkEnrollmentStatus(req, res, next);
+});
+
+// ============================================
+// COURSE DETAILS ROUTES (Overview, Curriculum, Instructor, FAQs)
+// ============================================
+
+/**
+ * @swagger
+ * /courses/slug/{slug}/details:
+ *   get:
+ *     summary: Get all course details (overview, curriculum, instructor, FAQs)
+ *     tags: [Course Details]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course slug
+ *         example: javascript-zero-to-hero
+ *     responses:
+ *       200:
+ *         description: Course details retrieved successfully
+ *       404:
+ *         description: Course details not found
+ */
+router.get('/slug/:slug/details', (req: Request, res: Response, next: NextFunction) => {
+  void courseDetailsController.getAllDetails(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/slug/{slug}/overview:
+ *   get:
+ *     summary: Get course overview
+ *     tags: [Course Details]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course slug
+ *     responses:
+ *       200:
+ *         description: Course overview retrieved successfully
+ *       404:
+ *         description: Course not found
+ */
+router.get('/slug/:slug/overview', (req: Request, res: Response, next: NextFunction) => {
+  void courseDetailsController.getOverview(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/slug/{slug}/curriculum:
+ *   get:
+ *     summary: Get course curriculum
+ *     tags: [Course Details]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course slug
+ *     responses:
+ *       200:
+ *         description: Course curriculum retrieved successfully
+ *       404:
+ *         description: Course not found
+ */
+router.get('/slug/:slug/curriculum', (req: Request, res: Response, next: NextFunction) => {
+  void courseDetailsController.getCurriculum(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/slug/{slug}/instructor:
+ *   get:
+ *     summary: Get course instructor details
+ *     tags: [Course Details]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course slug
+ *     responses:
+ *       200:
+ *         description: Course instructor retrieved successfully
+ *       404:
+ *         description: Course not found
+ */
+router.get('/slug/:slug/instructor', (req: Request, res: Response, next: NextFunction) => {
+  void courseDetailsController.getInstructor(req, res, next);
+});
+
+/**
+ * @swagger
+ * /courses/slug/{slug}/faqs:
+ *   get:
+ *     summary: Get course FAQs
+ *     tags: [Course Details]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course slug
+ *     responses:
+ *       200:
+ *         description: Course FAQs retrieved successfully
+ *       404:
+ *         description: Course not found
+ */
+router.get('/slug/:slug/faqs', (req: Request, res: Response, next: NextFunction) => {
+  void courseDetailsController.getFAQs(req, res, next);
 });
 
 /**
