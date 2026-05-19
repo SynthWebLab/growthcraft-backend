@@ -149,6 +149,7 @@ export class EnrollmentService {
         fullName: data.fullName,
         email: data.email,
         phone: data.phone,
+        title: course.title, // Save course title
         requestDate: new Date(),
         status: 'pending',
       });
