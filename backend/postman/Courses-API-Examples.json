@@ -1,0 +1,315 @@
+{
+  "info": {
+    "name": "Courses API Examples",
+    "description": "Example requests for the Courses API with filtering, search, and pagination",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Courses (Default)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Courses - Filter by Category (MERN)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses?category=MERN",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "category",
+              "value": "MERN"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Courses - Filter by Difficulty (Beginner)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses?difficultyLevel=Beginner",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "difficultyLevel",
+              "value": "Beginner"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Courses - Search by Keyword",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses?search=JavaScript",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "search",
+              "value": "JavaScript"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Courses - Filter by Price Range",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses?minPrice=3000&maxPrice=8000",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "minPrice",
+              "value": "3000"
+            },
+            {
+              "key": "maxPrice",
+              "value": "8000"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Courses - Filter by Rating",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses?minRating=4.5",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "minRating",
+              "value": "4.5"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Courses - Filter by Tags",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses?tags=React,Node.js",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "tags",
+              "value": "React,Node.js"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Courses - Sort by Rating (Highest First)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses?sortBy=rating&sortOrder=desc",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "sortBy",
+              "value": "rating"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Courses - Sort by Price (Lowest First)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses?sortBy=price&sortOrder=asc",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "sortBy",
+              "value": "price"
+            },
+            {
+              "key": "sortOrder",
+              "value": "asc"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Courses - Sort by Enrollment (Most Popular)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses?sortBy=enrollmentCount&sortOrder=desc",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "sortBy",
+              "value": "enrollmentCount"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Courses - Pagination (Page 2, 5 items)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses?page=2&limit=5",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "page",
+              "value": "2"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Courses - Complex Query",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses?category=MERN&difficultyLevel=Intermediate&minRating=4.5&sortBy=enrollmentCount&sortOrder=desc&page=1&limit=10",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses"],
+          "query": [
+            {
+              "key": "category",
+              "value": "MERN"
+            },
+            {
+              "key": "difficultyLevel",
+              "value": "Intermediate"
+            },
+            {
+              "key": "minRating",
+              "value": "4.5"
+            },
+            {
+              "key": "sortBy",
+              "value": "enrollmentCount"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Course by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses/:courseId",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses", ":courseId"],
+          "variable": [
+            {
+              "key": "courseId",
+              "value": "507f1f77bcf86cd799439011",
+              "description": "Replace with actual course ID"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Filter Options",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/courses/filters/options",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "courses", "filters", "options"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ]
+}

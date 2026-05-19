@@ -1,0 +1,112 @@
+/**
+ * Unified catalogue item interface for SSG
+ * Used by both courses and bootcamps
+ */
+
+export type CatalogueItemType = 'course' | 'bootcamp' | 'training-program';
+
+export interface CatalogueItem {
+  // Common fields
+  id: string;
+  type: CatalogueItemType;
+  title: string;
+  slug: string;
+  description: string;
+  category: string;
+  
+  // Pricing
+  price: number;
+  originalPrice?: number;
+  
+  // Media
+  thumbnail?: string;
+  banner?: string;
+  
+  // Metadata
+  rating: number;
+  tags: string[];
+  
+  // Dates (optional for courses, required for bootcamps)
+  startDate?: string;
+  endDate?: string;
+  
+  // Type-specific fields (optional)
+  // For courses
+  difficultyLevel?: string;
+  duration?: number; // hours for courses, days for bootcamps
+  lessonsCount?: number;
+  instructor?: {
+    name: string;
+    avatar?: string;
+  };
+  enrollmentCount?: number;
+  
+  // For bootcamps
+  mode?: 'Online' | 'Offline' | 'Hybrid';
+  maxSeats?: number;
+  enrolledCount?: number;
+  availableSeats?: number;
+  skillsCovered?: string[];
+  mentorNames?: string[];
+  
+  // For training programs
+  level?: string;
+  durationBadge?: string; // e.g., "40 Days"
+  toolsCovered?: string[];
+  displayTools?: string[]; // Max 4 tools for display
+  mentors?: Array<{
+    name: string;
+    avatar?: string;
+    designation?: string;
+  }>;
+  isFeeOnRequest?: boolean;
+  certificateOffered?: boolean;
+  placementAssistance?: boolean;
+  projectsCount?: number;
+  primaryCTA?: string;
+  secondaryCTA?: string | null;
+  
+  // Status
+  status: string;
+  canEnroll?: boolean; // For courses
+  canRegister?: boolean; // For bootcamps and training programs
+  
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CatalogueQueryParams {
+  // Pagination (cursor-based only for public endpoints)
+  cursor?: string;
+  limit?: number;
+  page?: number; // For backward compatibility
+  
+  // Filtering
+  type?: CatalogueItemType; // Filter by course or bootcamp
+  category?: string;
+  level?: string; // Alias for difficultyLevel
+  minPrice?: number;
+  maxPrice?: number;
+  minRating?: number;
+  tags?: string; // Comma-separated
+  
+  // Bootcamp-specific filters
+  mode?: 'Online' | 'Offline' | 'Hybrid';
+  status?: string;
+  
+  // Course-specific filters
+  difficultyLevel?: string;
+  
+  // Search
+  search?: string;
+  
+  // Sorting
+  sortBy?: 'title' | 'price' | 'rating' | 'createdAt' | 'startDate';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface CataloguePaginatedResponse {
+  items: CatalogueItem[];
+  nextCursor: string | null;
+}

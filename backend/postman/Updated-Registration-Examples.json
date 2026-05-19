@@ -1,0 +1,177 @@
+{
+  "info": {
+    "name": "GrowthCraft Registration - All User Types",
+    "description": "Complete registration examples for all 4 user types: Student, College, Mentor, Employer",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Register Student",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.student@example.com\",\n  \"phone\": \"+91-98765-11111\",\n  \"password\": \"StudentPass123\",\n  \"role\": \"student\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Register a new student account"
+      },
+      "response": []
+    },
+    {
+      "name": "2. Register College (Complete)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Dr. Rajesh Sharma\",\n  \"email\": \"admin@abcollege.edu\",\n  \"phone\": \"+91-98765-12310\",\n  \"password\": \"CollegePass123\",\n  \"role\": \"college\",\n  \"collegeData\": {\n    \"institutionName\": \"ABC Engineering College\",\n    \"contactPerson\": \"Dr. Rajesh Sharma\",\n    \"designation\": \"HOD / TPO\",\n    \"officialEmail\": \"official@abcollege.edu\",\n    \"phone\": \"+91-98765-12310\",\n    \"city\": \"Guwahati\",\n    \"state\": \"Assam\",\n    \"website\": \"https://abcollege.edu\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Register a new college with complete information including website"
+      },
+      "response": []
+    },
+    {
+      "name": "3. Register College (Without Website)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Dr. Priya Kumar\",\n  \"email\": \"principal@xyztech.edu\",\n  \"phone\": \"+91-98765-54321\",\n  \"password\": \"CollegePass456\",\n  \"role\": \"college\",\n  \"collegeData\": {\n    \"institutionName\": \"XYZ Technical Institute\",\n    \"contactPerson\": \"Dr. Priya Kumar\",\n    \"designation\": \"Principal\",\n    \"officialEmail\": \"principal@xyztech.edu\",\n    \"phone\": \"+91-98765-54321\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Register a college without optional website field"
+      },
+      "response": []
+    },
+    {
+      "name": "4. Register Mentor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Sarah Johnson\",\n  \"email\": \"sarah.mentor@example.com\",\n  \"phone\": \"+91-98765-22222\",\n  \"password\": \"MentorPass123\",\n  \"role\": \"mentor\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Register a new mentor account"
+      },
+      "response": []
+    },
+    {
+      "name": "5. Register Employer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Michael Chen\",\n  \"email\": \"hr@techcorp.com\",\n  \"phone\": \"+91-98765-33333\",\n  \"password\": \"EmployerPass123\",\n  \"role\": \"employer\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Register a new employer/company account"
+      },
+      "response": []
+    },
+    {
+      "name": "6. Invalid Role (Should Fail)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"phone\": \"+91-98765-99999\",\n  \"password\": \"TestPass123\",\n  \"role\": \"ambassador\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Test with invalid role 'ambassador' - should return validation error"
+      },
+      "response": []
+    },
+    {
+      "name": "7. College Missing Required Fields (Should Fail)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Dr. Test\",\n  \"email\": \"test@college.edu\",\n  \"phone\": \"+91-98765-88888\",\n  \"password\": \"TestPass123\",\n  \"role\": \"college\",\n  \"collegeData\": {\n    \"institutionName\": \"Test College\",\n    \"contactPerson\": \"Dr. Test\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Test college registration with missing required fields - should return validation error"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}

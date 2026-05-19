@@ -1,159 +1,309 @@
-# GrowthCraft Documentation
+# GrowthCraft Backend
 
-## 📚 Documentation Files
+Backend API for GrowthCraft EdTech SaaS Platform
 
-This folder contains the complete documentation for the GrowthCraft EdTech SaaS platform.
+## 🚀 Tech Stack
 
-### Available Documentation
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Language**: TypeScript
+- **Database**: MongoDB (Mongoose)
+- **Authentication**: JWT (jsonwebtoken)
+- **Validation**: Zod
+- **Security**: Helmet, CORS, bcryptjs
+- **Logging**: Winston
+- **Testing**: Jest
+- **Code Quality**: ESLint, Prettier, Husky
 
-1. **[BACKEND_STRUCTURE.md](./BACKEND_STRUCTURE.md)** - Complete backend folder structure
-   - Auth module structure
-   - Common utilities (middleware, errors, responses)
-   - Database layer
-   - Configuration
-   - Layered architecture explanation
-   - 45 files total
+## 📋 Prerequisites
 
-2. **[FRONTEND_STRUCTURE.md](./FRONTEND_STRUCTURE.md)** - Complete frontend folder structure
-   - Next.js 14 App Router
-   - Auth feature module
-   - Components (UI, auth, layout, common)
-   - API layer (client, endpoints, interceptors)
-   - Constants, errors, hooks, types
-   - Middleware for route protection
-   - 32 files total
+- Node.js >= 18.x
+- MongoDB >= 6.x
+- npm or yarn
 
----
+## 🛠️ Installation
 
-## 🚀 Quick Start
+1. **Install dependencies**:
 
-### For Backend Developers
-Read [BACKEND_STRUCTURE.md](./BACKEND_STRUCTURE.md) to understand:
-- How the auth module is organized
-- Layered architecture (Routes → Controllers → Services → Repositories)
-- Where to add new features
-- How data flows through the system
-
-### For Frontend Developers
-Read [FRONTEND_STRUCTURE.md](./FRONTEND_STRUCTURE.md) to understand:
-- How Next.js 14 App Router works
-- How the auth feature is organized
-- Where components, hooks, and services go
-- How to make API calls
-- How middleware protects routes
-
----
-
-## 🏗️ Architecture Overview
-
-### Backend (Node.js + Express + TypeScript + MongoDB)
-```
-Routes → Middleware → Controllers → Services → Repositories → Database
+```bash
+npm install
 ```
 
-### Frontend (Next.js 14 + TypeScript + Tailwind + Shadcn)
-```
-Pages → Components → Hooks → Services → API Client → Backend
+2. **Set up environment variables**:
+
+```bash
+cp .env.example .env
 ```
 
----
+Edit `.env` and configure your environment variables.
+
+3. **Initialize Husky** (Git hooks):
+
+```bash
+npm run prepare
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Required variables in `.env`:
+
+```env
+NODE_ENV=development
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/growthcraft
+JWT_SECRET=your-secret-key
+JWT_REFRESH_SECRET=your-refresh-secret-key
+```
+
+See `.env.example` for all available options.
+
+## 🏃 Running the Application
+
+### Development Mode
+
+```bash
+npm run dev
+```
+
+### Production Mode
+
+```bash
+npm run build
+npm start
+```
+
+### Type Checking
+
+```bash
+npm run type-check
+```
+
+## 🧪 Testing
+
+### Run all tests
+
+```bash
+npm test
+```
+
+### Watch mode
+
+```bash
+npm run test:watch
+```
+
+### Coverage report
+
+```bash
+npm test -- --coverage
+```
+
+## 🎨 Code Quality
+
+### Linting
+
+```bash
+# Check for errors
+npm run lint
+
+# Fix errors automatically
+npm run lint:fix
+```
+
+### Formatting
+
+```bash
+# Check formatting
+npm run format:check
+
+# Format code
+npm run format
+```
+
+## 🪝 Git Hooks (Husky)
+
+Husky is configured with the following hooks:
+
+### Pre-commit
+
+- Runs lint-staged (ESLint + Prettier on staged files)
+- Type checks TypeScript
+- Ensures code quality before commit
+
+### Commit Message
+
+- Validates commit message format
+- Enforces conventional commits
+
+**Format**: `type(scope): subject`
+
+**Types**: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+
+**Examples**:
+
+```bash
+git commit -m "feat(auth): add login endpoint"
+git commit -m "fix(database): resolve connection timeout"
+git commit -m "docs(readme): update installation steps"
+```
+
+### Pre-push
+
+- Runs all tests
+- Builds the project
+- Ensures everything works before pushing
 
 ## 📁 Project Structure
 
 ```
-growthcraft/
-├── backend/          # Backend API
-│   └── src/
-│       ├── modules/  # Feature modules (auth, courses, etc.)
-│       ├── common/   # Shared utilities
-│       ├── database/ # Database layer
-│       └── config/   # Configuration
-│
-├── frontend/         # Frontend app
-│   └── src/
-│       ├── app/      # Next.js pages
-│       ├── features/ # Feature modules (auth, courses, etc.)
-│       ├── components/ # UI components
-│       ├── lib/      # Core utilities (API, constants, errors)
-│       ├── hooks/    # Global hooks
-│       └── types/    # Global types
-│
-└── docs/             # Documentation (this folder)
-    ├── README.md     # This file
-    ├── BACKEND_STRUCTURE.md
-    └── FRONTEND_STRUCTURE.md
+backend/
+├── src/
+│   ├── modules/          # Feature modules (auth, courses, etc.)
+│   ├── common/           # Shared utilities
+│   │   ├── middleware/   # Express middleware
+│   │   ├── errors/       # Error classes
+│   │   ├── responses/    # Response helpers
+│   │   ├── constants/    # App constants
+│   │   └── utils/        # Utility functions
+│   ├── database/         # Database layer
+│   │   ├── models/       # Mongoose models
+│   │   └── connection.ts # DB connection
+│   ├── config/           # Configuration
+│   ├── app.ts            # Express app setup
+│   └── server.ts         # Server entry point
+├── .husky/               # Git hooks
+├── logs/                 # Application logs
+├── dist/                 # Build output
+└── tests/                # Test files
 ```
 
----
+## 🔐 Security Features
 
-## 🎯 Key Principles
+- JWT authentication with access & refresh tokens
+- **Automatic token rotation** with reuse detection
+- **Auto-refresh middleware** for seamless authentication
+- Password hashing with bcryptjs
+- httpOnly secure cookies
+- Device tracking for security monitoring
+- Helmet for security headers
+- CORS configuration
+- Rate limiting
+- Input sanitization
+- Environment variable validation
 
-### 1. Feature-Based Organization
-- Each feature (auth, courses, etc.) is self-contained
-- Easy to add new features
-- Clear module boundaries
+### Token Rotation
 
-### 2. Layered Architecture
-- Clear separation of concerns
-- Each layer has a single responsibility
-- Easy to test and maintain
+The backend implements secure token rotation:
 
-### 3. DRY (Don't Repeat Yourself)
-- Shared utilities in `/common` (backend) and `/lib` (frontend)
-- No code duplication
-- Centralized constants, errors, and types
+- Automatic rotation on every refresh
+- Token reuse detection prevents attacks
+- Device tracking for each session
+- Support for multiple devices (up to 5)
+- Auto-refresh when tokens are about to expire
 
-### 4. Type Safety
-- Strict TypeScript everywhere
-- No `any` types
-- Shared types between frontend and backend (future)
+📖 See [TOKEN_ROTATION_QUICKSTART.md](./TOKEN_ROTATION_QUICKSTART.md) for implementation details
 
-### 5. Scalability
-- Easy to extract features into microservices
-- Horizontal scaling ready
-- Production-ready architecture
+## 📝 API Documentation
 
----
+### Interactive Swagger Documentation
 
-## 📝 Documentation Standards
+Your API now has **automatic, interactive documentation** powered by Swagger/OpenAPI!
 
-Each documentation file includes:
-- Complete folder structure
-- Explanation of each folder's purpose
-- File-by-file breakdown
-- Data flow examples
-- Import examples
-- Key principles
-- How to add new features
+**Access the documentation**:
 
----
+- Development: `http://localhost:5000/api-docs`
+- OpenAPI JSON: `http://localhost:5000/api-docs.json`
 
-## 🔄 Keeping Documentation Updated
+**Features**:
 
-When adding new features or files:
-1. Update the relevant structure document (BACKEND_STRUCTURE.md or FRONTEND_STRUCTURE.md)
-2. Add explanations for new folders/files
-3. Update file counts
-4. Add examples if needed
+- ✅ Interactive API testing
+- ✅ Try-it-out functionality
+- ✅ Cookie-based authentication support
+- ✅ Request/response schemas
+- ✅ Example values
+- ✅ Error response documentation
 
----
+**Quick Start**:
 
-## 💡 Tips
+```bash
+npm run dev
+# Open http://localhost:5001/api-docs
+```
 
-### Finding Files
-- Backend: Feature files in `/modules/[feature]`, shared files in `/common`
-- Frontend: Feature files in `/features/[feature]`, shared files in `/lib`
+**Documentation Files**:
 
-### Adding New Features
-- Follow the same structure as existing features (auth)
-- Keep features self-contained
-- Use shared utilities from `/common` (backend) or `/lib` (frontend)
+- `API_DOCUMENTATION.md` - Main documentation guide
+- `SWAGGER_SETUP.md` - Complete setup guide
+- `SWAGGER_QUICK_REFERENCE.md` - Quick reference
+- `SWAGGER_COMPLETE.md` - Implementation summary
 
-### Import Paths
-- Backend: Use relative imports or path aliases
-- Frontend: Use `@/` alias (e.g., `@/features/auth/hooks/useAuth`)
+**Add documentation to new endpoints**:
 
----
+```bash
+npm run swagger:generate
+```
 
-**Last Updated**: March 30, 2026
-**Version**: 1.0
+See `API_DOCUMENTATION.md` for complete guide.
+
+## 🐛 Debugging
+
+### View Logs
+
+```bash
+# Application logs
+tail -f logs/app.log
+
+# Error logs
+tail -f logs/error.log
+```
+
+### Debug Mode
+
+Set `LOG_LEVEL=debug` in `.env` for detailed logs.
+
+## 🚢 Deployment
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+### Start Production Server
+
+```bash
+NODE_ENV=production npm start
+```
+
+## 📊 Scripts Reference
+
+| Script                     | Description                              |
+| -------------------------- | ---------------------------------------- |
+| `npm run dev`              | Start development server with hot reload |
+| `npm run build`            | Build for production                     |
+| `npm start`                | Start production server                  |
+| `npm test`                 | Run tests                                |
+| `npm run lint`             | Check code for errors                    |
+| `npm run lint:fix`         | Fix linting errors                       |
+| `npm run format`           | Format code with Prettier                |
+| `npm run type-check`       | Check TypeScript types                   |
+| `npm run swagger:generate` | Generate Swagger documentation template  |
+| `npm run prepare`          | Install Husky hooks                      |
+
+## 🤝 Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Ensure all tests pass
+4. Commit with conventional commit format
+5. Push and create a pull request
+
+## 📄 License
+
+MIT
+
+## 👥 Team
+
+GrowthCraft Development Team

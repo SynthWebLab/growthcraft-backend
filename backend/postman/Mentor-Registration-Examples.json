@@ -1,0 +1,246 @@
+{
+  "info": {
+    "name": "Mentor Registration Examples",
+    "description": "Complete mentor registration examples with all fields",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Register Mentor - Web Development",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.mentor@example.com\",\n  \"phone\": \"+91-98765-43210\",\n  \"password\": \"MentorPass123\",\n  \"role\": \"mentor\",\n  \"mentorData\": {\n    \"experienceYears\": 5,\n    \"areaOfExpertise\": \"Web Development\",\n    \"currentOrganization\": \"Tech Solutions Inc\",\n    \"bio\": \"Experienced full-stack developer with 5 years of expertise in React, Node.js, and cloud technologies. Passionate about mentoring and helping students achieve their career goals in web development.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Complete mentor registration for Web Development expert"
+      },
+      "response": []
+    },
+    {
+      "name": "2. Register Mentor - Data Science & AI",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Dr. Sarah Williams\",\n  \"email\": \"sarah.ai@example.com\",\n  \"phone\": \"+91-98765-11111\",\n  \"password\": \"DataScience456\",\n  \"role\": \"mentor\",\n  \"mentorData\": {\n    \"experienceYears\": 8,\n    \"areaOfExpertise\": \"Data Science & AI\",\n    \"currentOrganization\": \"AI Research Labs\",\n    \"bio\": \"PhD in Machine Learning with 8 years of industry experience. Specialized in deep learning, NLP, and computer vision. Love teaching complex AI concepts in simple terms.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Data Science & AI mentor registration"
+      },
+      "response": []
+    },
+    {
+      "name": "3. Register Mentor - Mobile Development",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Raj Kumar\",\n  \"email\": \"raj.mobile@example.com\",\n  \"phone\": \"+91-98765-22222\",\n  \"password\": \"MobilePass789\",\n  \"role\": \"mentor\",\n  \"mentorData\": {\n    \"experienceYears\": 6,\n    \"areaOfExpertise\": \"Mobile Development\",\n    \"currentOrganization\": \"AppDev Solutions\",\n    \"bio\": \"Senior mobile developer with expertise in React Native, Flutter, and native iOS/Android development. Built 20+ apps with millions of downloads. Enjoy mentoring aspiring mobile developers.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Mobile Development mentor registration"
+      },
+      "response": []
+    },
+    {
+      "name": "4. Register Mentor - DevOps & Cloud",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Michael Chen\",\n  \"email\": \"michael.devops@example.com\",\n  \"phone\": \"+91-98765-33333\",\n  \"password\": \"DevOpsPass123\",\n  \"role\": \"mentor\",\n  \"mentorData\": {\n    \"experienceYears\": 10,\n    \"areaOfExpertise\": \"DevOps & Cloud\",\n    \"currentOrganization\": \"Cloud Infrastructure Corp\",\n    \"bio\": \"DevOps architect with 10 years experience in AWS, Azure, Kubernetes, and CI/CD pipelines. Certified in multiple cloud platforms. Help teams build scalable infrastructure.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "DevOps & Cloud mentor registration"
+      },
+      "response": []
+    },
+    {
+      "name": "5. Register Mentor - UI/UX Design",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Priya Sharma\",\n  \"email\": \"priya.design@example.com\",\n  \"phone\": \"+91-98765-44444\",\n  \"password\": \"DesignPass456\",\n  \"role\": \"mentor\",\n  \"mentorData\": {\n    \"experienceYears\": 7,\n    \"areaOfExpertise\": \"UI/UX Design\",\n    \"currentOrganization\": \"Creative Design Studio\",\n    \"bio\": \"Senior UX designer with 7 years creating user-centered designs. Expert in Figma, Adobe XD, and design thinking. Passionate about teaching design principles and user research.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "UI/UX Design mentor registration"
+      },
+      "response": []
+    },
+    {
+      "name": "6. Register Mentor - Cybersecurity",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Alex Johnson\",\n  \"email\": \"alex.security@example.com\",\n  \"phone\": \"+91-98765-55555\",\n  \"password\": \"SecurePass789\",\n  \"role\": \"mentor\",\n  \"mentorData\": {\n    \"experienceYears\": 12,\n    \"areaOfExpertise\": \"Cybersecurity\",\n    \"currentOrganization\": \"SecureNet Solutions\",\n    \"bio\": \"Cybersecurity expert with 12 years protecting enterprise systems. Certified ethical hacker (CEH) and security consultant. Teach penetration testing, network security, and secure coding practices.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Cybersecurity mentor registration"
+      },
+      "response": []
+    },
+    {
+      "name": "7. Register Mentor - Junior (0 years)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Emma Davis\",\n  \"email\": \"emma.junior@example.com\",\n  \"phone\": \"+91-98765-66666\",\n  \"password\": \"JuniorPass123\",\n  \"role\": \"mentor\",\n  \"mentorData\": {\n    \"experienceYears\": 0,\n    \"areaOfExpertise\": \"Web Development\",\n    \"currentOrganization\": \"Freelance\",\n    \"bio\": \"Recent bootcamp graduate passionate about helping others learn web development. Strong foundation in HTML, CSS, JavaScript, and React. Eager to share my learning journey.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Junior mentor with 0 years experience (valid)"
+      },
+      "response": []
+    },
+    {
+      "name": "8. Validation Error - Missing Bio",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"phone\": \"+91-98765-77777\",\n  \"password\": \"TestPass123\",\n  \"role\": \"mentor\",\n  \"mentorData\": {\n    \"experienceYears\": 5,\n    \"areaOfExpertise\": \"Web Development\",\n    \"currentOrganization\": \"Test Company\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Test with missing bio - should return validation error"
+      },
+      "response": []
+    },
+    {
+      "name": "9. Validation Error - Invalid Expertise",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Test User\",\n  \"email\": \"test2@example.com\",\n  \"phone\": \"+91-98765-88888\",\n  \"password\": \"TestPass123\",\n  \"role\": \"mentor\",\n  \"mentorData\": {\n    \"experienceYears\": 5,\n    \"areaOfExpertise\": \"InvalidExpertise\",\n    \"currentOrganization\": \"Test Company\",\n    \"bio\": \"This is a test bio for validation error testing.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Test with invalid area of expertise - should return validation error"
+      },
+      "response": []
+    },
+    {
+      "name": "10. Validation Error - Bio Too Short",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Test User\",\n  \"email\": \"test3@example.com\",\n  \"phone\": \"+91-98765-99999\",\n  \"password\": \"TestPass123\",\n  \"role\": \"mentor\",\n  \"mentorData\": {\n    \"experienceYears\": 5,\n    \"areaOfExpertise\": \"Web Development\",\n    \"currentOrganization\": \"Test Company\",\n    \"bio\": \"Short\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "register"]
+        },
+        "description": "Test with bio too short (< 10 chars) - should return validation error"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}

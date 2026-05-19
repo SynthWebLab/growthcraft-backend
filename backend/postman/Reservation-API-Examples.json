@@ -1,0 +1,404 @@
+{
+  "info": {
+    "name": "Reservation API - Complete Testing",
+    "description": "Complete Postman collection for testing the Reservation API with all scenarios",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Get Bootcamp IDs (Setup)",
+      "item": [
+        {
+          "name": "Get All Bootcamps",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5001/api/v1/bootcamps?limit=10",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "bootcamps"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get bootcamp IDs to use in reservation tests. Copy an ID from the response."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5001/api/v1/courses?limit=10",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "courses"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get course IDs to use in reservation tests. Copy an ID from the response."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Create Reservations",
+      "item": [
+        {
+          "name": "Create Bootcamp Reservation - User 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1234567890\",\n  \"itemType\": \"bootcamp\",\n  \"itemId\": \"REPLACE_WITH_BOOTCAMP_ID\",\n  \"notes\": \"Looking forward to this bootcamp\",\n  \"source\": \"web\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations"]
+            },
+            "description": "Create a reservation for a bootcamp. Replace REPLACE_WITH_BOOTCAMP_ID with actual ID from step 1."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Bootcamp Reservation - User 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Smith\",\n  \"email\": \"jane.smith@example.com\",\n  \"phone\": \"+0987654321\",\n  \"itemType\": \"bootcamp\",\n  \"itemId\": \"REPLACE_WITH_BOOTCAMP_ID\",\n  \"notes\": \"Excited to join!\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations"]
+            },
+            "description": "Create another reservation with different email"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Course Reservation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice Johnson\",\n  \"email\": \"alice.johnson@example.com\",\n  \"phone\": \"+1122334455\",\n  \"itemType\": \"course\",\n  \"itemId\": \"REPLACE_WITH_COURSE_ID\",\n  \"notes\": \"Ready to learn!\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations"]
+            },
+            "description": "Create a reservation for a course"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Minimal Reservation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bob Wilson\",\n  \"email\": \"bob.wilson@example.com\",\n  \"phone\": \"+9988776655\",\n  \"itemType\": \"bootcamp\",\n  \"itemId\": \"REPLACE_WITH_BOOTCAMP_ID\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations"]
+            },
+            "description": "Create reservation with only required fields"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Get Reservations",
+      "item": [
+        {
+          "name": "Get Reservation by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations/REPLACE_WITH_RESERVATION_ID",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations", "REPLACE_WITH_RESERVATION_ID"]
+            },
+            "description": "Get a specific reservation by ID. Replace REPLACE_WITH_RESERVATION_ID with actual ID from create response."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reservations by Email",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations/email/john.doe@example.com",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations", "email", "john.doe@example.com"]
+            },
+            "description": "Get all reservations for a specific email address"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Confirm Reservations",
+      "item": [
+        {
+          "name": "Confirm Reservation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations/REPLACE_WITH_RESERVATION_ID/confirm",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations", "REPLACE_WITH_RESERVATION_ID", "confirm"]
+            },
+            "description": "Confirm a pending reservation. Replace REPLACE_WITH_RESERVATION_ID with actual ID."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Cancel Reservations",
+      "item": [
+        {
+          "name": "Cancel Reservation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations/REPLACE_WITH_RESERVATION_ID/cancel",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations", "REPLACE_WITH_RESERVATION_ID", "cancel"]
+            },
+            "description": "Cancel a reservation. Replace REPLACE_WITH_RESERVATION_ID with actual ID."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Error Scenarios",
+      "item": [
+        {
+          "name": "Duplicate Reservation (409 Error)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1234567890\",\n  \"itemType\": \"bootcamp\",\n  \"itemId\": \"REPLACE_WITH_BOOTCAMP_ID\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations"]
+            },
+            "description": "Try to create duplicate reservation - should return 409 error"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Email (400 Error)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"invalid-email\",\n  \"phone\": \"+1234567890\",\n  \"itemType\": \"bootcamp\",\n  \"itemId\": \"REPLACE_WITH_BOOTCAMP_ID\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations"]
+            },
+            "description": "Try to create reservation with invalid email - should return 400 error"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Item Type (400 Error)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"phone\": \"+1234567890\",\n  \"itemType\": \"invalid\",\n  \"itemId\": \"REPLACE_WITH_BOOTCAMP_ID\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations"]
+            },
+            "description": "Try to create reservation with invalid item type - should return 400 error"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Item ID (400 Error)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"phone\": \"+1234567890\",\n  \"itemType\": \"bootcamp\",\n  \"itemId\": \"invalid-id\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations"]
+            },
+            "description": "Try to create reservation with invalid MongoDB ID - should return 400 error"
+          },
+          "response": []
+        },
+        {
+          "name": "Non-existent Bootcamp (404 Error)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"phone\": \"+1234567890\",\n  \"itemType\": \"bootcamp\",\n  \"itemId\": \"507f1f77bcf86cd799439011\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations"]
+            },
+            "description": "Try to create reservation for non-existent bootcamp - should return 404 error"
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Already Confirmed (400 Error)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations/REPLACE_WITH_CONFIRMED_RESERVATION_ID/confirm",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations", "REPLACE_WITH_CONFIRMED_RESERVATION_ID", "confirm"]
+            },
+            "description": "Try to confirm already confirmed reservation - should return 400 error"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Already Cancelled (400 Error)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5001/api/v1/reservations/REPLACE_WITH_CANCELLED_RESERVATION_ID/cancel",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["api", "v1", "reservations", "REPLACE_WITH_CANCELLED_RESERVATION_ID", "cancel"]
+            },
+            "description": "Try to cancel already cancelled reservation - should return 400 error"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

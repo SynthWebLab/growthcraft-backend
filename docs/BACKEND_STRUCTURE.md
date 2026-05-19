@@ -91,11 +91,13 @@ backend/src/
 **Purpose**: Self-contained auth feature with all related logic
 
 #### `/routes/` - Route Definitions
+
 - Define API endpoints (POST /login, /register, etc.)
 - Apply middleware (validate, authenticate, authorize)
 - NO business logic
 
 #### `/controllers/` - HTTP Handlers
+
 - Handle HTTP request/response
 - Extract data from req.body, req.params, req.query
 - Call service methods
@@ -103,6 +105,7 @@ backend/src/
 - NO business logic, NO database calls
 
 #### `/services/` - Business Logic
+
 - **auth.service.ts**: Main auth logic (register, login, logout)
 - **token.service.ts**: JWT operations (generate, verify, decode)
 - **password.service.ts**: Password operations (hash, compare)
@@ -111,26 +114,31 @@ backend/src/
 - NO HTTP logic (req, res)
 
 #### `/repositories/` - Database Operations
+
 - All Mongoose/database operations
 - CRUD operations (create, read, update, delete)
 - NO business logic
 
 #### `/dto/` - Data Transfer Objects
+
 - TypeScript types for request/response
 - Used for validation
 - Strict typing
 
 #### `/validators/` - Validation Schemas
+
 - Zod schemas for runtime validation
 - Validate request bodies
 - Detailed error messages
 
 #### `/interfaces/` - Service Contracts
+
 - TypeScript interfaces for services
 - Define method signatures
 - Used for dependency injection
 
 #### `/constants/` - Feature Constants
+
 - Auth-specific constants
 - Token expiry times
 - Salt rounds
@@ -143,6 +151,7 @@ backend/src/
 **Purpose**: Reusable code used across all modules
 
 #### `/middleware/` - Express Middleware
+
 - **authenticate.middleware.ts**: Verify JWT token
 - **authorize.middleware.ts**: Check user roles/permissions (RBAC)
 - **validate.middleware.ts**: Validate request body with Zod
@@ -151,6 +160,7 @@ backend/src/
 - **sanitize.middleware.ts**: Input sanitization
 
 #### `/errors/` - Error System
+
 - **AppError.ts**: Base error class (all errors extend this)
 - **ValidationError.ts**: 400 - Invalid input
 - **AuthenticationError.ts**: 401 - Invalid credentials
@@ -160,27 +170,32 @@ backend/src/
 - **error-codes.ts**: Error code enums
 
 #### `/responses/` - Response Helpers
+
 - **success.response.ts**: Standardized success response
 - **error.response.ts**: Standardized error response
 - **pagination.response.ts**: Pagination wrapper
 
 #### `/types/` - Shared Types
+
 - **express.d.ts**: Extend Express types (add user to Request)
 - **common.types.ts**: Common types (Pagination, etc.)
 - **api.types.ts**: API response types
 
 #### `/constants/` - App Constants
+
 - **roles.constant.ts**: UserRole enum (Student, Mentor, Admin, etc.)
 - **permissions.constant.ts**: Permission enum
 - **status.constant.ts**: Status enums
 - **http-status.constant.ts**: HTTP status codes
 
 #### `/utils/` - Utility Functions
+
 - **logger.util.ts**: Winston logger setup
 - **env.util.ts**: Environment variable validation
 - **async-handler.util.ts**: Async error wrapper
 
 #### `/validators/` - Common Validators
+
 - Shared Zod schemas
 - Reusable validation logic
 
@@ -189,12 +204,14 @@ backend/src/
 ### `/database/` - Database Layer
 
 #### `/models/` - Mongoose Schemas
+
 - **User.model.ts**: User schema with role, profile, etc.
 - Define schema structure
 - Add indexes
 - Add methods
 
 #### `connection.ts` - Database Connection
+
 - MongoDB connection setup
 - Connection error handling
 
@@ -243,18 +260,21 @@ Response back up the chain
 ## Key Principles
 
 ### 1. Separation of Concerns
+
 - Routes: Define endpoints
 - Controllers: Handle HTTP
 - Services: Business logic
 - Repositories: Database operations
 
 ### 2. DRY (Don't Repeat Yourself)
+
 - Shared middleware in `/common/middleware`
 - Shared errors in `/common/errors`
 - Shared constants in `/common/constants`
 - Shared utilities in `/common/utils`
 
 ### 3. SOLID Principles
+
 - **Single Responsibility**: Each file has one job
 - **Open/Closed**: Easy to add new features without modifying existing code
 - **Liskov Substitution**: Services are interchangeable via interfaces
@@ -262,6 +282,7 @@ Response back up the chain
 - **Dependency Inversion**: Depend on abstractions (interfaces), not implementations
 
 ### 4. Type Safety
+
 - Strict TypeScript everywhere
 - DTOs for all requests
 - Interfaces for service contracts

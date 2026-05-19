@@ -55,7 +55,13 @@ export class JwtConfig {
         issuer: 'growthcraft-api',
         audience: 'growthcraft-client',
       }) as JwtPayload;
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'TokenExpiredError') {
+        throw new Error('Access token expired');
+      }
+      if (error.name === 'JsonWebTokenError') {
+        throw new Error('Invalid access token format');
+      }
       throw new Error('Invalid access token');
     }
   }
@@ -66,7 +72,13 @@ export class JwtConfig {
         issuer: 'growthcraft-api',
         audience: 'growthcraft-client',
       }) as JwtPayload;
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'TokenExpiredError') {
+        throw new Error('Refresh token expired');
+      }
+      if (error.name === 'JsonWebTokenError') {
+        throw new Error('Invalid refresh token format');
+      }
       throw new Error('Invalid refresh token');
     }
   }

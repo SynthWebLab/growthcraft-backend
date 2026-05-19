@@ -50,15 +50,6 @@ const transports = [
   }),
 ];
 
-// Create logger
-export const logger = winston.createLogger({
-  level: config.LOG_LEVEL,
-  levels,
-  format,
-  transports,
-  exitOnError: false,
-});
-
 // Create logs directory if it doesn't exist
 import fs from 'fs';
 import path from 'path';
@@ -68,14 +59,13 @@ if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
-// If we're not in production, log to the console with the format:
-// `${info.level}: ${info.message} JSON.stringify({ ...rest }) `
-if (config.NODE_ENV !== 'production') {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    })
-  );
-}
+// Create logger
+export const logger = winston.createLogger({
+  level: config.LOG_LEVEL,
+  levels,
+  format,
+  transports,
+  exitOnError: false,
+});
 
 export default logger;

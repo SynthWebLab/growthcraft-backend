@@ -1,6 +1,7 @@
 import app from './app';
 import { config } from './config';
 import { databaseConfig } from './config/database.config';
+import { redisConfig } from './config/redis.config';
 import { logger } from './common/utils/logger.util';
 
 // Handle uncaught exceptions
@@ -20,7 +21,19 @@ const startServer = async () => {
   try {
     // Connect to database
     await databaseConfig.connect();
-    logger.info('Database connected successfully');
+    logger.info('✓ Database connected successfully');
+
+    // Connect to Redis (optional - app will work without it)
+    try {
+      await redisConfig.connect();
+      if (redisConfig.getConnectionStatus()) {
+        logger.info('✓ Redis connected successfully');
+      } else {
+        logger.warn('⚠ Redis not connected - continuing without Redis');
+      }
+    } catch (error) {
+      logger.warn('⚠ Redis connection failed - continuing without Redis');
+    }
 
     // Start listening
     const server = app.listen(config.PORT, () => {
@@ -33,19 +46,25 @@ const startServer = async () => {
     const gracefulShutdown = (signal: string) => {
       logger.info(`${signal} received. Starting graceful shutdown...`);
 
-      server.close(() => {
+      server.close(async () => {
         logger.info('HTTP server closed');
 
-        databaseConfig
-          .disconnect()
-          .then(() => {
-            logger.info('Database disconnected');
-            process.exit(0);
-          })
-          .catch((error) => {
-            logger.error('Error during shutdown:', error);
-            process.exit(1);
-          });
+        try {
+          // Disconnect Redis (if connected)
+          if (redisConfig.getConnectionStatus()) {
+            await redisConfig.disconnect();
+            logger.info('Redis disconnected');
+          }
+
+          // Disconnect Database
+          await databaseConfig.disconnect();
+          logger.info('Database disconnected');
+
+          process.exit(0);
+        } catch (error) {
+          logger.error('Error during shutdown:', error);
+          process.exit(1);
+        }
       });
 
       // Force shutdown after 10 seconds

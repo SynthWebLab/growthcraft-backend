@@ -1,0 +1,966 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "Public Catalogue API - GrowthCraft",
+		"description": "Complete collection of public catalogue endpoints for courses and bootcamps. No authentication required.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Courses",
+			"item": [
+				{
+					"name": "Get All Courses",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of items per page (1-50)"
+								}
+							]
+						},
+						"description": "Get all published courses with default pagination"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Courses - MERN Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?category=MERN&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "category",
+									"value": "MERN"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all MERN category courses"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Courses - Beginner Level",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?level=Beginner&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "level",
+									"value": "Beginner"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all beginner level courses"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Courses - Price Range",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?minPrice=3000&maxPrice=8000&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "minPrice",
+									"value": "3000"
+								},
+								{
+									"key": "maxPrice",
+									"value": "8000"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get courses between ₹3000-8000"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Courses - High Rating",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?minRating=4.5&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "minRating",
+									"value": "4.5"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get courses with rating >= 4.5"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Courses - JavaScript",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?search=javascript&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "search",
+									"value": "javascript"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Search for JavaScript courses"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Courses - By Tags",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?tags=React,Node.js&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "tags",
+									"value": "React,Node.js"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get courses with React and Node.js tags"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Courses - Sort by Price (Asc)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?sortBy=price&sortOrder=asc&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "sortBy",
+									"value": "price"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get courses sorted by price (lowest first)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Courses - Sort by Rating (Desc)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?sortBy=rating&sortOrder=desc&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "sortBy",
+									"value": "rating"
+								},
+								{
+									"key": "sortOrder",
+									"value": "desc"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get courses sorted by rating (highest first)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Courses - Combined Filters",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?category=MERN&level=Beginner&maxPrice=5000&minRating=4.5&sortBy=price&sortOrder=asc&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "category",
+									"value": "MERN"
+								},
+								{
+									"key": "level",
+									"value": "Beginner"
+								},
+								{
+									"key": "maxPrice",
+									"value": "5000"
+								},
+								{
+									"key": "minRating",
+									"value": "4.5"
+								},
+								{
+									"key": "sortBy",
+									"value": "price"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "MERN + Beginner + Under ₹5000 + Rating >= 4.5"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Courses - Pagination (Page 1)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?limit=3",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "3"
+								}
+							]
+						},
+						"description": "Get first page with 3 items. Copy nextCursor from response for next page."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Courses - Pagination (Page 2)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?cursor=PASTE_CURSOR_HERE&limit=3",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "cursor",
+									"value": "PASTE_CURSOR_HERE",
+									"description": "Replace with nextCursor from previous response"
+								},
+								{
+									"key": "limit",
+									"value": "3"
+								}
+							]
+						},
+						"description": "Get next page using cursor from previous response"
+					},
+					"response": []
+				}
+			],
+			"description": "All course-related endpoints"
+		},
+		{
+			"name": "Bootcamps",
+			"item": [
+				{
+					"name": "Get All Bootcamps",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all published bootcamps"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - Open Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?status=Open&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "status",
+									"value": "Open"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all open bootcamps accepting registrations"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - Online Mode",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?mode=Online&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "mode",
+									"value": "Online"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all online bootcamps"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - Hybrid Mode",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?mode=Hybrid&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "mode",
+									"value": "Hybrid"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all hybrid bootcamps"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - MERN Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?category=MERN&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "category",
+									"value": "MERN"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all MERN bootcamps"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - DataScience Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?category=DataScience&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "category",
+									"value": "DataScience"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all Data Science bootcamps"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - Price Range",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?minPrice=20000&maxPrice=30000&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "minPrice",
+									"value": "20000"
+								},
+								{
+									"key": "maxPrice",
+									"value": "30000"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get bootcamps between ₹20000-30000"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - High Rating",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?minRating=4.8&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "minRating",
+									"value": "4.8"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get bootcamps with rating >= 4.8"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Bootcamps - MERN",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?search=mern&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "search",
+									"value": "mern"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Search for MERN bootcamps"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Bootcamps - Data Science",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?search=data science&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "search",
+									"value": "data science"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Search for Data Science bootcamps"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - By Tags",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?tags=React,Node.js&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "tags",
+									"value": "React,Node.js"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get bootcamps with React and Node.js tags"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - Sort by Start Date",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?sortBy=startDate&sortOrder=asc&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "sortBy",
+									"value": "startDate"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get bootcamps sorted by start date (earliest first)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - Sort by Price",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?sortBy=price&sortOrder=asc&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "sortBy",
+									"value": "price"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get bootcamps sorted by price (lowest first)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - Combined Filters",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?status=Open&mode=Hybrid&category=MERN&minRating=4.5&sortBy=startDate&sortOrder=asc&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "status",
+									"value": "Open"
+								},
+								{
+									"key": "mode",
+									"value": "Hybrid"
+								},
+								{
+									"key": "category",
+									"value": "MERN"
+								},
+								{
+									"key": "minRating",
+									"value": "4.5"
+								},
+								{
+									"key": "sortBy",
+									"value": "startDate"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Open + Hybrid + MERN + Rating >= 4.5"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - Pagination (Page 1)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?limit=3",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "3"
+								}
+							]
+						},
+						"description": "Get first page with 3 items. Copy nextCursor from response for next page."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bootcamps - Pagination (Page 2)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?cursor=PASTE_CURSOR_HERE&limit=3",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "cursor",
+									"value": "PASTE_CURSOR_HERE",
+									"description": "Replace with nextCursor from previous response"
+								},
+								{
+									"key": "limit",
+									"value": "3"
+								}
+							]
+						},
+						"description": "Get next page using cursor from previous response"
+					},
+					"response": []
+				}
+			],
+			"description": "All bootcamp-related endpoints"
+		},
+		{
+			"name": "Real-World Scenarios",
+			"item": [
+				{
+					"name": "Scenario 1 - Affordable Beginner MERN Courses",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?category=MERN&level=Beginner&maxPrice=5000&sortBy=price&sortOrder=asc&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "category",
+									"value": "MERN"
+								},
+								{
+									"key": "level",
+									"value": "Beginner"
+								},
+								{
+									"key": "maxPrice",
+									"value": "5000"
+								},
+								{
+									"key": "sortBy",
+									"value": "price"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Find affordable beginner MERN courses under ₹5000"
+					},
+					"response": []
+				},
+				{
+					"name": "Scenario 2 - Open Online Bootcamps",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?status=Open&mode=Online&sortBy=startDate&sortOrder=asc&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "status",
+									"value": "Open"
+								},
+								{
+									"key": "mode",
+									"value": "Online"
+								},
+								{
+									"key": "sortBy",
+									"value": "startDate"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Find open online bootcamps sorted by start date"
+					},
+					"response": []
+				},
+				{
+					"name": "Scenario 3 - High-Rated UI/UX Courses",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?category=UI/UX&minRating=4.5&sortBy=rating&sortOrder=desc&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "category",
+									"value": "UI/UX"
+								},
+								{
+									"key": "minRating",
+									"value": "4.5"
+								},
+								{
+									"key": "sortBy",
+									"value": "rating"
+								},
+								{
+									"key": "sortOrder",
+									"value": "desc"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Find high-rated UI/UX courses"
+					},
+					"response": []
+				},
+				{
+					"name": "Scenario 4 - Upcoming Hybrid Bootcamps",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?status=Open&mode=Hybrid&sortBy=startDate&sortOrder=asc&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "status",
+									"value": "Open"
+								},
+								{
+									"key": "mode",
+									"value": "Hybrid"
+								},
+								{
+									"key": "sortBy",
+									"value": "startDate"
+								},
+								{
+									"key": "sortOrder",
+									"value": "asc"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Find upcoming hybrid bootcamps"
+					},
+					"response": []
+				},
+				{
+					"name": "Scenario 5 - JavaScript Learning (Courses)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/courses?search=javascript&sortBy=rating&sortOrder=desc&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "courses"],
+							"query": [
+								{
+									"key": "search",
+									"value": "javascript"
+								},
+								{
+									"key": "sortBy",
+									"value": "rating"
+								},
+								{
+									"key": "sortOrder",
+									"value": "desc"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Search for JavaScript courses sorted by rating"
+					},
+					"response": []
+				},
+				{
+					"name": "Scenario 5 - JavaScript Learning (Bootcamps)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/bootcamps?search=javascript&status=Open&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "bootcamps"],
+							"query": [
+								{
+									"key": "search",
+									"value": "javascript"
+								},
+								{
+									"key": "status",
+									"value": "Open"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Search for open JavaScript bootcamps"
+					},
+					"response": []
+				}
+			],
+			"description": "Real-world use case scenarios"
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		}
+	]
+}
