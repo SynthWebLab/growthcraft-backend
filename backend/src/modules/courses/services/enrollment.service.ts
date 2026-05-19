@@ -16,8 +16,6 @@ export interface EnrollmentData {
   fullName: string;
   email: string;
   phone: string;
-  enrollmentNumber?: string;
-  collegeName?: string;
 }
 
 export interface CallbackRequestData {
@@ -93,8 +91,7 @@ export class EnrollmentService {
         fullName: data.fullName,
         email: data.email,
         phone: data.phone,
-        enrollmentNumber: data.enrollmentNumber,
-        collegeName: data.collegeName,
+        title: course.title, // Save course title
         enrollmentDate: new Date(),
         status: 'pending',
         paymentStatus: 'pending',
@@ -152,6 +149,7 @@ export class EnrollmentService {
         fullName: data.fullName,
         email: data.email,
         phone: data.phone,
+        title: course.title, // Save course title
         requestDate: new Date(),
         status: 'pending',
       });

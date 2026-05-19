@@ -6,8 +6,7 @@ export interface ICourseEnrollment extends Document {
   fullName: string;
   email: string;
   phone: string;
-  enrollmentNumber?: string; // For students
-  collegeName?: string; // For students
+  title: string; // Course title
   enrollmentDate: Date;
   status: 'pending' | 'confirmed' | 'cancelled';
   paymentStatus: 'pending' | 'completed' | 'failed';
@@ -46,12 +45,9 @@ const courseEnrollmentSchema = new Schema<ICourseEnrollment>(
       required: [true, 'Phone number is required'],
       trim: true,
     },
-    enrollmentNumber: {
+    title: {
       type: String,
-      trim: true,
-    },
-    collegeName: {
-      type: String,
+      required: [true, 'Course title is required'],
       trim: true,
     },
     enrollmentDate: {

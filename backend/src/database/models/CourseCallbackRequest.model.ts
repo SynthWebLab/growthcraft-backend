@@ -6,6 +6,7 @@ export interface ICourseCallbackRequest extends Document {
   fullName: string;
   email: string;
   phone: string;
+  title: string; // Course title
   requestDate: Date;
   status: 'pending' | 'contacted' | 'completed' | 'cancelled';
   notes?: string;
@@ -44,6 +45,11 @@ const courseCallbackRequestSchema = new Schema<ICourseCallbackRequest>(
     phone: {
       type: String,
       required: [true, 'Phone number is required'],
+      trim: true,
+    },
+    title: {
+      type: String,
+      required: [true, 'Course title is required'],
       trim: true,
     },
     requestDate: {

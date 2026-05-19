@@ -128,7 +128,30 @@ export class CourseController {
         throw NotFoundError.course();
       }
 
-      SuccessResponseHelper.ok(res, { course }, 'Course retrieved successfully');
+      // Try to fetch course details (overview, curriculum, instructor, FAQs)
+      let courseDetails = null;
+      try {
+        const { CourseDetails } = await import('@/database/models/CourseDetails.model');
+        courseDetails = await CourseDetails.findOne({ slug }).select('-courseId -__v').lean().exec();
+      } catch (detailsError) {
+        // Course details are optional, log but don't fail
+        logger.warn(`Course details not found for slug: ${slug}`);
+      }
+
+      // Convert course to plain object if it's a Mongoose document
+      const courseData = typeof course.toJSON === 'function' ? course.toJSON() : course;
+
+      // Combine course and details
+      const response: any = { course: courseData };
+      
+      if (courseDetails) {
+        response.overview = courseDetails.overview;
+        response.curriculum = courseDetails.curriculum;
+        response.instructorDetails = courseDetails.instructorDetails;
+        response.faqs = courseDetails.faqs;
+      }
+
+      SuccessResponseHelper.ok(res, response, 'Course retrieved successfully');
     } catch (error: any) {
       logger.error('Get course by slug controller error:', error);
       next(error);

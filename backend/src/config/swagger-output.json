@@ -728,12 +728,6 @@
                   },
                   "phone": {
                     "example": "any"
-                  },
-                  "enrollmentNumber": {
-                    "example": "any"
-                  },
-                  "collegeName": {
-                    "example": "any"
                   }
                 }
               }
@@ -818,6 +812,106 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/courses/slug/{slug}/details": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/courses/slug/{slug}/overview": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/courses/slug/{slug}/curriculum": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/courses/slug/{slug}/instructor": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/courses/slug/{slug}/faqs": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
           }
         }
       }
