@@ -4,9 +4,25 @@ export type BootcampCategory = string; // Dynamic from database (MERN, DataScien
 export type BootcampStatus = 'Draft' | 'Open' | 'Closed' | 'Completed';
 export type BootcampMode = 'Online' | 'Offline' | 'Hybrid';
 
+// GC-S401-T1: Event types (Bootcamp is a type of event)
+export enum EventType {
+  WORKSHOP = 'Workshop',
+  BOOTCAMP = 'Bootcamp',
+  HACKATHON = 'Hackathon',
+}
+
 export interface IBootcamp extends Document {
+  // GC-S401-T1: Core Event fields
+  slug: string; // @unique
   title: string;
-  slug: string;
+  type: EventType; // Workshop, Bootcamp, or Hackathon
+  domain: string; // Domain/field of the event
+  durationDays: number; // Duration in days
+  keyTopics: string[]; // Key topics covered
+  isPublished: boolean; // Publication status
+  deletedAt?: Date; // Soft delete
+  
+  // Legacy/additional fields
   description: string;
   banner: string; // Banner image URL
   category: BootcampCategory;
@@ -42,7 +58,7 @@ export interface IBootcamp extends Document {
   publishedAt?: Date;
   
   // Computed fields
-  duration: number; // in days (computed from start/end date)
+  duration: number; // in days (computed from start/end date, same as durationDays)
   
   createdAt: Date;
   updatedAt: Date;
@@ -56,25 +72,69 @@ export interface IBootcamp extends Document {
 
 const bootcampSchema = new Schema<IBootcamp>(
   {
-    title: {
-      type: String,
-      required: [true, 'Bootcamp title is required'],
-      trim: true,
-      minlength: [3, 'Title must be at least 3 characters'],
-      maxlength: [200, 'Title cannot exceed 200 characters'],
-      index: 'text',
-    },
+    // GC-S401-T1: Core Event fields
     slug: {
       type: String,
-      required: [true, 'Bootcamp slug is required'],
+      required: [true, 'Slug is required'],
       unique: true,
       lowercase: true,
       trim: true,
       index: true,
     },
+    title: {
+      type: String,
+      required: [true, 'Title is required'],
+      trim: true,
+      minlength: [3, 'Title must be at least 3 characters'],
+      maxlength: [200, 'Title cannot exceed 200 characters'],
+      index: 'text',
+    },
+    type: {
+      type: String,
+      required: [true, 'Event type is required'],
+      enum: {
+        values: Object.values(EventType),
+        message: '{VALUE} is not a valid event type',
+      },
+      default: EventType.BOOTCAMP,
+      index: true,
+    },
+    domain: {
+      type: String,
+      required: [true, 'Domain is required'],
+      trim: true,
+      index: true,
+    },
+    durationDays: {
+      type: Number,
+      required: [true, 'Duration in days is required'],
+      min: [1, 'Duration must be at least 1 day'],
+    },
+    keyTopics: {
+      type: [String],
+      default: [],
+      required: [true, 'Key topics are required'],
+      validate: {
+        validator: function (v: string[]) {
+          return v.length > 0;
+        },
+        message: 'At least one key topic is required',
+      },
+    },
+    isPublished: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+    
+    // Legacy/additional fields
     description: {
       type: String,
-      required: [true, 'Bootcamp description is required'],
+      required: [true, 'Description is required'],
       trim: true,
       minlength: [10, 'Description must be at least 10 characters'],
       maxlength: [2000, 'Description cannot exceed 2000 characters'],
@@ -82,22 +142,18 @@ const bootcampSchema = new Schema<IBootcamp>(
     },
     banner: {
       type: String,
-      required: [true, 'Banner image is required'],
       trim: true,
     },
     category: {
       type: String,
-      required: [true, 'Bootcamp category is required'],
       index: true,
     },
     startDate: {
       type: Date,
-      required: [true, 'Start date is required'],
       index: true,
     },
     endDate: {
       type: Date,
-      required: [true, 'End date is required'],
       index: true,
     },
     registrationDeadline: {
@@ -106,7 +162,6 @@ const bootcampSchema = new Schema<IBootcamp>(
     },
     maxSeats: {
       type: Number,
-      required: [true, 'Max seats is required'],
       min: [1, 'Max seats must be at least 1'],
     },
     enrolledCount: {
@@ -120,8 +175,8 @@ const bootcampSchema = new Schema<IBootcamp>(
     },
     price: {
       type: Number,
-      required: [true, 'Bootcamp price is required'],
       min: [0, 'Price cannot be negative'],
+      default: 0,
     },
     originalPrice: {
       type: Number,
@@ -130,18 +185,15 @@ const bootcampSchema = new Schema<IBootcamp>(
     mode: {
       type: String,
       enum: ['Online', 'Offline', 'Hybrid'],
-      required: [true, 'Mode is required'],
       index: true,
     },
     skillsCovered: {
       type: [String],
       default: [],
-      required: [true, 'Skills covered is required'],
     },
     mentorNames: {
       type: [String],
       default: [],
-      required: [true, 'Mentor names is required'],
     },
     status: {
       type: String,
@@ -182,21 +234,32 @@ const bootcampSchema = new Schema<IBootcamp>(
 // Create compound text index for search
 bootcampSchema.index({ title: 'text', description: 'text' });
 
-// Create compound index for common queries
+// GC-S401-T1: Compound index for (isPublished, type)
+bootcampSchema.index({ isPublished: 1, type: 1 });
+
+// Additional compound indexes for common queries
 bootcampSchema.index({ category: 1, mode: 1, status: 1, isActive: 1 });
 bootcampSchema.index({ startDate: 1, endDate: 1 });
 bootcampSchema.index({ status: 1, publishedAt: 1 });
 
 // Pre-save hook to calculate duration and available seats
 bootcampSchema.pre('save', function (next) {
-  // Calculate duration in days
+  // Calculate duration in days (sync durationDays with duration)
   if (this.startDate && this.endDate) {
     const durationMs = this.endDate.getTime() - this.startDate.getTime();
-    this.duration = Math.round(durationMs / (1000 * 60 * 60 * 24)); // Convert to days
+    const calculatedDays = Math.round(durationMs / (1000 * 60 * 60 * 24));
+    this.duration = calculatedDays;
+    
+    // If durationDays not set, use calculated value
+    if (!this.durationDays) {
+      this.durationDays = calculatedDays;
+    }
   }
   
   // Calculate available seats
-  this.availableSeats = Math.max(0, this.maxSeats - this.enrolledCount);
+  if (this.maxSeats) {
+    this.availableSeats = Math.max(0, this.maxSeats - this.enrolledCount);
+  }
   
   next();
 });
