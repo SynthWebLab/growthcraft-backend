@@ -5,7 +5,7 @@ import { enrollmentController } from '../controllers/enrollment.controller';
 import { courseDetailsController } from '../controllers/course-details.controller';
 import { CourseValidator } from '../validators/course.validator';
 import { EnrollmentValidator } from '../validators/enrollment.validator';
-import { authenticate } from '@/common/middleware/authenticate.middleware';
+import { authenticate, optionalAuthenticate } from '@/common/middleware/authenticate.middleware';
 
 const router = Router();
 
@@ -461,8 +461,6 @@ router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
  *   post:
  *     summary: Enroll in a course
  *     tags: [Course Enrollment]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: courseId
@@ -496,14 +494,12 @@ router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
  *         description: Successfully enrolled in the course
  *       400:
  *         description: Validation error or course not available
- *       401:
- *         description: Unauthorized
  *       409:
  *         description: Already enrolled in this course
  */
 router.post(
   '/:courseId/enroll',
-  authenticate,
+  optionalAuthenticate,
   EnrollmentValidator.enrollCourse(),
   (req: Request, res: Response, next: NextFunction) => {
     void enrollmentController.enrollInCourse(req, res, next);
@@ -516,8 +512,6 @@ router.post(
  *   post:
  *     summary: Request callback for a course
  *     tags: [Course Enrollment]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: courseId
@@ -551,14 +545,12 @@ router.post(
  *         description: Callback request created successfully
  *       400:
  *         description: Validation error
- *       401:
- *         description: Unauthorized
  *       409:
  *         description: Already have a pending callback request
  */
 router.post(
   '/:courseId/request-callback',
-  authenticate,
+  optionalAuthenticate,
   EnrollmentValidator.requestCallback(),
   (req: Request, res: Response, next: NextFunction) => {
     void enrollmentController.requestCallback(req, res, next);

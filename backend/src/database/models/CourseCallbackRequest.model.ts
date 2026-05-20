@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ICourseCallbackRequest extends Document {
-  userId: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId;
   courseId: mongoose.Types.ObjectId;
   fullName: string;
   email: string;
@@ -21,7 +21,6 @@ const courseCallbackRequestSchema = new Schema<ICourseCallbackRequest>(
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'User ID is required'],
       index: true,
     },
     courseId: {
@@ -82,7 +81,11 @@ const courseCallbackRequestSchema = new Schema<ICourseCallbackRequest>(
 
 // Compound index for querying callback requests
 courseCallbackRequestSchema.index({ courseId: 1, status: 1 });
-courseCallbackRequestSchema.index({ userId: 1, courseId: 1 });
+courseCallbackRequestSchema.index(
+  { userId: 1, courseId: 1 },
+  { partialFilterExpression: { userId: { $exists: true } } }
+);
+courseCallbackRequestSchema.index({ email: 1, courseId: 1, status: 1 });
 
 // Remove __v from JSON response
 courseCallbackRequestSchema.methods.toJSON = function (): Record<string, unknown> {

@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ICourseEnrollment extends Document {
-  userId: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId;
   courseId: mongoose.Types.ObjectId;
   fullName: string;
   email: string;
@@ -19,7 +19,6 @@ const courseEnrollmentSchema = new Schema<ICourseEnrollment>(
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'User ID is required'],
       index: true,
     },
     courseId: {
@@ -72,8 +71,12 @@ const courseEnrollmentSchema = new Schema<ICourseEnrollment>(
   }
 );
 
-// Compound index to prevent duplicate enrollments
-courseEnrollmentSchema.index({ userId: 1, courseId: 1 }, { unique: true });
+// Compound indexes to prevent duplicate enrollments for logged-in and guest users.
+courseEnrollmentSchema.index(
+  { userId: 1, courseId: 1 },
+  { unique: true, partialFilterExpression: { userId: { $exists: true } } }
+);
+courseEnrollmentSchema.index({ email: 1, courseId: 1 }, { unique: true });
 
 // Index for querying enrollments by course
 courseEnrollmentSchema.index({ courseId: 1, status: 1 });

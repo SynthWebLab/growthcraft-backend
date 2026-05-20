@@ -11,7 +11,7 @@ import { ValidationError } from '@/common/errors/ValidationError';
 import mongoose from 'mongoose';
 
 export interface EnrollmentData {
-  userId: string;
+  userId?: string;
   courseId: string;
   fullName: string;
   email: string;
@@ -19,7 +19,7 @@ export interface EnrollmentData {
 }
 
 export interface CallbackRequestData {
-  userId: string;
+  userId?: string;
   courseId: string;
   fullName: string;
   email: string;
@@ -75,10 +75,14 @@ export class EnrollmentService {
       }
 
       // Check if user is already enrolled
-      const existingEnrollment = await CourseEnrollment.findOne({
-        userId: data.userId,
+      const duplicateEnrollmentFilter = {
         courseId: data.courseId,
-      });
+        ...(data.userId
+          ? { $or: [{ userId: data.userId }, { email: data.email.toLowerCase() }] }
+          : { email: data.email.toLowerCase() }),
+      };
+
+      const existingEnrollment = await CourseEnrollment.findOne(duplicateEnrollmentFilter);
 
       if (existingEnrollment) {
         throw new ConflictError('You are already enrolled in this course');
@@ -86,7 +90,7 @@ export class EnrollmentService {
 
       // Create enrollment
       const enrollment = await CourseEnrollment.create({
-        userId: data.userId,
+        ...(data.userId ? { userId: data.userId } : {}),
         courseId: data.courseId,
         fullName: data.fullName,
         email: data.email,
@@ -109,7 +113,9 @@ export class EnrollmentService {
         });
       }
 
-      logger.info(`User ${data.userId} enrolled in course ${data.courseId}`);
+      logger.info(
+        `${data.userId ? `User ${data.userId}` : `Guest ${data.email}`} enrolled in course ${data.courseId}`
+      );
 
       return enrollment;
     } catch (error: any) {
@@ -130,11 +136,15 @@ export class EnrollmentService {
       }
 
       // Check if there's already a pending callback request
-      const existingRequest = await CourseCallbackRequest.findOne({
-        userId: data.userId,
+      const duplicateCallbackFilter = {
         courseId: data.courseId,
         status: 'pending',
-      });
+        ...(data.userId
+          ? { $or: [{ userId: data.userId }, { email: data.email.toLowerCase() }] }
+          : { email: data.email.toLowerCase() }),
+      };
+
+      const existingRequest = await CourseCallbackRequest.findOne(duplicateCallbackFilter);
 
       if (existingRequest) {
         throw new ConflictError(
@@ -144,7 +154,7 @@ export class EnrollmentService {
 
       // Create callback request
       const callbackRequest = await CourseCallbackRequest.create({
-        userId: data.userId,
+        ...(data.userId ? { userId: data.userId } : {}),
         courseId: data.courseId,
         fullName: data.fullName,
         email: data.email,
@@ -154,7 +164,9 @@ export class EnrollmentService {
         status: 'pending',
       });
 
-      logger.info(`Callback request created for user ${data.userId} and course ${data.courseId}`);
+      logger.info(
+        `Callback request created for ${data.userId ? `user ${data.userId}` : `guest ${data.email}`} and course ${data.courseId}`
+      );
 
       return callbackRequest;
     } catch (error: any) {
