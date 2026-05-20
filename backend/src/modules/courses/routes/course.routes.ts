@@ -360,7 +360,7 @@ router.get('/filters/options', (req: Request, res: Response, next: NextFunction)
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/', CourseValidator.getCourses(), (req: Request, res: Response, next: NextFunction) => {
+router.get('/', optionalAuthenticate, CourseValidator.getCourses(), (req: Request, res: Response, next: NextFunction) => {
   void courseController.getCourses(req, res, next);
 });
 
@@ -404,7 +404,7 @@ router.get('/', CourseValidator.getCourses(), (req: Request, res: Response, next
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/slug/:slug', (req: Request, res: Response, next: NextFunction) => {
+router.get('/slug/:slug', optionalAuthenticate, (req: Request, res: Response, next: NextFunction) => {
   void courseController.getCourseBySlug(req, res, next);
 });
 
@@ -447,7 +447,7 @@ router.get('/slug/:slug', (req: Request, res: Response, next: NextFunction) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id', optionalAuthenticate, (req: Request, res: Response, next: NextFunction) => {
   void courseController.getCourseById(req, res, next);
 });
 
@@ -461,6 +461,8 @@ router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
  *   post:
  *     summary: Enroll in a course
  *     tags: [Course Enrollment]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: courseId
@@ -494,12 +496,14 @@ router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
  *         description: Successfully enrolled in the course
  *       400:
  *         description: Validation error or course not available
+ *       401:
+ *         description: Unauthorized
  *       409:
  *         description: Already enrolled in this course
  */
 router.post(
   '/:courseId/enroll',
-  optionalAuthenticate,
+  authenticate,
   EnrollmentValidator.enrollCourse(),
   (req: Request, res: Response, next: NextFunction) => {
     void enrollmentController.enrollInCourse(req, res, next);

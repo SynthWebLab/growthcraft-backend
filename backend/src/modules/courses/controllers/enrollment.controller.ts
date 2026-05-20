@@ -38,6 +38,10 @@ export class EnrollmentController {
       const { fullName, email, phone } = req.body;
       const userId = req.user?.userId;
 
+      if (!userId) {
+        throw new ValidationError('User authentication required');
+      }
+
       const enrollment = await enrollmentService.enrollInCourse({
         userId,
         courseId,

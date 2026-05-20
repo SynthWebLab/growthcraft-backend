@@ -228,6 +228,31 @@ export class EnrollmentService {
   }
 
   /**
+   * Get course IDs where the user has an active enrollment
+   */
+  public async getUserEnrolledCourseIds(userId: string, courseIds: string[]): Promise<Set<string>> {
+    try {
+      if (courseIds.length === 0) {
+        return new Set();
+      }
+
+      const enrollments = await CourseEnrollment.find({
+        userId,
+        courseId: { $in: courseIds },
+        status: { $in: ['pending', 'confirmed'] },
+      })
+        .select('courseId')
+        .lean()
+        .exec();
+
+      return new Set(enrollments.map(enrollment => enrollment.courseId.toString()));
+    } catch (error: any) {
+      logger.error('Get user enrolled course IDs error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get enrollment by ID
    */
   public async getEnrollmentById(enrollmentId: string): Promise<ICourseEnrollment | null> {

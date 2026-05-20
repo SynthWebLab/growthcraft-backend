@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import { courseService } from '../services/course.service';
+import { enrollmentService } from '../services/enrollment.service';
 import { CourseQueryParams } from '../interfaces/course-query.interface';
 import { logger } from '@/common/utils/logger.util';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
@@ -17,6 +18,28 @@ export class CourseController {
       CourseController.instance = new CourseController();
     }
     return CourseController.instance;
+  }
+
+  private getCourseId(course: any): string {
+    return (course._id || course.id).toString();
+  }
+
+  private courseToResponse(course: any, enrolledCourseIds: Set<string> = new Set()): any {
+    const courseData = typeof course.toJSON === 'function' ? course.toJSON() : { ...course };
+    courseData.isEnrolled = enrolledCourseIds.has(this.getCourseId(courseData));
+    return courseData;
+  }
+
+  private async getEnrolledCourseIdsForRequest(req: Request, courses: any[]): Promise<Set<string>> {
+    const userId = req.user?.userId;
+    if (!userId || courses.length === 0) {
+      return new Set();
+    }
+
+    return enrollmentService.getUserEnrolledCourseIds(
+      userId,
+      courses.map(course => this.getCourseId(course))
+    );
   }
 
   /**
@@ -68,21 +91,27 @@ export class CourseController {
 
       // Check if cursor-based or offset-based response
       if ('nextCursor' in result) {
+        const enrolledCourseIds = await this.getEnrolledCourseIdsForRequest(req, result.items);
+        const items = result.items.map(course => this.courseToResponse(course, enrolledCourseIds));
+
         // Cursor-based response
         SuccessResponseHelper.ok(
           res,
           {
-            items: result.items,
+            items,
             nextCursor: result.nextCursor,
             hasMore: result.hasMore,
           },
           'Courses retrieved successfully'
         );
       } else {
+        const enrolledCourseIds = await this.getEnrolledCourseIdsForRequest(req, result.courses);
+        const courses = result.courses.map(course => this.courseToResponse(course, enrolledCourseIds));
+
         // Offset-based response (original format)
         SuccessResponseHelper.paginated(
           res,
-          result.courses,
+          courses,
           result.pagination,
           'Courses retrieved successfully'
         );
@@ -107,7 +136,10 @@ export class CourseController {
         throw NotFoundError.course();
       }
 
-      SuccessResponseHelper.ok(res, { course }, 'Course retrieved successfully');
+      const enrolledCourseIds = await this.getEnrolledCourseIdsForRequest(req, [course]);
+      const courseData = this.courseToResponse(course, enrolledCourseIds);
+
+      SuccessResponseHelper.ok(res, { course: courseData }, 'Course retrieved successfully');
     } catch (error: any) {
       logger.error('Get course by ID controller error:', error);
       next(error);
@@ -138,8 +170,8 @@ export class CourseController {
         logger.warn(`Course details not found for slug: ${slug}`);
       }
 
-      // Convert course to plain object if it's a Mongoose document
-      const courseData = typeof course.toJSON === 'function' ? course.toJSON() : course;
+      const enrolledCourseIds = await this.getEnrolledCourseIdsForRequest(req, [course]);
+      const courseData = this.courseToResponse(course, enrolledCourseIds);
 
       // Combine course and details
       const response: any = { course: courseData };
