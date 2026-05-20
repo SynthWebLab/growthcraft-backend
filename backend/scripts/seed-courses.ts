@@ -217,7 +217,8 @@ const sampleCourses = [
     tags: ['TypeScript', 'Generics', 'Advanced Types', 'Type Safety'],
     enrollmentCount: 780,
     isActive: true,
-    isDraft: true, // Draft mode
+    isDraft: false,
+    publishedAt: new Date('2024-01-20'),
     type: 'Course',
   },
   {

@@ -1,7 +1,28 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-// Types are now dynamic - values come from database
-export type CourseCategory = string;
+// Enums for Course
+export enum CourseLevel {
+  BEGINNER = 'Beginner',
+  INTERMEDIATE = 'Intermediate',
+  ADVANCED = 'Advanced',
+  EXPERT = 'Expert',
+}
+
+export enum CourseCategory {
+  PROGRAMMING = 'Programming',
+  DATA_SCIENCE = 'Data Science',
+  WEB_DEVELOPMENT = 'Web Development',
+  MOBILE_DEVELOPMENT = 'Mobile Development',
+  CLOUD_COMPUTING = 'Cloud Computing',
+  CYBERSECURITY = 'Cybersecurity',
+  AI_ML = 'AI/ML',
+  DEVOPS = 'DevOps',
+  DESIGN = 'Design',
+  BUSINESS = 'Business',
+  OTHER = 'Other',
+}
+
+// Legacy types for backward compatibility
 export type DifficultyLevel = string;
 export type CourseStatus = 'Active' | 'Coming Soon' | 'Draft'; // Status is computed, not stored
 export type CourseType = string;
@@ -20,10 +41,21 @@ export interface IBootcampDetails {
 }
 
 export interface ICourse extends Document {
+  // Core fields (GC-S401-T1 requirements)
+  slug: string; // URL-friendly identifier @unique
   title: string;
-  slug: string; // URL-friendly identifier
+  shortDescription?: string; // Optional for backward compatibility
   description: string;
-  category: CourseCategory;
+  thumbnailUrl?: string;
+  level?: CourseLevel; // Optional - derived from difficultyLevel if not set
+  category: CourseCategory; // enum
+  tags: string[];
+  totalHours?: number; // Optional - uses duration if not set
+  instructorId?: string; // Optional for backward compatibility
+  isPublished: boolean;
+  deletedAt?: Date;
+  
+  // Legacy/additional fields for backward compatibility
   difficultyLevel: DifficultyLevel;
   duration: number; // in hours (maps to durationHours in frontend)
   lessonsCount: number; // maps to totalLessons in frontend
@@ -33,7 +65,6 @@ export interface ICourse extends Document {
   instructor: IInstructor;
   thumbnail?: string;
   isActive: boolean;
-  tags: string[];
   enrollmentCount: number;
   
   // Publishing fields
@@ -59,14 +90,7 @@ export interface ICourse extends Document {
 
 const courseSchema = new Schema<ICourse>(
   {
-    title: {
-      type: String,
-      required: [true, 'Course title is required'],
-      trim: true,
-      minlength: [3, 'Title must be at least 3 characters'],
-      maxlength: [200, 'Title cannot exceed 200 characters'],
-      index: 'text', // Enable text search on title
-    },
+    // Core fields (GC-S401-T1)
     slug: {
       type: String,
       required: [true, 'Course slug is required'],
@@ -75,22 +99,78 @@ const courseSchema = new Schema<ICourse>(
       trim: true,
       index: true,
     },
+    title: {
+      type: String,
+      required: [true, 'Course title is required'],
+      trim: true,
+      minlength: [3, 'Title must be at least 3 characters'],
+      maxlength: [200, 'Title cannot exceed 200 characters'],
+      index: 'text', // Enable text search on title
+    },
+    shortDescription: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Short description cannot exceed 500 characters'],
+      default: '', // Make optional for backward compatibility
+    },
     description: {
       type: String,
       required: [true, 'Course description is required'],
       trim: true,
       minlength: [10, 'Description must be at least 10 characters'],
-      maxlength: [2000, 'Description cannot exceed 2000 characters'],
+      maxlength: [5000, 'Description cannot exceed 5000 characters'],
       index: 'text', // Enable text search on description
+    },
+    thumbnailUrl: {
+      type: String,
+      trim: true,
+    },
+    level: {
+      type: String,
+      enum: {
+        values: Object.values(CourseLevel),
+        message: '{VALUE} is not a valid course level',
+      },
+      index: true,
+      // Optional - will be derived from difficultyLevel if not set
     },
     category: {
       type: String,
       required: [true, 'Course category is required'],
+      enum: {
+        values: Object.values(CourseCategory),
+        message: '{VALUE} is not a valid course category',
+      },
       index: true, // Index for filtering
     },
+    tags: {
+      type: [String],
+      default: [],
+      index: true, // Index for filtering by tags
+    },
+    totalHours: {
+      type: Number,
+      min: [0, 'Total hours cannot be negative'],
+      // Optional - will use 'duration' field if not set
+    },
+    instructorId: {
+      type: String,
+      index: true,
+      // Optional - for backward compatibility
+    },
+    isPublished: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+    
+    // Legacy fields for backward compatibility
     difficultyLevel: {
       type: String,
-      required: [true, 'Difficulty level is required'],
       index: true, // Index for filtering
     },
     duration: {
@@ -137,11 +217,6 @@ const courseSchema = new Schema<ICourse>(
       type: Boolean,
       default: true,
       index: true, // Index for filtering
-    },
-    tags: {
-      type: [String],
-      default: [],
-      index: true, // Index for filtering by tags
     },
     enrollmentCount: {
       type: Number,
@@ -190,10 +265,52 @@ const courseSchema = new Schema<ICourse>(
 // Create compound text index for search
 courseSchema.index({ title: 'text', description: 'text' });
 
-// Create compound index for common queries
+// GC-S401-T1: Compound index for (isPublished, category)
+courseSchema.index({ isPublished: 1, category: 1 });
+
+// Additional compound indexes for common queries
 courseSchema.index({ category: 1, difficultyLevel: 1, isActive: 1 });
 courseSchema.index({ rating: -1, enrollmentCount: -1 });
 courseSchema.index({ isDraft: 1, type: 1, publishedAt: 1 });
+
+// Pre-save hook to ensure backward compatibility
+courseSchema.pre('save', function (next) {
+  // Auto-populate new fields from legacy fields if not set
+  
+  // Map difficultyLevel to level if level is not set
+  if (!this.level && this.difficultyLevel) {
+    const levelMap: Record<string, CourseLevel> = {
+      'Beginner': CourseLevel.BEGINNER,
+      'Intermediate': CourseLevel.INTERMEDIATE,
+      'Advanced': CourseLevel.ADVANCED,
+      'Expert': CourseLevel.EXPERT,
+    };
+    this.level = levelMap[this.difficultyLevel] || CourseLevel.BEGINNER;
+  }
+  
+  // Use duration as totalHours if totalHours is not set
+  if (!this.totalHours && this.duration) {
+    this.totalHours = this.duration;
+  }
+  
+  // Generate shortDescription from description if not set
+  if (!this.shortDescription && this.description) {
+    this.shortDescription = this.description.substring(0, 200);
+  }
+  
+  // Use instructor.name as instructorId if instructorId is not set
+  if (!this.instructorId && this.instructor?.name) {
+    this.instructorId = this.instructor.name;
+  }
+  
+  // Sync isPublished with isDraft (isPublished = !isDraft)
+  // If isPublished is not explicitly set, derive from isDraft
+  if (this.isPublished === undefined || this.isPublished === null) {
+    this.isPublished = !this.isDraft;
+  }
+  
+  next();
+});
 
 // Method to check if bootcamp/course has started
 courseSchema.methods.hasStarted = function (): boolean {

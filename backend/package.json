@@ -15,6 +15,7 @@
     "seed:courses": "ts-node scripts/seed-courses.ts",
     "seed:bootcamps": "ts-node scripts/seed-bootcamps.ts",
     "init:config": "ts-node scripts/init-course-config.ts",
+    "fix:enrollment": "ts-node scripts/fix-course-enrollment.ts",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.{ts,json}\"",
