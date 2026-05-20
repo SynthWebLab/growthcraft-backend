@@ -29,6 +29,7 @@ export class AuthController {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
+      domain: isProduction ? '.amuthi.com' : undefined,
       maxAge: 1 * 60 * 1000, // 1 minute
       path: '/',
     });
@@ -38,6 +39,7 @@ export class AuthController {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
+      domain: isProduction ? '.amuthi.com' : undefined,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
     });
@@ -47,8 +49,15 @@ export class AuthController {
    * Clear authentication cookies
    */
   private clearTokenCookies(res: Response): void {
-    res.clearCookie('access_token', { path: '/' });
-    res.clearCookie('refreshToken', { path: '/' });
+    const isProduction = config.NODE_ENV === 'production';
+    res.clearCookie('access_token', { 
+      path: '/',
+      domain: isProduction ? '.amuthi.com' : undefined,
+    });
+    res.clearCookie('refreshToken', { 
+      path: '/',
+      domain: isProduction ? '.amuthi.com' : undefined,
+    });
   }
 
   public async register(req: Request, res: Response, next: NextFunction): Promise<void> {
