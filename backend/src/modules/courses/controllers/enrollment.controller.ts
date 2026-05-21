@@ -148,7 +148,7 @@ export class EnrollmentController {
   }
 
   /**
-   * Check if user is enrolled in a course
+   * Check if user is enrolled in a course and has pending callback request
    * GET /api/v1/courses/:courseId/enrollment-status
    */
   public async checkEnrollmentStatus(
@@ -164,12 +164,12 @@ export class EnrollmentController {
         throw new ValidationError('User authentication required');
       }
 
-      const isEnrolled = await enrollmentService.isUserEnrolled(userId, courseId);
+      const status = await enrollmentService.getEnrollmentStatus(userId, courseId);
 
       SuccessResponseHelper.ok(
         res,
-        { isEnrolled },
-        isEnrolled ? 'User is enrolled in this course' : 'User is not enrolled in this course'
+        status,
+        'Enrollment status retrieved successfully'
       );
     } catch (error: any) {
       logger.error('Check enrollment status controller error:', error);

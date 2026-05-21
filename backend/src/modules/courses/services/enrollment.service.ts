@@ -228,6 +228,38 @@ export class EnrollmentService {
   }
 
   /**
+   * Get enrollment status for a user and course (enrollment + callback request)
+   */
+  public async getEnrollmentStatus(
+    userId: string,
+    courseId: string
+  ): Promise<{ isEnrolled: boolean; hasCallbackRequest: boolean }> {
+    try {
+      // Check enrollment
+      const enrollment = await CourseEnrollment.findOne({
+        userId,
+        courseId,
+        status: { $in: ['pending', 'confirmed'] },
+      });
+
+      // Check callback request
+      const callbackRequest = await CourseCallbackRequest.findOne({
+        userId,
+        courseId,
+        status: 'pending',
+      });
+
+      return {
+        isEnrolled: !!enrollment,
+        hasCallbackRequest: !!callbackRequest,
+      };
+    } catch (error: any) {
+      logger.error('Get enrollment status error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get course IDs where the user has an active enrollment
    */
   public async getUserEnrolledCourseIds(userId: string, courseIds: string[]): Promise<Set<string>> {

@@ -221,6 +221,28 @@ const sampleCourses = [
     publishedAt: new Date('2024-01-22'),
     type: 'Course',
   },
+  {
+    title: 'Advanced TypeScript & System Design',
+    slug: 'advanced-typescript-system-design',
+    description: 'Master advanced TypeScript patterns, generics, decorators, and learn to design scalable distributed systems',
+    category: 'MERN',
+    difficultyLevel: 'Advanced',
+    duration: 110,
+    lessonsCount: 78,
+    price: 9999,
+    originalPrice: 16999,
+    rating: 0, // No ratings yet since it's coming soon
+    instructor: {
+      name: 'Karan Malhotra',
+      avatar: 'https://i.pravatar.cc/150?img=33',
+    },
+    tags: ['TypeScript', 'System Design', 'Advanced Patterns', 'Distributed Systems'],
+    enrollmentCount: 0, // No enrollments yet
+    isActive: true,
+    isDraft: false,
+    publishedAt: new Date('2026-07-01'), // Future date - Coming Soon!
+    type: 'Course',
+  },
 ];
 
 async function seedCourses() {
