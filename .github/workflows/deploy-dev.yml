@@ -1,0 +1,80 @@
+name: Deploy to EC2 (Developer Branch)
+
+on:
+  push:
+    branches:
+      - developer
+  pull_request:
+    branches:
+      - developer
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/developer'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Update if you use a different Node version
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+
+      - name: Create .env file
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > backend/.env
+
+      - name: Install dependencies and build
+        run: |
+          cd backend
+          npm ci
+          npm run build
+
+      - name: Zip files for transfer
+        run: |
+          # We navigate into the backend folder and zip ONLY the necessary files for production.
+          # We DO NOT zip node_modules here because native bindings (like bcrypt) 
+          # must be compiled on the target EC2 architecture.
+          cd backend
+          zip -r ../deploy.zip dist package.json package-lock.json .env
+
+      - name: Copy Zip to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "deploy.zip"
+          target: "/tmp"
+
+      - name: Execute Deployment on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            TARGET_DIR="/home/ubuntu/growthcraft-backend/backend"
+            
+            # Ensure target directory exists
+            mkdir -p $TARGET_DIR
+            
+            # Unzip the new code directly into the backend directory
+            unzip -o /tmp/deploy.zip -d $TARGET_DIR
+            
+            cd $TARGET_DIR
+            
+            # Install production dependencies directly on the server
+            # This ensures any native packages are correctly built for the EC2 environment
+            npm ci --production
+            
+            # Restart the systemd service
+            sudo systemctl restart growth-backend
+            
+            # Clean up the zip file from tmp
+            rm /tmp/deploy.zip
