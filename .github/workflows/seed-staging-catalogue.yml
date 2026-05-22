@@ -1,0 +1,39 @@
+name: Seed staging catalogue
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+jobs:
+  seed-catalogue:
+    runs-on: ubuntu-latest
+    env:
+      MONGODB_URI: ${{ secrets.STAGING_MONGODB_URI }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Validate staging MongoDB secret
+        run: |
+          if [ -z "$MONGODB_URI" ]; then
+            echo "STAGING_MONGODB_URI secret is required."
+            exit 1
+          fi
+
+      - name: Seed catalogue
+        working-directory: backend
+        run: npm run seed:catalogue
