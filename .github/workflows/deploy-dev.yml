@@ -37,11 +37,10 @@ jobs:
 
       - name: Zip files for transfer
         run: |
-          # We navigate into the backend folder and zip ONLY the necessary files for production.
-          # We DO NOT zip node_modules here because native bindings (like bcrypt) 
-          # must be compiled on the target EC2 architecture.
+          # Because your server uses 'git pull' to fetch package.json and raw source,
+          # we ONLY need to transfer the compiled dist/ folder and the generated .env!
           cd backend
-          zip -r ../deploy.zip dist package.json package-lock.json .env
+          zip -r ../deploy.zip dist .env
 
       - name: Copy Zip to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -59,22 +58,22 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            TARGET_DIR="/home/ubuntu/growthcraft-backend/backend"
+            REPO_DIR="/home/ubuntu/growthcraft-backend"
+            BACKEND_DIR="$REPO_DIR/backend"
             
-            # Ensure target directory exists
-            mkdir -p $TARGET_DIR
+            # 1. Pull the latest source code (gets the updated package.json)
+            cd $REPO_DIR
+            git pull origin developer
             
-            # Unzip the new code directly into the backend directory
-            unzip -o /tmp/deploy.zip -d $TARGET_DIR
+            # 2. Extract the built 'dist/' and '.env' into the backend folder
+            unzip -o /tmp/deploy.zip -d $BACKEND_DIR
             
-            cd $TARGET_DIR
-            
-            # Install production dependencies directly on the server
-            # This ensures any native packages are correctly built for the EC2 environment
+            # 3. Install production dependencies directly on the server
+            cd $BACKEND_DIR
             npm ci --production
             
-            # Restart the systemd service
+            # 4. Restart the systemd service
             sudo systemctl restart growth-backend
             
-            # Clean up the zip file from tmp
+            # 5. Clean up the zip file from tmp
             rm /tmp/deploy.zip
