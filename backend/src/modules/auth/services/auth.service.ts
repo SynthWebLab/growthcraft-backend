@@ -297,27 +297,40 @@ export class AuthService {
 
       let tokens: RefreshTokenResponseDto;
 
-      // Try Redis first, fallback to MongoDB
+      // Try Redis first, fallback to MongoDB if the token is not present there.
       if (redisTokenService.isAvailable()) {
         // Validate token from Redis
         const metadata = await redisTokenService.validateRefreshToken(refreshToken);
         
-        if (!metadata || metadata.userId !== userId) {
-          throw new Error('Invalid or expired refresh token');
+        if (metadata?.userId === userId) {
+          // Remove old token
+          await redisTokenService.removeRefreshToken(userId, refreshToken);
+
+          // Generate new token pair
+          tokens = tokenService.generateTokenPair({
+            userId: user._id.toString(),
+            email: user.email,
+            role: user.role,
+          });
+
+          // Store new token in Redis
+          await redisTokenService.storeRefreshToken(userId, tokens.refreshToken, deviceInfo);
+        } else {
+          logger.warn(`Refresh token not found in Redis for user ${userId}; trying MongoDB fallback`);
+          tokens = await tokenService.rotateRefreshToken(
+            userId,
+            refreshToken,
+            {
+              userId: user._id.toString(),
+              email: user.email,
+              role: user.role,
+            },
+            {
+              deviceInfo,
+              detectReuse: true,
+            }
+          );
         }
-
-        // Remove old token
-        await redisTokenService.removeRefreshToken(userId, refreshToken);
-
-        // Generate new token pair
-        tokens = tokenService.generateTokenPair({
-          userId: user._id.toString(),
-          email: user.email,
-          role: user.role,
-        });
-
-        // Store new token in Redis
-        await redisTokenService.storeRefreshToken(userId, tokens.refreshToken, deviceInfo);
       } else {
         // Fallback to MongoDB token rotation
         tokens = await tokenService.rotateRefreshToken(

@@ -23,26 +23,55 @@ export class AuthController {
    */
   private setTokenCookies(res: Response, accessToken: string, refreshToken: string): void {
     const isProduction = config.NODE_ENV === 'production';
+    const accessTokenMaxAge = this.parseDurationToMs(config.JWT_EXPIRES_IN, 15 * 60 * 1000);
+    const refreshTokenMaxAge = this.parseDurationToMs(
+      config.JWT_REFRESH_EXPIRES_IN,
+      7 * 24 * 60 * 60 * 1000
+    );
 
-    // Access token cookie (1 minute for testing)
+    // Access token cookie
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       domain: isProduction ? '.amuthi.com' : undefined,
-      maxAge: 1 * 60 * 1000, // 1 minute
+      maxAge: accessTokenMaxAge,
       path: '/',
     });
 
-    // Refresh token cookie (7 days)
+    // Refresh token cookie
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       domain: isProduction ? '.amuthi.com' : undefined,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: refreshTokenMaxAge,
       path: '/',
     });
+  }
+
+  private parseDurationToMs(duration: string, fallbackMs: number): number {
+    const match = duration.match(/^(\d+)([smhd])$/);
+
+    if (!match) {
+      return fallbackMs;
+    }
+
+    const value = parseInt(match[1], 10);
+    const unit = match[2];
+
+    switch (unit) {
+      case 's':
+        return value * 1000;
+      case 'm':
+        return value * 60 * 1000;
+      case 'h':
+        return value * 60 * 60 * 1000;
+      case 'd':
+        return value * 24 * 60 * 60 * 1000;
+      default:
+        return fallbackMs;
+    }
   }
 
   /**
