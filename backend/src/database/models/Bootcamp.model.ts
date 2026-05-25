@@ -10,6 +10,7 @@ export interface IBootcampCTA {
   seatsAvailable: boolean;
   primaryCTA: string;
   secondaryCTA: string | null;
+  disabled: boolean;
   codeLocation: string;
 }
 
@@ -337,6 +338,7 @@ bootcampSchema.methods.getCTAState = function (): IBootcampCTA {
           seatsAvailable,
           primaryCTA: 'Request Callback',
           secondaryCTA: null,
+          disabled: false,
           codeLocation: 'if (hasStarted)',
         };
       }
@@ -348,6 +350,7 @@ bootcampSchema.methods.getCTAState = function (): IBootcampCTA {
           seatsAvailable,
           primaryCTA: 'Reserve Seat',
           secondaryCTA: 'Request Callback',
+          disabled: false,
           codeLocation: 'if (seatsAvailable)',
         };
       }
@@ -358,6 +361,7 @@ bootcampSchema.methods.getCTAState = function (): IBootcampCTA {
         seatsAvailable,
         primaryCTA: 'Join Waitlist',
         secondaryCTA: 'Request Callback',
+        disabled: false,
         codeLocation: 'else after seatsAvailable',
       };
     case 'Closed':
@@ -367,6 +371,7 @@ bootcampSchema.methods.getCTAState = function (): IBootcampCTA {
         seatsAvailable,
         primaryCTA: 'Request Callback',
         secondaryCTA: null,
+        disabled: false,
         codeLocation: 'case "Closed"',
       };
     case 'Completed':
@@ -374,8 +379,9 @@ bootcampSchema.methods.getCTAState = function (): IBootcampCTA {
         status: this.status,
         condition: '-',
         seatsAvailable,
-        primaryCTA: 'Notify for Next Batch',
+        primaryCTA: 'Completed',
         secondaryCTA: null,
+        disabled: true,
         codeLocation: 'case "Completed"',
       };
     case 'Draft':
@@ -386,6 +392,7 @@ bootcampSchema.methods.getCTAState = function (): IBootcampCTA {
         seatsAvailable,
         primaryCTA: 'Register Interest',
         secondaryCTA: null,
+        disabled: false,
         codeLocation: 'case "Draft"',
       };
   }
