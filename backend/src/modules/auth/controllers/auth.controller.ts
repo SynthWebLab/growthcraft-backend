@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, CookieOptions } from 'express';
 import { validationResult } from 'express-validator';
 import { authService } from '../services/auth.service';
 import { RegisterDto } from '../dto/register.dto';
@@ -22,32 +22,36 @@ export class AuthController {
    * Set secure httpOnly cookies for tokens
    */
   private setTokenCookies(res: Response, accessToken: string, refreshToken: string): void {
-    const isProduction = config.NODE_ENV === 'production';
     const accessTokenMaxAge = this.parseDurationToMs(config.JWT_EXPIRES_IN, 15 * 60 * 1000);
     const refreshTokenMaxAge = this.parseDurationToMs(
       config.JWT_REFRESH_EXPIRES_IN,
       7 * 24 * 60 * 60 * 1000
     );
+    const cookieOptions = this.getTokenCookieOptions();
 
     // Access token cookie
     res.cookie('access_token', accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      domain: isProduction ? '.amuthi.com' : undefined,
+      ...cookieOptions,
       maxAge: accessTokenMaxAge,
-      path: '/',
     });
 
     // Refresh token cookie
     res.cookie('refreshToken', refreshToken, {
+      ...cookieOptions,
+      maxAge: refreshTokenMaxAge,
+    });
+  }
+
+  private getTokenCookieOptions(): CookieOptions {
+    const isProduction = config.NODE_ENV === 'production';
+
+    return {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       domain: isProduction ? '.amuthi.com' : undefined,
-      maxAge: refreshTokenMaxAge,
       path: '/',
-    });
+    };
   }
 
   private parseDurationToMs(duration: string, fallbackMs: number): number {
@@ -78,15 +82,10 @@ export class AuthController {
    * Clear authentication cookies
    */
   private clearTokenCookies(res: Response): void {
-    const isProduction = config.NODE_ENV === 'production';
-    res.clearCookie('access_token', { 
-      path: '/',
-      domain: isProduction ? '.amuthi.com' : undefined,
-    });
-    res.clearCookie('refreshToken', { 
-      path: '/',
-      domain: isProduction ? '.amuthi.com' : undefined,
-    });
+    const cookieOptions = this.getTokenCookieOptions();
+
+    res.clearCookie('access_token', cookieOptions);
+    res.clearCookie('refreshToken', cookieOptions);
   }
 
   public async register(req: Request, res: Response, next: NextFunction): Promise<void> {
