@@ -37,10 +37,9 @@ jobs:
 
       - name: Zip files for transfer
         run: |
-          # Because your server uses 'git pull' to fetch package.json and raw source,
-          # we ONLY need to transfer the compiled dist/ folder and the generated .env!
+          # Include all files needed to install dependencies and run the server
           cd backend
-          zip -r ../deploy.zip dist .env
+          zip -r ../deploy.zip dist .env package.json package-lock.json
 
       - name: Copy Zip to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -61,11 +60,10 @@ jobs:
             REPO_DIR="/home/ubuntu/growthcraft-backend"
             BACKEND_DIR="$REPO_DIR/backend"
             
-            # 1. Pull the latest source code (gets the updated package.json)
-            cd $REPO_DIR
-            git pull origin developer
+            # 1. Ensure the directory exists
+            mkdir -p $BACKEND_DIR
             
-            # 2. Extract the built 'dist/' and '.env' into the backend folder
+            # 2. Extract everything (including package.json) into the backend folder
             unzip -o /tmp/deploy.zip -d $BACKEND_DIR
             
             # 3. Install production dependencies directly on the server
