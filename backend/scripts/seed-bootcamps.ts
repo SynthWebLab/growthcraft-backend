@@ -165,7 +165,7 @@ const bootcampsData = [
     endDate: new Date('2026-11-30'),
     registrationDeadline: new Date('2026-08-25'),
     maxSeats: 25,
-    enrolledCount: 5,
+    enrolledCount: 25,
     price: 32999,
     originalPrice: 44999,
     mode: 'Online',

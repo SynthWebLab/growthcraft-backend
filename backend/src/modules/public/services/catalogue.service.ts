@@ -9,10 +9,12 @@ import { logger } from '@/common/utils/logger.util';
 import { redisConfig } from '@/config/redis.config';
 import { ValidationError } from '@/common/errors/ValidationError';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 
 export class CatalogueService {
   private static instance: CatalogueService;
   private readonly CACHE_TTL = 300; // 5 minutes
+  private readonly CACHE_VERSION = 'cta-v5';
 
   private constructor() {}
 
@@ -48,6 +50,10 @@ export class CatalogueService {
       const limit = Math.min(50, Math.max(1, queryParams.limit || 10));
       const sortBy = queryParams.sortBy || 'createdAt';
       const sortOrder = queryParams.sortOrder === 'asc' ? 1 : -1;
+
+      if (!queryParams.cursor && queryParams.type) {
+        return await this.getCatalogueItemsWithOffset(queryParams, sortBy, sortOrder, limit, cacheKey);
+      }
 
       let allItems: CatalogueItem[] = [];
 
@@ -113,17 +119,126 @@ export class CatalogueService {
   }
 
   /**
+   * Get type-specific catalogue items with page/limit pagination.
+   */
+  private async getCatalogueItemsWithOffset(
+    queryParams: CatalogueQueryParams,
+    sortBy: string,
+    sortOrder: number,
+    limit: number,
+    cacheKey: string
+  ): Promise<CataloguePaginatedResponse> {
+    const page = Math.max(1, queryParams.page || 1);
+    const skip = (page - 1) * limit;
+
+    let items: CatalogueItem[] = [];
+    let total = 0;
+
+    if (queryParams.type === 'course') {
+      const [courses, courseTotal] = await Promise.all([
+        this.fetchCourses(queryParams, sortBy, sortOrder, limit, skip),
+        this.countCourses(queryParams),
+      ]);
+
+      items = courses.map(this.mapCourseToCatalogueItem);
+      total = courseTotal;
+    }
+
+    if (queryParams.type === 'bootcamp') {
+      const [bootcamps, bootcampTotal] = await Promise.all([
+        this.fetchBootcamps(queryParams, sortBy, sortOrder, limit, skip),
+        this.countBootcamps(queryParams),
+      ]);
+
+      items = bootcamps.map(this.mapBootcampToCatalogueItem);
+      total = bootcampTotal;
+    }
+
+    const totalPages = Math.ceil(total / limit);
+    const result: CataloguePaginatedResponse = {
+      items,
+      nextCursor: null,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    };
+
+    await this.setCache(cacheKey, result);
+    logger.info(`Retrieved ${items.length} ${queryParams.type} catalogue items (page ${page}/${totalPages})`);
+
+    return result;
+  }
+
+  /**
    * Fetch courses based on query parameters
    */
   private async fetchCourses(
     queryParams: CatalogueQueryParams,
     sortBy: string,
     sortOrder: number,
-    limit: number
+    limit: number,
+    skip: number = 0
   ): Promise<ICourse[]> {
+    const filter = this.buildCourseFilter(queryParams);
+
+    this.applyCursorFilter(filter, queryParams.cursor, sortBy, sortOrder);
+
+    const sort: any = { [sortBy]: sortOrder, _id: sortOrder };
+    if (queryParams.search && queryParams.search.trim()) {
+      sort.score = { $meta: 'textScore' };
+    }
+
+    return await Course.find(filter).sort(sort).skip(skip).limit(limit).exec();
+  }
+
+  /**
+   * Fetch bootcamps based on query parameters
+   */
+  private async fetchBootcamps(
+    queryParams: CatalogueQueryParams,
+    sortBy: string,
+    sortOrder: number,
+    limit: number,
+    skip: number = 0
+  ): Promise<IBootcamp[]> {
+    const filter = this.buildBootcampFilter(queryParams);
+    
+    // Debug logging
+    logger.info(`Bootcamp filter: ${JSON.stringify(filter)}`);
+
+    this.applyCursorFilter(filter, queryParams.cursor, sortBy, sortOrder);
+
+    const sort: any = { [sortBy]: sortOrder, _id: sortOrder };
+    if (queryParams.search && queryParams.search.trim()) {
+      sort.score = { $meta: 'textScore' };
+    }
+
+    return await Bootcamp.find(filter).sort(sort).skip(skip).limit(limit).exec();
+  }
+
+  /**
+   * Count courses for page/limit pagination.
+   */
+  private async countCourses(queryParams: CatalogueQueryParams): Promise<number> {
+    return Course.countDocuments(this.buildCourseFilter(queryParams)).exec();
+  }
+
+  /**
+   * Count bootcamps for page/limit pagination.
+   */
+  private async countBootcamps(queryParams: CatalogueQueryParams): Promise<number> {
+    return Bootcamp.countDocuments(this.buildBootcampFilter(queryParams)).exec();
+  }
+
+  /**
+   * Build course filters shared by list and count queries.
+   */
+  private buildCourseFilter(queryParams: CatalogueQueryParams): any {
     const filter: any = { isActive: true };
 
-    // Apply filters
     if (queryParams.category) filter.category = queryParams.category;
     if (queryParams.level || queryParams.difficultyLevel) {
       filter.difficultyLevel = queryParams.level || queryParams.difficultyLevel;
@@ -142,39 +257,23 @@ export class CatalogueService {
       filter.$text = { $search: queryParams.search.trim() };
     }
 
-    const sort: any = { [sortBy]: sortOrder, _id: sortOrder };
-    if (queryParams.search && queryParams.search.trim()) {
-      sort.score = { $meta: 'textScore' };
-    }
-
-    return await Course.find(filter).sort(sort).limit(limit).exec();
+    return filter;
   }
 
   /**
-   * Fetch bootcamps based on query parameters
+   * Build bootcamp filters shared by list and count queries.
    */
-  private async fetchBootcamps(
-    queryParams: CatalogueQueryParams,
-    sortBy: string,
-    sortOrder: number,
-    limit: number
-  ): Promise<IBootcamp[]> {
+  private buildBootcampFilter(queryParams: CatalogueQueryParams): any {
     const filter: any = { isActive: true };
 
-    // Only show published bootcamps
     if (queryParams.status) {
       filter.status = queryParams.status;
     } else {
       filter.status = { $in: ['Open', 'Closed', 'Completed'] };
     }
 
-    // Apply filters
     if (queryParams.category) filter.category = queryParams.category;
     if (queryParams.mode) filter.mode = queryParams.mode;
-    
-    // Debug logging
-    logger.info(`Bootcamp filter: ${JSON.stringify(filter)}`);
-    
     if (queryParams.minPrice !== undefined || queryParams.maxPrice !== undefined) {
       filter.price = {};
       if (queryParams.minPrice !== undefined) filter.price.$gte = queryParams.minPrice;
@@ -189,12 +288,7 @@ export class CatalogueService {
       filter.$text = { $search: queryParams.search.trim() };
     }
 
-    const sort: any = { [sortBy]: sortOrder, _id: sortOrder };
-    if (queryParams.search && queryParams.search.trim()) {
-      sort.score = { $meta: 'textScore' };
-    }
-
-    return await Bootcamp.find(filter).sort(sort).limit(limit).exec();
+    return filter;
   }
 
   /**
@@ -220,6 +314,8 @@ export class CatalogueService {
       enrollmentCount: course.enrollmentCount,
       status: course.getStatus(),
       canEnroll: course.canEnroll(),
+      primaryCTA: course.getPrimaryCTA(),
+      secondaryCTA: course.getSecondaryCTA(),
       createdAt: course.createdAt.toISOString(),
       updatedAt: course.updatedAt.toISOString(),
     };
@@ -246,12 +342,15 @@ export class CatalogueService {
       mode: bootcamp.mode,
       maxSeats: bootcamp.maxSeats,
       enrolledCount: bootcamp.enrolledCount,
-      availableSeats: bootcamp.availableSeats,
+      availableSeats: bootcamp.getAvailableSeats(),
       skillsCovered: bootcamp.skillsCovered,
       mentorNames: bootcamp.mentorNames,
       duration: bootcamp.duration,
       status: bootcamp.status,
       canRegister: bootcamp.canRegister(),
+      primaryCTA: bootcamp.getPrimaryCTA(),
+      secondaryCTA: bootcamp.getSecondaryCTA(),
+      cta: bootcamp.getCTAState(),
       createdAt: bootcamp.createdAt.toISOString(),
       updatedAt: bootcamp.updatedAt.toISOString(),
     };
@@ -295,6 +394,55 @@ export class CatalogueService {
   }
 
   /**
+   * Apply cursor condition at database level before fetching the next page.
+   */
+  private applyCursorFilter(filter: any, cursor: string | undefined, sortBy: string, sortOrder: number): void {
+    if (!cursor) {
+      return;
+    }
+
+    const cursorData = this.decodeCursor(cursor);
+    if (!cursorData) {
+      logger.warn(`Invalid cursor provided: ${cursor}`);
+      throw new ValidationError('Invalid cursor format', [
+        {
+          field: 'cursor',
+          message: 'The provided cursor is invalid or expired',
+          value: cursor,
+        },
+      ]);
+    }
+
+    const sortValue = this.castCursorSortValue(cursorData.sortValue, sortBy);
+    const objectId = new mongoose.Types.ObjectId(cursorData.id);
+    const sortDirectionOperator = sortOrder === 1 ? '$gt' : '$lt';
+
+    filter.$or = [
+      { [sortBy]: { [sortDirectionOperator]: sortValue } },
+      {
+        [sortBy]: sortValue,
+        _id: { [sortDirectionOperator]: objectId },
+      },
+    ];
+  }
+
+  /**
+   * Cast cursor sort values back to the database field type.
+   */
+  private castCursorSortValue(sortValue: any, sortBy: string): any {
+    switch (sortBy) {
+      case 'createdAt':
+      case 'startDate':
+        return new Date(sortValue);
+      case 'price':
+      case 'rating':
+        return Number(sortValue);
+      default:
+        return sortValue;
+    }
+  }
+
+  /**
    * Filter items by cursor
    */
   private filterByCursor(
@@ -329,6 +477,8 @@ export class CatalogueService {
       minRating: queryParams.minRating,
       tags: queryParams.tags,
       search: queryParams.search,
+      cursor: queryParams.cursor,
+      page: queryParams.page || 1,
       sortBy: queryParams.sortBy || 'createdAt',
       sortOrder: queryParams.sortOrder || 'desc',
       limit: queryParams.limit || 10,
@@ -349,7 +499,7 @@ export class CatalogueService {
                    queryParams.type === 'bootcamp' ? 'public:bootcamps' : 
                    'public:catalogue';
 
-    return `${prefix}:${hash}`;
+    return `${prefix}:${this.CACHE_VERSION}:${hash}`;
   }
 
   /**

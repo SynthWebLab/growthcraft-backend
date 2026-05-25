@@ -53,6 +53,16 @@ export interface CatalogueItem {
   status: string;
   canEnroll?: boolean; // For courses
   canRegister?: boolean; // For bootcamps
+  primaryCTA?: string;
+  secondaryCTA?: string | null;
+  cta?: {
+    status: string;
+    condition: string;
+    seatsAvailable: boolean;
+    primaryCTA: string;
+    secondaryCTA: string | null;
+    codeLocation: string;
+  };
   
   // Timestamps
   createdAt: string;
@@ -92,4 +102,10 @@ export interface CatalogueQueryParams {
 export interface CataloguePaginatedResponse {
   items: CatalogueItem[];
   nextCursor: string | null;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
