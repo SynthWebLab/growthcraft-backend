@@ -4,6 +4,15 @@ export type BootcampCategory = string; // Dynamic from database (MERN, DataScien
 export type BootcampStatus = 'Draft' | 'Open' | 'Closed' | 'Completed';
 export type BootcampMode = 'Online' | 'Offline' | 'Hybrid';
 
+export interface IBootcampCTA {
+  status: BootcampStatus;
+  condition: string;
+  seatsAvailable: boolean;
+  primaryCTA: string;
+  secondaryCTA: string | null;
+  codeLocation: string;
+}
+
 // GC-S401-T1: Event types (Bootcamp is a type of event)
 export enum EventType {
   WORKSHOP = 'Workshop',
@@ -68,6 +77,10 @@ export interface IBootcamp extends Document {
   hasStarted(): boolean;
   hasEnded(): boolean;
   isFull(): boolean;
+  getAvailableSeats(): number;
+  getCTAState(): IBootcampCTA;
+  getPrimaryCTA(): string;
+  getSecondaryCTA(): string | null;
 }
 
 const bootcampSchema = new Schema<IBootcamp>(
@@ -279,6 +292,11 @@ bootcampSchema.methods.isFull = function (): boolean {
   return this.enrolledCount >= this.maxSeats;
 };
 
+// Method to get current available seats from capacity and enrollment
+bootcampSchema.methods.getAvailableSeats = function (): number {
+  return Math.max(0, (this.maxSeats || 0) - (this.enrolledCount || 0));
+};
+
 // Method to check if registration is possible
 bootcampSchema.methods.canRegister = function (): boolean {
   const now = new Date();
@@ -306,6 +324,83 @@ bootcampSchema.methods.canRegister = function (): boolean {
   return true;
 };
 
+// Method to get primary CTA from the current bootcamp state
+bootcampSchema.methods.getCTAState = function (): IBootcampCTA {
+  const seatsAvailable = this.getAvailableSeats() > 0;
+
+  switch (this.status) {
+    case 'Open':
+      if (this.hasStarted()) {
+        return {
+          status: this.status,
+          condition: 'hasStarted === true',
+          seatsAvailable,
+          primaryCTA: 'Request Callback',
+          secondaryCTA: null,
+          codeLocation: 'if (hasStarted)',
+        };
+      }
+
+      if (seatsAvailable) {
+        return {
+          status: this.status,
+          condition: 'seatsAvailable === true',
+          seatsAvailable,
+          primaryCTA: 'Reserve Seat',
+          secondaryCTA: 'Request Callback',
+          codeLocation: 'if (seatsAvailable)',
+        };
+      }
+
+      return {
+        status: this.status,
+        condition: 'seatsAvailable === false',
+        seatsAvailable,
+        primaryCTA: 'Join Waitlist',
+        secondaryCTA: 'Request Callback',
+        codeLocation: 'else after seatsAvailable',
+      };
+    case 'Closed':
+      return {
+        status: this.status,
+        condition: '-',
+        seatsAvailable,
+        primaryCTA: 'Request Callback',
+        secondaryCTA: null,
+        codeLocation: 'case "Closed"',
+      };
+    case 'Completed':
+      return {
+        status: this.status,
+        condition: '-',
+        seatsAvailable,
+        primaryCTA: 'Notify for Next Batch',
+        secondaryCTA: null,
+        codeLocation: 'case "Completed"',
+      };
+    case 'Draft':
+    default:
+      return {
+        status: this.status,
+        condition: '-',
+        seatsAvailable,
+        primaryCTA: 'Register Interest',
+        secondaryCTA: null,
+        codeLocation: 'case "Draft"',
+      };
+  }
+};
+
+// Method to get primary CTA from the current bootcamp state
+bootcampSchema.methods.getPrimaryCTA = function (): string {
+  return this.getCTAState().primaryCTA;
+};
+
+// Method to get secondary CTA from the current bootcamp state
+bootcampSchema.methods.getSecondaryCTA = function (): string | null {
+  return this.getCTAState().secondaryCTA;
+};
+
 // Remove __v from JSON response
 bootcampSchema.methods.toJSON = function (): Record<string, unknown> {
   const obj = this.toObject() as Record<string, unknown>;
@@ -316,6 +411,10 @@ bootcampSchema.methods.toJSON = function (): Record<string, unknown> {
   obj.hasStarted = this.hasStarted();
   obj.hasEnded = this.hasEnded();
   obj.isFull = this.isFull();
+  obj.availableSeats = this.getAvailableSeats();
+  obj.primaryCTA = this.getPrimaryCTA();
+  obj.secondaryCTA = this.getSecondaryCTA();
+  obj.cta = this.getCTAState();
   
   return obj;
 };

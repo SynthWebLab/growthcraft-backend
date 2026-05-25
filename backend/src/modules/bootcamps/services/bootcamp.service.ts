@@ -22,6 +22,7 @@ export interface BootcampQueryParams {
 export class BootcampService {
   private static instance: BootcampService;
   private readonly CACHE_TTL = 300; // 5 minutes
+  private readonly CACHE_VERSION = 'cta-v4';
 
   private constructor() {}
 
@@ -118,7 +119,7 @@ export class BootcampService {
    */
   public async getBootcampById(bootcampId: string): Promise<IBootcamp | null> {
     try {
-      const cacheKey = `public:bootcamp:id:${bootcampId}`;
+      const cacheKey = `public:bootcamp:id:${this.CACHE_VERSION}:${bootcampId}`;
 
       // Try cache
       const cachedData = await this.getFromCache(cacheKey);
@@ -147,7 +148,7 @@ export class BootcampService {
    */
   public async getBootcampBySlug(slug: string): Promise<IBootcamp | null> {
     try {
-      const cacheKey = `public:bootcamp:slug:${slug}`;
+      const cacheKey = `public:bootcamp:slug:${this.CACHE_VERSION}:${slug}`;
 
       // Try cache
       const cachedData = await this.getFromCache(cacheKey);
