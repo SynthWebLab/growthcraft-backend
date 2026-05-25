@@ -49,7 +49,7 @@ export class AuthController {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
-      domain: isProduction ? '.amuthi.com' : undefined,
+      domain: isProduction ? 'growthcraft.com' : undefined,
       path: '/',
     };
   }
