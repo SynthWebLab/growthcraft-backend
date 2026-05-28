@@ -11,3 +11,5 @@ export { CourseCallbackRequest, ICourseCallbackRequest } from './CourseCallbackR
 export { Bootcamp, IBootcamp, EventType } from './Bootcamp.model';
 export { Reservation, IReservation } from './Reservation.model';
 export { TrainingProgram, ITrainingProgram } from './TrainingProgram.model';
+export { Batch, IBatch, BatchType, BatchMode, BatchStatus } from './Batch.model';
+export { CourseModule, ICourseModule } from './CourseModule.model';
