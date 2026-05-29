@@ -4,6 +4,7 @@ import userRoutes from '@/modules/auth/routes/user.routes';
 import courseRoutes from '@/modules/courses/routes/course.routes';
 import publicCatalogueRoutes from '@/modules/public/routes/catalogue.routes';
 import reservationRoutes from '@/modules/reservations/routes/reservation.routes';
+import adminRoutes from '@/modules/admin/routes/admin.routes';
 
 const router = Router();
 
@@ -12,6 +13,7 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/courses', courseRoutes);
 router.use('/reservations', reservationRoutes);
+router.use('/admin', adminRoutes);
 
 // Public catalogue routes (no auth required)
 router.use('/', publicCatalogueRoutes);
