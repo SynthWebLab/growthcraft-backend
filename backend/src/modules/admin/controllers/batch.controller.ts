@@ -30,28 +30,11 @@ const createBatchSchema = z
     path: ['endDate'],
   });
 
-const updateBatchSchema = z
-  .object({
-    status: z.nativeEnum(BatchStatus).optional(),
-    startDate: z.coerce.date().optional(),
-    endDate: z.coerce.date().optional(),
-    capacity: z.number().int().min(1).optional(),
-    fee: z.number().min(0).optional(),
-    venue: z.string().trim().min(1).optional(),
-    mode: z.nativeEnum(BatchMode).optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.startDate && data.endDate) {
-        return data.endDate >= data.startDate;
-      }
-      return true;
-    },
-    {
-      message: 'End date must be on or after start date',
-      path: ['endDate'],
-    }
-  );
+const updateBatchSchema = z.object({
+  venue: z.string().trim().min(1).optional(),
+  capacity: z.number().int().min(1).optional(),
+  status: z.nativeEnum(BatchStatus).optional(),
+});
 
 const assignMentorSchema = z.object({
   mentorId: z

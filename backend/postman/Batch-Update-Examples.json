@@ -1,0 +1,592 @@
+{
+  "info": {
+    "name": "Batch Update Examples",
+    "description": "Examples for updating batch details and assigning mentors",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Generic Batch Updates",
+      "item": [
+        {
+          "name": "Update Venue Only",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"venue\": \"Building A, Room 101, Tech Campus\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Updates only the venue field of a batch"
+          }
+        },
+        {
+          "name": "Update Capacity Only",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capacity\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Updates only the capacity field (must be >= enrolledCount)"
+          }
+        },
+        {
+          "name": "Update Status Only",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Open\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Updates only the status field with enforced transitions:\n- Draft → Open, Cancelled\n- Open → Filling, Cancelled\n- Filling → Full, Cancelled\n- Full → InProgress, Cancelled\n- InProgress → Completed, Cancelled\n- Completed → Cancelled\n- Cancelled → (no transitions)"
+          }
+        },
+        {
+          "name": "Update Multiple Fields",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"venue\": \"Online - Zoom Platform\",\n  \"capacity\": 150,\n  \"status\": \"Open\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Updates venue, capacity, and status together"
+          }
+        }
+      ],
+      "description": "Examples for the generic PATCH endpoint that updates venue, capacity, and status"
+    },
+    {
+      "name": "2. Status Transitions",
+      "item": [
+        {
+          "name": "Draft to Open",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Open\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Transitions from Draft to Open (allowed)"
+          }
+        },
+        {
+          "name": "Open to Filling",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Filling\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Transitions from Open to Filling (allowed)"
+          }
+        },
+        {
+          "name": "Filling to Full",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Full\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Transitions from Filling to Full (allowed)"
+          }
+        },
+        {
+          "name": "Full to InProgress",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"InProgress\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Transitions from Full to InProgress (allowed)"
+          }
+        },
+        {
+          "name": "InProgress to Completed",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Completed\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Transitions from InProgress to Completed (allowed)"
+          }
+        },
+        {
+          "name": "Any Status to Cancelled",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Cancelled\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Transitions to Cancelled from any status (always allowed)"
+          }
+        },
+        {
+          "name": "Invalid Transition (Draft to Full)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Full\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Attempts invalid transition from Draft to Full (should fail with 400)"
+          }
+        }
+      ],
+      "description": "Examples demonstrating the status transition enforcement"
+    },
+    {
+      "name": "3. Assign Mentor",
+      "item": [
+        {
+          "name": "Assign Mentor to Batch",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mentorId\": \"{{mentor_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}/mentor",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}", "mentor"]
+            },
+            "description": "Assigns a mentor to a batch and triggers a notification.\n\nNotification created:\n{\n  \"type\": \"batch.assigned\",\n  \"userId\": \"<mentorId>\",\n  \"data\": {\n    \"batchId\": \"<batchId>\",\n    \"batchCode\": \"<code>\",\n    \"startDate\": \"<date>\",\n    \"endDate\": \"<date>\",\n    \"batchType\": \"<type>\"\n  }\n}"
+          }
+        },
+        {
+          "name": "Reassign Different Mentor",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mentorId\": \"{{another_mentor_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}/mentor",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}", "mentor"]
+            },
+            "description": "Changes the assigned mentor for a batch (triggers new notification)"
+          }
+        },
+        {
+          "name": "Invalid Mentor ID",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mentorId\": \"invalid-id-format\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}/mentor",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}", "mentor"]
+            },
+            "description": "Attempts to assign mentor with invalid ID format (should fail with 400)"
+          }
+        },
+        {
+          "name": "Non-existent Mentor",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mentorId\": \"507f1f77bcf86cd799439999\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}/mentor",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}", "mentor"]
+            },
+            "description": "Attempts to assign non-existent mentor (should fail with 404)"
+          }
+        }
+      ],
+      "description": "Examples for the mentor assignment endpoint with notification creation"
+    },
+    {
+      "name": "4. Error Cases",
+      "item": [
+        {
+          "name": "Capacity Less Than Enrolled Count",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capacity\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Attempts to set capacity lower than current enrolledCount (should fail with 400)"
+          }
+        },
+        {
+          "name": "Invalid Batch ID Format",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Open\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/invalid-id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "invalid-id"]
+            },
+            "description": "Attempts to update with invalid batch ID format (should fail with 400)"
+          }
+        },
+        {
+          "name": "Non-existent Batch",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Open\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/507f1f77bcf86cd799439999",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "507f1f77bcf86cd799439999"]
+            },
+            "description": "Attempts to update non-existent batch (should fail with 404)"
+          }
+        },
+        {
+          "name": "Empty Request Body",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches/{{batch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches", "{{batch_id}}"]
+            },
+            "description": "Sends empty update (should succeed but make no changes)"
+          }
+        }
+      ],
+      "description": "Examples demonstrating various error scenarios"
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "your_jwt_token_here",
+      "type": "string"
+    },
+    {
+      "key": "batch_id",
+      "value": "507f1f77bcf86cd799439011",
+      "type": "string"
+    },
+    {
+      "key": "mentor_id",
+      "value": "507f191e810c19729de860ea",
+      "type": "string"
+    },
+    {
+      "key": "another_mentor_id",
+      "value": "507f191e810c19729de860eb",
+      "type": "string"
+    }
+  ]
+}
