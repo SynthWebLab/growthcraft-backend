@@ -1,0 +1,89 @@
+### Batch Update API Tests
+### Make sure to replace {{jwt_token}}, {{batch_id}}, and {{mentor_id}} with actual values
+
+@baseUrl = http://localhost:5002
+@jwt_token = YOUR_JWT_TOKEN_HERE
+@batch_id = YOUR_BATCH_ID_HERE
+@mentor_id = YOUR_MENTOR_ID_HERE
+
+### 1. Get all batches (to find a batch ID)
+GET {{baseUrl}}/api/v1/admin/batches
+Authorization: Bearer {{jwt_token}}
+
+### 2. Get specific batch details
+GET {{baseUrl}}/api/v1/admin/batches/{{batch_id}}
+Authorization: Bearer {{jwt_token}}
+
+### 3. Update venue only
+PATCH {{baseUrl}}/api/v1/admin/batches/{{batch_id}}
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "venue": "Building A, Room 101, Tech Campus"
+}
+
+### 4. Update capacity only
+PATCH {{baseUrl}}/api/v1/admin/batches/{{batch_id}}
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "capacity": 100
+}
+
+### 5. Update status (Draft → Open)
+PATCH {{baseUrl}}/api/v1/admin/batches/{{batch_id}}
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "status": "Open"
+}
+
+### 6. Update multiple fields
+PATCH {{baseUrl}}/api/v1/admin/batches/{{batch_id}}
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "venue": "Online - Zoom Platform",
+  "capacity": 150,
+  "status": "Filling"
+}
+
+### 7. Test invalid status transition (should fail)
+PATCH {{baseUrl}}/api/v1/admin/batches/{{batch_id}}
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "status": "Completed"
+}
+
+### 8. Test capacity less than enrolled count (should fail)
+PATCH {{baseUrl}}/api/v1/admin/batches/{{batch_id}}
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "capacity": 5
+}
+
+### 9. Assign mentor to batch
+PATCH {{baseUrl}}/api/v1/admin/batches/{{batch_id}}/mentor
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "mentorId": "{{mentor_id}}"
+}
+
+### 10. Transition to Cancelled (always allowed)
+PATCH {{baseUrl}}/api/v1/admin/batches/{{batch_id}}
+Authorization: Bearer {{jwt_token}}
+Content-Type: application/json
+
+{
+  "status": "Cancelled"
+}
