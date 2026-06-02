@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Update if you use a different Node version
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: 'backend/package-lock.json'
 
@@ -32,20 +32,15 @@ jobs:
           npm ci
           npm run build
 
-      - name: Zip files for transfer
-        run: |
-          # Include all files needed to install dependencies and run the server
-          cd backend
-          zip -r ../deploy.zip dist .env package.json package-lock.json
-
-      - name: Copy Zip to EC2
+      - name: Transfer Files to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "deploy.zip"
-          target: "/tmp"
+          source: "backend/dist,backend/.env,backend/package.json,backend/package-lock.json"
+          target: "/home/ubuntu/growthcraft-backend"
+          strip_components: 1
 
       - name: Execute Deployment on EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -54,21 +49,13 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            REPO_DIR="/home/ubuntu/growthcraft-backend"
-            BACKEND_DIR="$REPO_DIR/backend"
-            
-            # 1. Ensure the directory exists
-            mkdir -p $BACKEND_DIR
-            
-            # 2. Extract everything (including package.json) into the backend folder
-            unzip -o /tmp/deploy.zip -d $BACKEND_DIR
-            
-            # 3. Install production dependencies directly on the server
-            cd $BACKEND_DIR
-            npm ci --production
-            
-            # 4. Restart the systemd service
+            set -e
+
+            cd /home/ubuntu/growthcraft-backend
+
+            # Install dependencies
+            npm ci
+
+            # Restart the systemd service
+            sudo systemctl daemon-reload
             sudo systemctl restart growth-backend
-            
-            # 5. Clean up the zip file from tmp
-            rm /tmp/deploy.zip
