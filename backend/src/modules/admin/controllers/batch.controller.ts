@@ -23,6 +23,7 @@ const createBatchSchema = z
     fee: z.number().min(0),
     venue: z.string().trim().min(1).optional(),
     mode: z.nativeEnum(BatchMode),
+    code: z.string().trim().min(1).max(50).optional(),
   })
   .refine((data) => data.endDate >= data.startDate, {
     message: 'End date must be on or after start date',
@@ -31,18 +32,50 @@ const createBatchSchema = z
 
 const updateBatchSchema = z
   .object({
-    venue: z.string().trim().min(1).optional(),
-    capacity: z.number().int().min(1).optional(),
     status: z.nativeEnum(BatchStatus).optional(),
+    startDate: z.coerce.date().optional(),
+    endDate: z.coerce.date().optional(),
+    capacity: z.number().int().min(1).optional(),
+    fee: z.number().min(0).optional(),
+    venue: z.string().trim().min(1).optional(),
+    mode: z.nativeEnum(BatchMode).optional(),
   })
-  .refine((data) => Object.keys(data).length > 0, {
-    message: 'At least one field is required',
-  });
+  .refine(
+    (data) => {
+      if (data.startDate && data.endDate) {
+        return data.endDate >= data.startDate;
+      }
+      return true;
+    },
+    {
+      message: 'End date must be on or after start date',
+      path: ['endDate'],
+    }
+  );
 
 const assignMentorSchema = z.object({
   mentorId: z
     .string()
     .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid mentorId format'),
+});
+
+const listBatchesQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+  status: z.nativeEnum(BatchStatus).optional(),
+  batchType: z.nativeEnum(BatchType).optional(),
+  courseId: z
+    .string()
+    .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid courseId format')
+    .optional(),
+  trainingProgramId: z
+    .string()
+    .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid trainingProgramId format')
+    .optional(),
+  bootcampId: z
+    .string()
+    .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid bootcampId format')
+    .optional(),
 });
 
 export class BatchController {
@@ -79,24 +112,61 @@ export class BatchController {
   }
 
   /**
-   * Update batch
+   * Get batch by ID
+   * GET /api/v1/admin/batches/:id
+   */
+  public async getBatchById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const batch = await batchService.getBatchById(id);
+
+      SuccessResponseHelper.ok(res, { batch }, 'Batch retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get batch by ID controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * List batches with filters
+   * GET /api/v1/admin/batches
+   */
+  public async listBatches(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const queryResult = listBatchesQuerySchema.safeParse(req.query);
+
+      if (!queryResult.success) {
+        throw ValidationError.fromZodError(queryResult.error);
+      }
+
+      const result = await batchService.listBatches(queryResult.data);
+
+      SuccessResponseHelper.paginated(
+        res,
+        result.batches,
+        result.pagination,
+        'Batches retrieved successfully'
+      );
+    } catch (error: any) {
+      logger.error('List batches controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Update batch details
    * PATCH /api/v1/admin/batches/:id
    */
   public async updateBatch(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const idResult = objectIdSchema.safeParse(req.params.id);
-
-      if (!idResult.success) {
-        throw ValidationError.fromZodError(idResult.error);
-      }
-
+      const { id } = req.params;
       const result = updateBatchSchema.safeParse(req.body);
 
       if (!result.success) {
         throw ValidationError.fromZodError(result.error);
       }
 
-      const batch = await batchService.updateBatch(idResult.data, result.data);
+      const batch = await batchService.updateBatch(id, result.data);
 
       SuccessResponseHelper.ok(res, { batch }, 'Batch updated successfully');
     } catch (error: any) {
@@ -111,19 +181,14 @@ export class BatchController {
    */
   public async assignMentor(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const idResult = objectIdSchema.safeParse(req.params.id);
-
-      if (!idResult.success) {
-        throw ValidationError.fromZodError(idResult.error);
-      }
-
+      const { id } = req.params;
       const result = assignMentorSchema.safeParse(req.body);
 
       if (!result.success) {
         throw ValidationError.fromZodError(result.error);
       }
 
-      const batch = await batchService.assignMentor(idResult.data, result.data.mentorId);
+      const batch = await batchService.assignMentor(id, result.data.mentorId);
 
       SuccessResponseHelper.ok(res, { batch }, 'Mentor assigned successfully');
     } catch (error: any) {

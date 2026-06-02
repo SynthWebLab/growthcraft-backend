@@ -1,0 +1,301 @@
+{
+  "info": {
+    "name": "Batch Management API",
+    "description": "Collection of API requests for batch management (admin and public endpoints)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Admin - Create Batch",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"batchType\": \"Course\",\n  \"parentId\": \"60d5ec49f1b2c8b1f8e4e1a1\",\n  \"startDate\": \"2026-07-01\",\n  \"endDate\": \"2026-09-30\",\n  \"capacity\": 30,\n  \"fee\": 15000,\n  \"mode\": \"Online\",\n  \"venue\": \"Virtual Classroom\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/batches",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "admin", "batches"]
+        },
+        "description": "Create a new batch with auto-generated code. Requires SuperAdmin or Ops role."
+      }
+    },
+    {
+      "name": "Admin - Create Batch with Custom Code",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"batchType\": \"Course\",\n  \"parentId\": \"60d5ec49f1b2c8b1f8e4e1a1\",\n  \"startDate\": \"2026-07-01\",\n  \"endDate\": \"2026-09-30\",\n  \"capacity\": 30,\n  \"fee\": 15000,\n  \"mode\": \"Online\",\n  \"venue\": \"Virtual Classroom\",\n  \"code\": \"DSA-JULY-2026\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/batches",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "admin", "batches"]
+        },
+        "description": "Create a new batch with a custom batch code instead of auto-generated."
+      }
+    },
+    {
+      "name": "Admin - List All Batches",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/batches?page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "admin", "batches"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "List all batches with pagination. Requires SuperAdmin or Ops role."
+      }
+    },
+    {
+      "name": "Admin - List Batches by Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/batches?status=Open&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "admin", "batches"],
+          "query": [
+            {
+              "key": "status",
+              "value": "Open"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Filter batches by status (Draft, Open, Filling, Full, InProgress, Completed, Cancelled)."
+      }
+    },
+    {
+      "name": "Admin - List Batches by Course",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/batches?courseId=60d5ec49f1b2c8b1f8e4e1a1&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "admin", "batches"],
+          "query": [
+            {
+              "key": "courseId",
+              "value": "60d5ec49f1b2c8b1f8e4e1a1"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Filter batches by a specific course ID."
+      }
+    },
+    {
+      "name": "Admin - Get Batch by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/batches/:batchId",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "admin", "batches", ":batchId"],
+          "variable": [
+            {
+              "key": "batchId",
+              "value": "60d5ec49f1b2c8b1f8e4e1a2"
+            }
+          ]
+        },
+        "description": "Get details of a specific batch by its ID."
+      }
+    },
+    {
+      "name": "Admin - Update Batch Status to Open",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"Open\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/batches/:batchId",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "admin", "batches", ":batchId"],
+          "variable": [
+            {
+              "key": "batchId",
+              "value": "60d5ec49f1b2c8b1f8e4e1a2"
+            }
+          ]
+        },
+        "description": "Change batch status from Draft to Open to make it publicly visible."
+      }
+    },
+    {
+      "name": "Admin - Update Batch Details",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"capacity\": 35,\n  \"fee\": 16000,\n  \"mode\": \"Hybrid\",\n  \"venue\": \"Online + Bangalore Campus\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/batches/:batchId",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "admin", "batches", ":batchId"],
+          "variable": [
+            {
+              "key": "batchId",
+              "value": "60d5ec49f1b2c8b1f8e4e1a2"
+            }
+          ]
+        },
+        "description": "Update batch details like capacity, fee, mode, and venue."
+      }
+    },
+    {
+      "name": "Admin - Assign Mentor to Batch",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mentorId\": \"60d5ec49f1b2c8b1f8e4e1a3\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/batches/:batchId/mentor",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "admin", "batches", ":batchId", "mentor"],
+          "variable": [
+            {
+              "key": "batchId",
+              "value": "60d5ec49f1b2c8b1f8e4e1a2"
+            }
+          ]
+        },
+        "description": "Assign or reassign a mentor to a batch. Mentor will receive a notification (Epic 14)."
+      }
+    },
+    {
+      "name": "Public - List Available Batches",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/batches?page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "batches"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Public endpoint to list batches with status Open/Filling and future start dates. No authentication required."
+      }
+    },
+    {
+      "name": "Public - List Batches by Course",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/batches?courseId=60d5ec49f1b2c8b1f8e4e1a1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "batches"],
+          "query": [
+            {
+              "key": "courseId",
+              "value": "60d5ec49f1b2c8b1f8e4e1a1"
+            }
+          ]
+        },
+        "description": "Filter available batches for a specific course."
+      }
+    },
+    {
+      "name": "Public - List Batches by Bootcamp",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/batches?bootcampId=60d5ec49f1b2c8b1f8e4e1b1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "batches"],
+          "query": [
+            {
+              "key": "bootcampId",
+              "value": "60d5ec49f1b2c8b1f8e4e1b1"
+            }
+          ]
+        },
+        "description": "Filter available batches for a specific bootcamp."
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}
