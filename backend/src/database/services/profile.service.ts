@@ -21,11 +21,12 @@ type ProfileDocument =
  * Get the appropriate profile model based on user role
  */
 export const getProfileModel = (role: UserRole): any => {
-  const modelMap: Record<UserRole, any> = {
+  const modelMap: Partial<Record<UserRole, any>> = {
     [UserRole.STUDENT]: StudentProfile,
     [UserRole.COLLEGE]: CollegeProfile,
     [UserRole.MENTOR]: MentorProfile,
     [UserRole.EMPLOYER]: EmployerProfile,
+    // OPS and SUPER_ADMIN roles don't have separate profile models
   };
 
   return modelMap[role] || null;
