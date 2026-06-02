@@ -3,10 +3,9 @@ Write-Host ""
 Write-Host "Getting Admin/Ops Token..." -ForegroundColor Cyan
 Write-Host ""
 
-# Try both admin and ops credentials
+# Try ops credentials (admin role is deprecated)
 $credentials = @(
-    @{ email = "ops@growthcraft.com"; password = "Ops@123456"; name = "OPS" },
-    @{ email = "admin@growthcraft.com"; password = "Admin@123456"; name = "ADMIN" }
+    @{ email = "ops@growthcraft.com"; password = "Ops@123456"; name = "OPS" }
 )
 
 $success = $false
