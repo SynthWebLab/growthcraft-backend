@@ -6,6 +6,8 @@ import {
   BatchType,
   Bootcamp,
   Course,
+  MentorProfile,
+  Notification,
   TrainingProgram,
 } from '@/database/models';
 import { NotFoundError } from '@/common/errors/NotFoundError';
@@ -26,13 +28,9 @@ export interface CreateBatchInput {
 }
 
 export interface UpdateBatchInput {
-  status?: BatchStatus;
-  startDate?: Date;
-  endDate?: Date;
-  capacity?: number;
-  fee?: number;
   venue?: string;
-  mode?: BatchMode;
+  capacity?: number;
+  status?: BatchStatus;
 }
 
 export interface ListBatchesQuery {
@@ -57,6 +55,16 @@ interface BatchParent extends mongoose.Document {
   slug?: string;
   title?: string;
 }
+
+const allowedStatusTransitions: Record<BatchStatus, BatchStatus[]> = {
+  [BatchStatus.DRAFT]: [BatchStatus.OPEN, BatchStatus.CANCELLED],
+  [BatchStatus.OPEN]: [BatchStatus.FILLING, BatchStatus.CANCELLED],
+  [BatchStatus.FILLING]: [BatchStatus.FULL, BatchStatus.CANCELLED],
+  [BatchStatus.FULL]: [BatchStatus.IN_PROGRESS, BatchStatus.CANCELLED],
+  [BatchStatus.IN_PROGRESS]: [BatchStatus.COMPLETED, BatchStatus.CANCELLED],
+  [BatchStatus.COMPLETED]: [BatchStatus.CANCELLED],
+  [BatchStatus.CANCELLED]: [],
+};
 
 export class BatchService {
   private static instance: BatchService;
@@ -292,48 +300,66 @@ export class BatchService {
   }
 
   /**
-   * Update batch details
+   * Update batch details (Generic PATCH)
+   * Allows updating venue, capacity, and status with enforced transitions
    */
-  public async updateBatch(batchId: string, input: UpdateBatchInput) {
-    if (!mongoose.Types.ObjectId.isValid(batchId)) {
+  public async updateBatch(id: string, input: UpdateBatchInput) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       throw ValidationError.forField('batchId', 'Invalid batch ID format');
     }
 
-    const batch = await Batch.findById(batchId).exec();
+    const batch = await Batch.findById(id).exec();
+
     if (!batch) {
       throw NotFoundError.resource('Batch');
-    }
-
-    // Validate date consistency if updating dates
-    if (input.startDate || input.endDate) {
-      const newStartDate = input.startDate || batch.startDate;
-      const newEndDate = input.endDate || batch.endDate;
-
-      if (newEndDate < newStartDate) {
-        throw ValidationError.forField('endDate', 'End date must be on or after start date');
-      }
     }
 
     // Validate capacity if updating
     if (input.capacity !== undefined && input.capacity < batch.enrolledCount) {
       throw ValidationError.forField(
         'capacity',
-        `Capacity cannot be less than current enrolled count (${batch.enrolledCount})`
+        `Capacity cannot be less than enrolled count (${batch.enrolledCount})`,
+        input.capacity
       );
     }
 
-    Object.assign(batch, input);
-    await batch.save();
+    // Validate and enforce status transitions
+    if (input.status !== undefined && input.status !== batch.status) {
+      const allowedStatuses = allowedStatusTransitions[batch.status];
 
+      if (!allowedStatuses.includes(input.status)) {
+        throw ValidationError.forField(
+          'status',
+          `Invalid status transition from ${batch.status} to ${input.status}`,
+          input.status
+        );
+      }
+
+      batch.status = input.status;
+    }
+
+    // Update venue if provided
+    if (input.venue !== undefined) {
+      batch.venue = input.venue;
+    }
+
+    // Update capacity if provided
+    if (input.capacity !== undefined) {
+      batch.capacity = input.capacity;
+    }
+
+    await batch.save();
     logger.info(`Batch updated: ${batch.code} (${batch._id})`);
+
     return batch;
   }
 
   /**
-   * Assign mentor to batch
+   * Assign mentor to batch (Mentor PATCH)
+   * Validates mentor exists and creates notification
    */
-  public async assignMentor(batchId: string, mentorId: string) {
-    if (!mongoose.Types.ObjectId.isValid(batchId)) {
+  public async assignMentor(id: string, mentorId: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       throw ValidationError.forField('batchId', 'Invalid batch ID format');
     }
 
@@ -341,24 +367,37 @@ export class BatchService {
       throw ValidationError.forField('mentorId', 'Invalid mentor ID format');
     }
 
-    const batch = await Batch.findById(batchId).exec();
+    const [batch, mentor] = await Promise.all([
+      Batch.findById(id).exec(),
+      MentorProfile.findById(mentorId).exec(),
+    ]);
+
     if (!batch) {
       throw NotFoundError.resource('Batch');
     }
 
-    // TODO: Verify mentor exists and has proper profile
-    // const mentor = await MentorProfile.findById(mentorId).exec();
-    // if (!mentor) {
-    //   throw NotFoundError.resource('Mentor');
-    // }
+    if (!mentor) {
+      throw NotFoundError.resource('Mentor');
+    }
 
-    batch.assignedMentorId = new mongoose.Types.ObjectId(mentorId);
+    // Assign mentor to batch
+    batch.assignedMentorId = mentor._id as mongoose.Types.ObjectId;
     await batch.save();
 
-    logger.info(`Mentor ${mentorId} assigned to batch ${batch.code}`);
+    // Create notification for mentor
+    await Notification.create({
+      type: 'batch.assigned',
+      userId: mentorId,
+      data: {
+        batchId: batch._id,
+        batchCode: batch.code,
+        startDate: batch.startDate,
+        endDate: batch.endDate,
+        batchType: batch.batchType,
+      },
+    });
 
-    // TODO: Send notification to mentor (Epic 14)
-    // await notificationService.notifyMentorAssignment(mentorId, batch);
+    logger.info(`Mentor ${mentorId} assigned to batch ${batch.code} (${batch._id})`);
 
     return batch;
   }
