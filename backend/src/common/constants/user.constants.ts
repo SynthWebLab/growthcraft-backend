@@ -3,6 +3,7 @@ export enum UserRole {
   COLLEGE = 'college',
   MENTOR = 'mentor',
   EMPLOYER = 'employer',
+  ADMIN = 'admin',
 }
 
 export const USER_ROLES = Object.values(UserRole);
@@ -13,6 +14,7 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   [UserRole.MENTOR]: 2,
   [UserRole.COLLEGE]: 3,
   [UserRole.EMPLOYER]: 4,
+  [UserRole.ADMIN]: 10, // Highest level - full system access
 };
 
 // Permissions for each role
@@ -57,5 +59,26 @@ export const ROLE_PERMISSIONS = {
     'view:candidates',
     'schedule:interviews',
     'read:analytics',
+  ],
+  [UserRole.ADMIN]: [
+    // Full system access
+    'manage:users',
+    'manage:courses',
+    'manage:batches',
+    'manage:programs',
+    'manage:bootcamps',
+    'manage:mentors',
+    'manage:colleges',
+    'manage:employers',
+    'manage:students',
+    'manage:enrollments',
+    'manage:reservations',
+    'manage:notifications',
+    'manage:analytics',
+    'manage:system_config',
+    'read:all',
+    'create:all',
+    'update:all',
+    'delete:all',
   ],
 };
