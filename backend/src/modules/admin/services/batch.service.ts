@@ -14,6 +14,7 @@ import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { generateBatchCode } from '../utils/generate-batch-code.util';
 import { logger } from '@/common/utils/logger.util';
+import { redisConfig } from '@/config/redis.config';
 
 export interface CreateBatchInput {
   batchType: BatchType;
@@ -41,12 +42,18 @@ export interface ListBatchesQuery {
   courseId?: string;
   trainingProgramId?: string;
   bootcampId?: string;
+  mentorId?: string;
+  parentType?: 'Course' | 'TrainingProgram' | 'Bootcamp';
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface PublicBatchesQuery {
   courseId?: string;
   trainingProgramId?: string;
   bootcampId?: string;
+  mentorId?: string;
+  parentType?: 'Course' | 'TrainingProgram' | 'Bootcamp';
   page?: number;
   limit?: number;
 }
@@ -196,6 +203,7 @@ export class BatchService {
       filter.batchType = query.batchType;
     }
 
+    // Parent-specific filters
     if (query.courseId) {
       if (!mongoose.Types.ObjectId.isValid(query.courseId)) {
         throw ValidationError.forField('courseId', 'Invalid course ID format');
@@ -215,6 +223,50 @@ export class BatchService {
         throw ValidationError.forField('bootcampId', 'Invalid bootcamp ID format');
       }
       filter.bootcampId = query.bootcampId;
+    }
+
+    // Mentor filter
+    if (query.mentorId) {
+      if (!mongoose.Types.ObjectId.isValid(query.mentorId)) {
+        throw ValidationError.forField('mentorId', 'Invalid mentor ID format');
+      }
+      filter.assignedMentorId = query.mentorId;
+    }
+
+    // Parent type filter (Course, TrainingProgram, Bootcamp)
+    if (query.parentType) {
+      switch (query.parentType) {
+        case 'Course':
+          filter.courseId = { $exists: true, $ne: null };
+          break;
+        case 'TrainingProgram':
+          filter.trainingProgramId = { $exists: true, $ne: null };
+          break;
+        case 'Bootcamp':
+          filter.bootcampId = { $exists: true, $ne: null };
+          break;
+      }
+    }
+
+    // Date range filters
+    if (query.startDate || query.endDate) {
+      filter.startDate = {};
+      
+      if (query.startDate) {
+        const startDate = new Date(query.startDate);
+        if (isNaN(startDate.getTime())) {
+          throw ValidationError.forField('startDate', 'Invalid start date format');
+        }
+        filter.startDate.$gte = startDate;
+      }
+
+      if (query.endDate) {
+        const endDate = new Date(query.endDate);
+        if (isNaN(endDate.getTime())) {
+          throw ValidationError.forField('endDate', 'Invalid end date format');
+        }
+        filter.startDate.$lte = endDate;
+      }
     }
 
     const [batches, total] = await Promise.all([
@@ -249,6 +301,29 @@ export class BatchService {
     const limit = Math.min(50, Math.max(1, query.limit || 10));
     const skip = (page - 1) * limit;
 
+    // Generate cache key based on query parameters
+    const cacheKey = `batches:public:${JSON.stringify({
+      page,
+      limit,
+      courseId: query.courseId,
+      trainingProgramId: query.trainingProgramId,
+      bootcampId: query.bootcampId,
+      mentorId: query.mentorId,
+      parentType: query.parentType,
+    })}`;
+
+    // Try to get from cache
+    try {
+      const cached = await redisConfig.get(cacheKey);
+      if (cached) {
+        logger.info(`Cache hit for public batches: ${cacheKey}`);
+        return JSON.parse(cached);
+      }
+    } catch (error: any) {
+      logger.warn('Redis get error (non-critical):', error.message);
+    }
+
+    // Build filter
     const filter: any = {
       status: { $in: [BatchStatus.OPEN, BatchStatus.FILLING] },
       startDate: { $gte: new Date() },
@@ -275,6 +350,29 @@ export class BatchService {
       filter.bootcampId = query.bootcampId;
     }
 
+    // Mentor filter
+    if (query.mentorId) {
+      if (!mongoose.Types.ObjectId.isValid(query.mentorId)) {
+        throw ValidationError.forField('mentorId', 'Invalid mentor ID format');
+      }
+      filter.assignedMentorId = query.mentorId;
+    }
+
+    // Parent type filter
+    if (query.parentType) {
+      switch (query.parentType) {
+        case 'Course':
+          filter.courseId = { $exists: true, $ne: null };
+          break;
+        case 'TrainingProgram':
+          filter.trainingProgramId = { $exists: true, $ne: null };
+          break;
+        case 'Bootcamp':
+          filter.bootcampId = { $exists: true, $ne: null };
+          break;
+      }
+    }
+
     const [batches, total] = await Promise.all([
       Batch.find(filter)
         .sort({ startDate: 1 })
@@ -283,12 +381,12 @@ export class BatchService {
         .populate('courseId', 'title slug banner')
         .populate('trainingProgramId', 'title slug banner')
         .populate('bootcampId', 'title slug banner')
-        .select('-assignedMentorId')
+        .populate('assignedMentorId', 'firstName lastName email')
         .exec(),
       Batch.countDocuments(filter).exec(),
     ]);
 
-    return {
+    const result = {
       batches,
       pagination: {
         page,
@@ -297,6 +395,16 @@ export class BatchService {
         totalPages: Math.ceil(total / limit),
       },
     };
+
+    // Cache the result for 60 seconds
+    try {
+      await redisConfig.set(cacheKey, JSON.stringify(result), 60);
+      logger.info(`Cached public batches with key: ${cacheKey} (TTL: 60s)`);
+    } catch (error: any) {
+      logger.warn('Redis set error (non-critical):', error.message);
+    }
+
+    return result;
   }
 
   /**

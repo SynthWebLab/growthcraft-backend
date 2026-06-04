@@ -59,6 +59,13 @@ const listBatchesQuerySchema = z.object({
     .string()
     .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid bootcampId format')
     .optional(),
+  mentorId: z
+    .string()
+    .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid mentorId format')
+    .optional(),
+  parentType: z.enum(['Course', 'TrainingProgram', 'Bootcamp']).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 });
 
 export class BatchController {

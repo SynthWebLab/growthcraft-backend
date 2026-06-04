@@ -17,6 +17,8 @@
     "seed:bootcamps": "ts-node scripts/seed-bootcamps.ts",
     "create:admin": "ts-node scripts/create-admin.ts",
     "seed:ops": "ts-node scripts/seed-ops-user.ts",
+    "get-token": "ts-node scripts/get-admin-token-simple.ts",
+    "clear-cache": "ts-node scripts/clear-cache.ts",
     "init:config": "ts-node scripts/init-course-config.ts",
     "fix:enrollment": "ts-node scripts/fix-course-enrollment.ts",
     "lint": "eslint src/**/*.ts",
