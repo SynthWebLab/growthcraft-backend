@@ -1,0 +1,725 @@
+{
+  "info": {
+    "name": "Batch Listing API",
+    "description": "Collection for testing batch listing endpoints (Admin and Public)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{admin_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Admin Endpoints",
+      "item": [
+        {
+          "name": "Basic Pagination",
+          "item": [
+            {
+              "name": "Get All Batches (Page 1)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?page=1&limit=10",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get the first page of batches with 10 items per page"
+              }
+            },
+            {
+              "name": "Get Page 2",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?page=2&limit=5",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "2"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Status Filtering",
+          "item": [
+            {
+              "name": "Filter by Status=Open",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?status=Open",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "Open"
+                    }
+                  ]
+                },
+                "description": "Get only batches with status=Open"
+              }
+            },
+            {
+              "name": "Filter by Status=Filling",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?status=Filling",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "Filling"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Filter by Status=Completed",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?status=Completed",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "Completed"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Filter by Status=Cancelled",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?status=Cancelled",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "Cancelled"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mentor Filtering",
+          "item": [
+            {
+              "name": "Filter by Mentor ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?mentorId={{mentor_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "mentorId",
+                      "value": "{{mentor_id}}",
+                      "description": "Set mentor_id variable in environment"
+                    }
+                  ]
+                },
+                "description": "Get batches assigned to a specific mentor"
+              }
+            },
+            {
+              "name": "Invalid Mentor ID Format",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?mentorId=invalid-id",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "mentorId",
+                      "value": "invalid-id"
+                    }
+                  ]
+                },
+                "description": "Should return validation error"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Parent Type Filtering",
+          "item": [
+            {
+              "name": "Filter by parentType=Course",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?parentType=Course",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "parentType",
+                      "value": "Course"
+                    }
+                  ]
+                },
+                "description": "Get only course batches"
+              }
+            },
+            {
+              "name": "Filter by parentType=TrainingProgram",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?parentType=TrainingProgram",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "parentType",
+                      "value": "TrainingProgram"
+                    }
+                  ]
+                },
+                "description": "Get only training program batches"
+              }
+            },
+            {
+              "name": "Filter by parentType=Bootcamp",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?parentType=Bootcamp",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "parentType",
+                      "value": "Bootcamp"
+                    }
+                  ]
+                },
+                "description": "Get only bootcamp batches"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Date Range Filtering",
+          "item": [
+            {
+              "name": "Filter by Start Date",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?startDate=2026-01-01",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "startDate",
+                      "value": "2026-01-01"
+                    }
+                  ]
+                },
+                "description": "Get batches starting from 2026-01-01"
+              }
+            },
+            {
+              "name": "Filter by End Date",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?endDate=2026-12-31",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "endDate",
+                      "value": "2026-12-31"
+                    }
+                  ]
+                },
+                "description": "Get batches starting before 2026-12-31"
+              }
+            },
+            {
+              "name": "Filter by Date Range",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?startDate=2026-01-01&endDate=2026-06-30",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "startDate",
+                      "value": "2026-01-01"
+                    },
+                    {
+                      "key": "endDate",
+                      "value": "2026-06-30"
+                    }
+                  ]
+                },
+                "description": "Get batches starting in first half of 2026"
+              }
+            },
+            {
+              "name": "Invalid Date Format",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?startDate=invalid-date",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "startDate",
+                      "value": "invalid-date"
+                    }
+                  ]
+                },
+                "description": "Should return validation error"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Combined Filters",
+          "item": [
+            {
+              "name": "Status + Parent Type",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?status=Open&parentType=Course",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "Open"
+                    },
+                    {
+                      "key": "parentType",
+                      "value": "Course"
+                    }
+                  ]
+                },
+                "description": "Get Open course batches"
+              }
+            },
+            {
+              "name": "Mentor + Date Range",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?mentorId={{mentor_id}}&startDate=2026-01-01&endDate=2026-12-31",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "mentorId",
+                      "value": "{{mentor_id}}"
+                    },
+                    {
+                      "key": "startDate",
+                      "value": "2026-01-01"
+                    },
+                    {
+                      "key": "endDate",
+                      "value": "2026-12-31"
+                    }
+                  ]
+                },
+                "description": "Get mentor's batches in 2026"
+              }
+            },
+            {
+              "name": "All Filters Combined",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/admin/batches?status=Open&mentorId={{mentor_id}}&parentType=Course&startDate=2026-01-01&endDate=2026-12-31&page=1&limit=20",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "admin", "batches"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "Open"
+                    },
+                    {
+                      "key": "mentorId",
+                      "value": "{{mentor_id}}"
+                    },
+                    {
+                      "key": "parentType",
+                      "value": "Course"
+                    },
+                    {
+                      "key": "startDate",
+                      "value": "2026-01-01"
+                    },
+                    {
+                      "key": "endDate",
+                      "value": "2026-12-31"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Public Endpoints",
+      "item": [
+        {
+          "name": "Basic Queries",
+          "item": [
+            {
+              "name": "Get All Available Batches",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/batches",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "batches"]
+                },
+                "description": "Get all publicly available batches (Open/Filling, future dates only). No auth required."
+              }
+            },
+            {
+              "name": "With Pagination",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/batches?page=1&limit=10",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "batches"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtering",
+          "item": [
+            {
+              "name": "Filter by parentType=Course",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/batches?parentType=Course",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "batches"],
+                  "query": [
+                    {
+                      "key": "parentType",
+                      "value": "Course"
+                    }
+                  ]
+                },
+                "description": "Get available course batches"
+              }
+            },
+            {
+              "name": "Filter by parentType=Bootcamp",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/batches?parentType=Bootcamp",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "batches"],
+                  "query": [
+                    {
+                      "key": "parentType",
+                      "value": "Bootcamp"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Filter by Course ID",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/batches?courseId={{course_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "batches"],
+                  "query": [
+                    {
+                      "key": "courseId",
+                      "value": "{{course_id}}"
+                    }
+                  ]
+                },
+                "description": "Get available batches for specific course"
+              }
+            },
+            {
+              "name": "Filter by Mentor ID",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/batches?mentorId={{mentor_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "batches"],
+                  "query": [
+                    {
+                      "key": "mentorId",
+                      "value": "{{mentor_id}}"
+                    }
+                  ]
+                },
+                "description": "Get available batches by specific mentor"
+              }
+            },
+            {
+              "name": "Combined Filters",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/batches?parentType=Course&mentorId={{mentor_id}}&page=1&limit=10",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "batches"],
+                  "query": [
+                    {
+                      "key": "parentType",
+                      "value": "Course"
+                    },
+                    {
+                      "key": "mentorId",
+                      "value": "{{mentor_id}}"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cache Testing",
+          "item": [
+            {
+              "name": "First Request (Cache Miss)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/batches",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "batches"]
+                },
+                "description": "First request - should be cache miss, check response time"
+              }
+            },
+            {
+              "name": "Second Request (Cache Hit)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/batches",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "batches"]
+                },
+                "description": "Second request - should be cache hit, faster response time"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Authentication Tests",
+      "item": [
+        {
+          "name": "Public Endpoint (No Auth Required)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/batches",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "batches"]
+            },
+            "description": "Should return 200 - no auth required"
+          }
+        },
+        {
+          "name": "Admin Endpoint (No Auth)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches"]
+            },
+            "description": "Should return 401 - auth required"
+          }
+        },
+        {
+          "name": "Admin Endpoint (With Auth)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/batches",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "batches"]
+            },
+            "description": "Should return 200 - valid auth token"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mentor_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "course_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

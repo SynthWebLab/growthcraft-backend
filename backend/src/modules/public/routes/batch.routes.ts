@@ -13,6 +13,7 @@ const router = Router();
  *       Returns batches with status Open or Filling and startDate >= today.
  *       No authentication required.
  *       Useful for displaying available batches to students.
+ *       Results are cached in Redis for 60 seconds.
  *     parameters:
  *       - in: query
  *         name: courseId
@@ -29,6 +30,17 @@ const router = Router();
  *         schema:
  *           type: string
  *         description: Filter by bootcamp ID
+ *       - in: query
+ *         name: mentorId
+ *         schema:
+ *           type: string
+ *         description: Filter by assigned mentor ID
+ *       - in: query
+ *         name: parentType
+ *         schema:
+ *           type: string
+ *           enum: [Course, TrainingProgram, Bootcamp]
+ *         description: Filter by parent type (Course, TrainingProgram, or Bootcamp)
  *       - in: query
  *         name: page
  *         schema:

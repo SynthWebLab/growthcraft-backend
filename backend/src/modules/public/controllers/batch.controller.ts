@@ -21,6 +21,11 @@ const listPublicBatchesQuerySchema = z.object({
     .string()
     .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid bootcampId format')
     .optional(),
+  mentorId: z
+    .string()
+    .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid mentorId format')
+    .optional(),
+  parentType: z.enum(['Course', 'TrainingProgram', 'Bootcamp']).optional(),
 });
 
 export class PublicBatchController {
