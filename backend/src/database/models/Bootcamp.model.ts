@@ -359,8 +359,8 @@ bootcampSchema.methods.getCTAState = function (): IBootcampCTA {
         status: this.status,
         condition: 'seatsAvailable === false',
         seatsAvailable,
-        primaryCTA: 'Join Waitlist',
-        secondaryCTA: 'Request Callback',
+        primaryCTA: 'Request Callback',
+        secondaryCTA: null,
         disabled: false,
         codeLocation: 'else after seatsAvailable',
       };
