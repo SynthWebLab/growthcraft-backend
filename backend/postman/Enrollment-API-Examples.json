@@ -1,0 +1,533 @@
+{
+  "info": {
+    "name": "Enrollment Management API",
+    "description": "Collection of API requests for enrollment management (GC-601)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Prerequisites",
+      "item": [
+        {
+          "name": "1. Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.environment.set('adminToken', responseData.data.accessToken);",
+                  "    console.log('Admin token saved to environment');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@growthcraft.com\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login as admin to get access token. Token will be auto-saved to environment."
+          }
+        },
+        {
+          "name": "2. Get Student ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users?role=Student&page=1&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "users"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "Student"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Get list of students to find a studentUserId for enrollment."
+          }
+        },
+        {
+          "name": "3. Get Available Batches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/batches?status=Open&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "batches"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "Open"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get list of open batches to find a batchId for enrollment."
+          }
+        }
+      ],
+      "description": "Run these requests first to get required IDs and authentication token"
+    },
+    {
+      "name": "Enrollment - Create",
+      "item": [
+        {
+          "name": "Create Enrollment (Basic)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.environment.set('enrollmentId', responseData.data.enrollment._id);",
+                  "    console.log('Enrollment created successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"{{studentId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"feeQuoted\": 15000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "Create a basic enrollment without payment link. Status will be Pending."
+          }
+        },
+        {
+          "name": "Create Enrollment with Razorpay",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.environment.set('enrollmentId', responseData.data.enrollment._id);",
+                  "    if (responseData.data.paymentLink) {",
+                  "        pm.environment.set('paymentLink', responseData.data.paymentLink.url);",
+                  "        console.log('Payment link:', responseData.data.paymentLink.url);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"{{studentId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"feeQuoted\": 15000.00,\n  \"paymentMethod\": \"razorpay\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "Create enrollment with Razorpay payment link. Returns mock payment link (Epic 13 placeholder)."
+          }
+        },
+        {
+          "name": "Create Enrollment with Offline Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"{{studentId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"feeQuoted\": 15000.00,\n  \"paymentMethod\": \"offline\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "Create enrollment with offline payment method (no payment link generated)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "item": [
+        {
+          "name": "Duplicate Enrollment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"{{studentId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"feeQuoted\": 15000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "Try to enroll the same student in the same batch twice. Should return 400 error."
+          }
+        },
+        {
+          "name": "Invalid Student ID",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"invalid-id-format\",\n  \"batchId\": \"{{batchId}}\",\n  \"feeQuoted\": 15000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "Invalid ObjectId format. Should return 400 validation error."
+          }
+        },
+        {
+          "name": "Non-existent Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"000000000000000000000000\",\n  \"batchId\": \"{{batchId}}\",\n  \"feeQuoted\": 15000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "Valid ObjectId but student doesn't exist. Should return 404 error."
+          }
+        },
+        {
+          "name": "Non-existent Batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"{{studentId}}\",\n  \"batchId\": \"000000000000000000000000\",\n  \"feeQuoted\": 15000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "Valid ObjectId but batch doesn't exist. Should return 404 error."
+          }
+        },
+        {
+          "name": "Batch Full (Capacity Reached)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"{{studentId}}\",\n  \"batchId\": \"{{fullBatchId}}\",\n  \"feeQuoted\": 15000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "Try to enroll in a batch that has reached capacity. Should return 400 error."
+          }
+        },
+        {
+          "name": "Negative Fee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"{{studentId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"feeQuoted\": -100\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "Negative fee value. Should return 400 validation error."
+          }
+        },
+        {
+          "name": "Fee Exceeds Maximum",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"{{studentId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"feeQuoted\": 10000000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "Fee exceeds maximum (999,999.99). Should return 400 validation error."
+          }
+        },
+        {
+          "name": "Missing Required Fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"{{studentId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "Missing required fields (batchId, feeQuoted). Should return 400 validation error."
+          }
+        },
+        {
+          "name": "Unauthorized (No Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"{{studentId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"feeQuoted\": 15000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "No authorization token. Should return 401 error."
+          }
+        },
+        {
+          "name": "Forbidden (Student Role)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentUserId\": \"{{studentId}}\",\n  \"batchId\": \"{{batchId}}\",\n  \"feeQuoted\": 15000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "enrollments"]
+            },
+            "description": "Student trying to access admin endpoint. Should return 403 forbidden error."
+          }
+        }
+      ],
+      "description": "Test error handling and validation"
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5002",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "batchId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fullBatchId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "enrollmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentLink",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
