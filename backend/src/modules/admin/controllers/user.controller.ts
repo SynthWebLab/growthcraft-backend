@@ -10,7 +10,7 @@ import { User } from '@/database/models';
 const listUsersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
-  role: z.nativeEnum(UserRole).optional(),
+  role: z.string().optional(), // Accept any string, validate manually
   search: z.string().optional(),
 });
 
@@ -45,7 +45,9 @@ export class UserController {
       const filter: any = {};
 
       if (role) {
-        filter.role = role;
+        // Support both uppercase and lowercase role values
+        const normalizedRole = role.toLowerCase();
+        filter.role = { $regex: new RegExp(`^${normalizedRole}$`, 'i') };
       }
 
       if (search) {
@@ -74,7 +76,6 @@ export class UserController {
           page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit),
         },
         'Users retrieved successfully'
       );
