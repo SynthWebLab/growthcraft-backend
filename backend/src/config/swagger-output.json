@@ -1117,6 +1117,16 @@
         }
       }
     },
+    "/api/v1/admin/enrollments": {
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/api/v1/courses": {
       "get": {
         "description": "",
