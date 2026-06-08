@@ -3,6 +3,7 @@ import { authenticate } from '@/common/middleware/authenticate.middleware';
 import { authorize } from '@/common/middleware/authorize.middleware';
 import { UserRole } from '@/common/constants/user.constants';
 import { batchController } from '../controllers/batch.controller';
+import { enrollmentController } from '../controllers/enrollment.controller';
 
 const router = Router();
 
@@ -53,6 +54,15 @@ router.patch('/batches/:id', (req: Request, res: Response, next: NextFunction) =
  */
 router.patch('/batches/:id/mentor', (req: Request, res: Response, next: NextFunction) => {
   void batchController.assignMentor(req, res, next);
+});
+
+/**
+ * @route   POST /api/v1/admin/enrollments
+ * @desc    Create a new enrollment
+ * @access  SuperAdmin, Ops
+ */
+router.post('/enrollments', (req: Request, res: Response, next: NextFunction) => {
+  void enrollmentController.createEnrollment(req, res, next);
 });
 
 export default router;
