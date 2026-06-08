@@ -49,7 +49,7 @@ export class EnrollmentService {
         throw NotFoundError.user();
       }
 
-      if (student.role !== 'Student') {
+      if (student.role !== 'Student' && student.role !== 'student') {
         throw ValidationError.forField(
           'studentUserId',
           'User must have Student role to enroll in a batch'

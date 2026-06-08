@@ -4,6 +4,7 @@ import { authorize } from '@/common/middleware/authorize.middleware';
 import { UserRole } from '@/common/constants/user.constants';
 import { batchController } from '../controllers/batch.controller';
 import { enrollmentController } from '../controllers/enrollment.controller';
+import { userController } from '../controllers/user.controller';
 
 const router = Router();
 
@@ -63,6 +64,24 @@ router.patch('/batches/:id/mentor', (req: Request, res: Response, next: NextFunc
  */
 router.post('/enrollments', (req: Request, res: Response, next: NextFunction) => {
   void enrollmentController.createEnrollment(req, res, next);
+});
+
+/**
+ * @route   GET /api/v1/admin/users
+ * @desc    List all users with filters
+ * @access  SuperAdmin, Ops
+ */
+router.get('/users', (req: Request, res: Response, next: NextFunction) => {
+  void userController.listUsers(req, res, next);
+});
+
+/**
+ * @route   GET /api/v1/admin/users/:id
+ * @desc    Get user by ID
+ * @access  SuperAdmin, Ops
+ */
+router.get('/users/:id', (req: Request, res: Response, next: NextFunction) => {
+  void userController.getUserById(req, res, next);
 });
 
 export default router;

@@ -53,7 +53,9 @@ async function testEnrollmentAPI() {
 
     // Step 1: Get a student from database
     console.log('\n📝 Step 1: Finding a student...');
-    const student = await mongoose.connection.db.collection('users').findOne({ role: 'Student' });
+    const student = await mongoose.connection.db.collection('users').findOne({ 
+      $or: [{ role: 'Student' }, { role: 'student' }]
+    });
     
     if (!student) {
       throw new Error('No student found in database. Please create a student first.');
@@ -80,17 +82,35 @@ async function testEnrollmentAPI() {
     console.log(`   Capacity: ${batch.enrolledCount}/${batch.capacity}`);
     console.log(`   Status: ${batch.status}`);
 
-    // Step 3: Login as admin
-    console.log('\n📝 Step 3: Logging in as admin...');
+    // Step 3: Login as super admin
+    console.log('\n📝 Step 3: Logging in as super admin...');
     try {
       const loginResponse = await axios.post(`${BASE_URL}/api/v1/auth/login`, {
         email: 'admin@growthcraft.com',
-        password: 'Admin@123'
+        password: 'Admin@123456'
       });
 
-      adminToken = loginResponse.data.data.accessToken;
+      // Extract access token from Set-Cookie header
+      const cookies = loginResponse.headers['set-cookie'];
+      if (cookies) {
+        const accessTokenCookie = cookies.find((cookie: string) => cookie.startsWith('access_token='));
+        if (accessTokenCookie) {
+          // Extract token value from cookie string
+          const match = accessTokenCookie.match(/access_token=([^;]+)/);
+          if (match) {
+            adminToken = match[1];
+          }
+        }
+      }
+
+      if (!adminToken) {
+        throw new Error('No access token received from login');
+      }
+
       console.log(`✅ Login successful`);
-      console.log(`   Token: ${adminToken.substring(0, 50)}...`);
+      if (adminToken) {
+        console.log(`   Token: ${adminToken.substring(0, 50)}...`);
+      }
       
       logResult({
         name: 'Admin Login',
@@ -149,6 +169,7 @@ async function testEnrollmentAPI() {
         message: 'Failed to create enrollment',
         error: error.response?.data || error.message
       });
+      console.error('   Full error:', JSON.stringify(error.response?.data, null, 2));
       throw error;
     }
 
@@ -200,7 +221,7 @@ async function testEnrollmentAPI() {
       });
     } catch (error: any) {
       if (error.response?.status === 400 && error.response?.data?.error?.errors?.some((e: any) => 
-        e.message.includes('already enrolled')
+        e.message.includes('already enrolled') || e.message.includes('duplicate')
       )) {
         console.log(`✅ Duplicate enrollment correctly rejected`);
         logResult({
@@ -209,6 +230,7 @@ async function testEnrollmentAPI() {
           message: 'Duplicate enrollment was correctly rejected with 400 error'
         });
       } else {
+        console.log(`   Error response:`, JSON.stringify(error.response?.data, null, 2));
         logResult({
           name: 'Duplicate Enrollment Prevention',
           success: false,
@@ -223,7 +245,7 @@ async function testEnrollmentAPI() {
     
     // Find another student
     const student2 = await mongoose.connection.db.collection('users').findOne({ 
-      role: 'Student',
+      $or: [{ role: 'Student' }, { role: 'student' }],
       _id: { $ne: new mongoose.Types.ObjectId(studentId) }
     });
 
