@@ -12,6 +12,7 @@
     "test:connections": "node scripts/test-connections.js",
     "test:email": "ts-node scripts/test-email.ts",
     "test:search": "ts-node scripts/test-search.ts",
+    "test:enrollment": "ts-node scripts/test-enrollment-api.ts",
     "seed:catalogue": "ts-node scripts/seed-catalogue.ts",
     "seed:courses": "ts-node scripts/seed-courses.ts",
     "seed:bootcamps": "ts-node scripts/seed-bootcamps.ts",
@@ -21,6 +22,8 @@
     "clear-cache": "ts-node scripts/clear-cache.ts",
     "init:config": "ts-node scripts/init-course-config.ts",
     "fix:enrollment": "ts-node scripts/fix-course-enrollment.ts",
+    "seed:metrics": "ts-node scripts/seed-test-metrics-data.ts",
+    "trigger-metrics": "ts-node scripts/trigger-metrics-job.ts",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.{ts,json}\"",
@@ -32,7 +35,9 @@
     "swagger:auto": "node scripts/swagger-autogen.js"
   },
   "dependencies": {
+    "axios": "^1.17.0",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.78.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

@@ -3,6 +3,9 @@ import { authenticate } from '@/common/middleware/authenticate.middleware';
 import { authorize } from '@/common/middleware/authorize.middleware';
 import { UserRole } from '@/common/constants/user.constants';
 import { batchController } from '../controllers/batch.controller';
+import { enrollmentController } from '../controllers/enrollment.controller';
+import { userController } from '../controllers/user.controller';
+import metricsJobRoutes from './metrics-job.routes';
 
 const router = Router();
 
@@ -54,5 +57,37 @@ router.patch('/batches/:id', (req: Request, res: Response, next: NextFunction) =
 router.patch('/batches/:id/mentor', (req: Request, res: Response, next: NextFunction) => {
   void batchController.assignMentor(req, res, next);
 });
+
+/**
+ * @route   POST /api/v1/admin/enrollments
+ * @desc    Create a new enrollment
+ * @access  SuperAdmin, Ops
+ */
+router.post('/enrollments', (req: Request, res: Response, next: NextFunction) => {
+  void enrollmentController.createEnrollment(req, res, next);
+});
+
+/**
+ * @route   GET /api/v1/admin/users
+ * @desc    List all users with filters
+ * @access  SuperAdmin, Ops
+ */
+router.get('/users', (req: Request, res: Response, next: NextFunction) => {
+  void userController.listUsers(req, res, next);
+});
+
+/**
+ * @route   GET /api/v1/admin/users/:id
+ * @desc    Get user by ID
+ * @access  SuperAdmin, Ops
+ */
+router.get('/users/:id', (req: Request, res: Response, next: NextFunction) => {
+  void userController.getUserById(req, res, next);
+});
+
+/**
+ * Job management routes
+ */
+router.use('/jobs', metricsJobRoutes);
 
 export default router;
