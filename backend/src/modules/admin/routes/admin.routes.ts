@@ -5,6 +5,7 @@ import { UserRole } from '@/common/constants/user.constants';
 import { batchController } from '../controllers/batch.controller';
 import { enrollmentController } from '../controllers/enrollment.controller';
 import { userController } from '../controllers/user.controller';
+import metricsJobRoutes from './metrics-job.routes';
 
 const router = Router();
 
@@ -83,5 +84,10 @@ router.get('/users', (req: Request, res: Response, next: NextFunction) => {
 router.get('/users/:id', (req: Request, res: Response, next: NextFunction) => {
   void userController.getUserById(req, res, next);
 });
+
+/**
+ * Job management routes
+ */
+router.use('/jobs', metricsJobRoutes);
 
 export default router;

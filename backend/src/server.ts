@@ -3,6 +3,7 @@ import { config } from './config';
 import { databaseConfig } from './config/database.config';
 import { redisConfig } from './config/redis.config';
 import { logger } from './common/utils/logger.util';
+import { initializeJobs, shutdownJobs } from './jobs';
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error: Error) => {
@@ -28,6 +29,14 @@ const startServer = async () => {
       await redisConfig.connect();
       if (redisConfig.getConnectionStatus()) {
         logger.info('✓ Redis connected successfully');
+        
+        // Initialize scheduled jobs (requires Redis)
+        try {
+          await initializeJobs();
+          logger.info('✓ Scheduled jobs initialized');
+        } catch (error) {
+          logger.warn('⚠ Failed to initialize jobs:', error);
+        }
       } else {
         logger.warn('⚠ Redis not connected - continuing without Redis');
       }
@@ -50,6 +59,10 @@ const startServer = async () => {
         logger.info('HTTP server closed');
 
         try {
+          // Shutdown jobs
+          await shutdownJobs();
+          logger.info('Jobs shut down');
+
           // Disconnect Redis (if connected)
           if (redisConfig.getConnectionStatus()) {
             await redisConfig.disconnect();

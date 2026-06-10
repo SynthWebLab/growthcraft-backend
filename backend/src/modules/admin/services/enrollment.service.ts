@@ -3,6 +3,7 @@ import { Batch, Enrollment, EnrollmentStatus, User } from '@/database/models';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { logger } from '@/common/utils/logger.util';
+import { UserRole } from '@/common/constants/user.constants';
 
 export interface CreateEnrollmentInput {
   studentUserId: string;
@@ -49,7 +50,7 @@ export class EnrollmentService {
         throw NotFoundError.user();
       }
 
-      if (student.role !== 'Student' && student.role !== 'student') {
+      if (student.role !== UserRole.STUDENT) {
         throw ValidationError.forField(
           'studentUserId',
           'User must have Student role to enroll in a batch'
