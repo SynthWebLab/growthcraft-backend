@@ -3,7 +3,7 @@
  * Used by both courses and bootcamps
  */
 
-export type CatalogueItemType = 'course' | 'bootcamp';
+export type CatalogueItemType = 'course' | 'bootcamp' | 'workshop' | 'hackathon';
 
 export interface CatalogueItem {
   // Common fields
@@ -55,14 +55,6 @@ export interface CatalogueItem {
   canRegister?: boolean; // For bootcamps
   primaryCTA?: string;
   secondaryCTA?: string | null;
-  cta?: {
-    status: string;
-    condition: string;
-    seatsAvailable: boolean;
-    primaryCTA: string;
-    secondaryCTA: string | null;
-    codeLocation: string;
-  };
   
   // Timestamps
   createdAt: string;
