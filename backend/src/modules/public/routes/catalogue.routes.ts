@@ -200,6 +200,111 @@ router.get('/bootcamps', (req: Request, res: Response, next: NextFunction) => {
 
 /**
  * @swagger
+ * /workshops:
+ *   get:
+ *     summary: Get workshops only (Public endpoint)
+ *     tags: [Public Catalogue]
+ *     description: Returns only workshop events with filtering and pagination
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by status (Open, Closed, Completed)
+ *     responses:
+ *       200:
+ *         description: Workshops retrieved successfully
+ */
+router.get('/workshops', (req: Request, res: Response, next: NextFunction) => {
+  void catalogueController.getWorkshops(req, res, next);
+});
+
+/**
+ * @swagger
+ * /hackathons:
+ *   get:
+ *     summary: Get hackathons only (Public endpoint)
+ *     tags: [Public Catalogue]
+ *     description: Returns only hackathon events with filtering and pagination
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by status (Open, Closed, Completed)
+ *     responses:
+ *       200:
+ *         description: Hackathons retrieved successfully
+ */
+router.get('/hackathons', (req: Request, res: Response, next: NextFunction) => {
+  void catalogueController.getHackathons(req, res, next);
+});
+
+/**
+ * @swagger
+ * /events:
+ *   get:
+ *     summary: Get ALL events (Bootcamps + Workshops + Hackathons) (Public endpoint)
+ *     tags: [Public Catalogue]
+ *     description: |
+ *       Returns all event types (bootcamps, workshops, hackathons) in a single response.
+ *       Supports filtering, pagination, search, and sorting.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page (max: 50)
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by status (Open, Closed, Completed)
+ *       - in: query
+ *         name: mode
+ *         schema:
+ *           type: string
+ *         description: Filter by mode (Online, Offline, Hybrid)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search in title and description
+ *     responses:
+ *       200:
+ *         description: All events retrieved successfully
+ */
+router.get('/events', (req: Request, res: Response, next: NextFunction) => {
+  void catalogueController.getAllEvents(req, res, next);
+});
+
+/**
+ * @swagger
  * /bootcamps/id/{id}:
  *   get:
  *     summary: Get bootcamp by ID (Public endpoint)

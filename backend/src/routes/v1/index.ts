@@ -6,6 +6,8 @@ import publicCatalogueRoutes from '@/modules/public/routes/catalogue.routes';
 import publicBatchRoutes from '@/modules/public/routes/batch.routes';
 import reservationRoutes from '@/modules/reservations/routes/reservation.routes';
 import adminRoutes from '@/modules/admin/routes/admin.routes';
+import eventEnrollmentRoutes from '@/modules/events/routes/event-enrollment.routes';
+import eventDetailsRoutes from '@/modules/events/routes/event-details.routes';
 
 const router = Router();
 
@@ -13,6 +15,8 @@ const router = Router();
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/courses', courseRoutes);
+router.use('/events', eventEnrollmentRoutes);
+router.use('/events', eventDetailsRoutes);
 router.use('/reservations', reservationRoutes);
 router.use('/admin', adminRoutes);
 

@@ -1,0 +1,393 @@
+{
+  "info": {
+    "name": "Event Enrollment API",
+    "description": "API collection for Event Enrollment (Bootcamps, Workshops, Hackathons)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Register for Bootcamp",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1234567890\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/events/Bootcamp/{{eventId}}/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Bootcamp", "{{eventId}}", "register"]
+        },
+        "description": "Register/Reserve seat for a bootcamp (requires authentication)"
+      },
+      "response": []
+    },
+    {
+      "name": "2. Register for Workshop",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Jane Smith\",\n  \"email\": \"jane.smith@example.com\",\n  \"phone\": \"+1234567891\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/events/Workshop/{{eventId}}/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Workshop", "{{eventId}}", "register"]
+        },
+        "description": "Register for a workshop (requires authentication)"
+      },
+      "response": []
+    },
+    {
+      "name": "3. Register for Hackathon",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Bob Johnson\",\n  \"email\": \"bob.johnson@example.com\",\n  \"phone\": \"+1234567892\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/events/Hackathon/{{eventId}}/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Hackathon", "{{eventId}}", "register"]
+        },
+        "description": "Register for a hackathon (requires authentication)"
+      },
+      "response": []
+    },
+    {
+      "name": "4. Request Callback - Bootcamp (Authenticated)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1234567890\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/events/Bootcamp/{{eventId}}/request-callback",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Bootcamp", "{{eventId}}", "request-callback"]
+        },
+        "description": "Request callback for a bootcamp (logged-in user)"
+      },
+      "response": []
+    },
+    {
+      "name": "5. Request Callback - Workshop (Guest)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Guest User\",\n  \"email\": \"guest@example.com\",\n  \"phone\": \"+1234567893\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/events/Workshop/{{eventId}}/request-callback",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Workshop", "{{eventId}}", "request-callback"]
+        },
+        "description": "Request callback for a workshop (guest user - no auth)"
+      },
+      "response": []
+    },
+    {
+      "name": "6. Request Callback - Hackathon",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Alice Brown\",\n  \"email\": \"alice.brown@example.com\",\n  \"phone\": \"+1234567894\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/events/Hackathon/{{eventId}}/request-callback",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Hackathon", "{{eventId}}", "request-callback"]
+        },
+        "description": "Request callback for a hackathon"
+      },
+      "response": []
+    },
+    {
+      "name": "7. Get My Enrollments - All Events",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/events/enrollments/my-enrollments",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "enrollments", "my-enrollments"]
+        },
+        "description": "Get all event enrollments for the authenticated user (all event types)"
+      },
+      "response": []
+    },
+    {
+      "name": "8. Get My Enrollments - Bootcamps Only",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/events/Bootcamp/enrollments/my-enrollments",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Bootcamp", "enrollments", "my-enrollments"]
+        },
+        "description": "Get bootcamp enrollments only for the authenticated user"
+      },
+      "response": []
+    },
+    {
+      "name": "9. Get My Enrollments - Workshops Only",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/events/Workshop/enrollments/my-enrollments",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Workshop", "enrollments", "my-enrollments"]
+        },
+        "description": "Get workshop enrollments only for the authenticated user"
+      },
+      "response": []
+    },
+    {
+      "name": "10. Get My Enrollments - Hackathons Only",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/events/Hackathon/enrollments/my-enrollments",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Hackathon", "enrollments", "my-enrollments"]
+        },
+        "description": "Get hackathon enrollments only for the authenticated user"
+      },
+      "response": []
+    },
+    {
+      "name": "11. Get My Callback Requests - All Events",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/events/callbacks/my-requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "callbacks", "my-requests"]
+        },
+        "description": "Get all callback requests for the authenticated user (all event types)"
+      },
+      "response": []
+    },
+    {
+      "name": "12. Get My Callback Requests - Bootcamps",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/events/Bootcamp/callbacks/my-requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Bootcamp", "callbacks", "my-requests"]
+        },
+        "description": "Get bootcamp callback requests only"
+      },
+      "response": []
+    },
+    {
+      "name": "13. Get My Callback Requests - Workshops",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/events/Workshop/callbacks/my-requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Workshop", "callbacks", "my-requests"]
+        },
+        "description": "Get workshop callback requests only"
+      },
+      "response": []
+    },
+    {
+      "name": "14. Get My Callback Requests - Hackathons",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/events/Hackathon/callbacks/my-requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Hackathon", "callbacks", "my-requests"]
+        },
+        "description": "Get hackathon callback requests only"
+      },
+      "response": []
+    },
+    {
+      "name": "15. Check Enrollment Status - Bootcamp",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/events/Bootcamp/{{eventId}}/enrollment-status",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Bootcamp", "{{eventId}}", "enrollment-status"]
+        },
+        "description": "Check if user is enrolled and has pending callback for a bootcamp"
+      },
+      "response": []
+    },
+    {
+      "name": "16. Check Enrollment Status - Workshop",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/events/Workshop/{{eventId}}/enrollment-status",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Workshop", "{{eventId}}", "enrollment-status"]
+        },
+        "description": "Check if user is enrolled and has pending callback for a workshop"
+      },
+      "response": []
+    },
+    {
+      "name": "17. Check Enrollment Status - Hackathon",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/events/Hackathon/{{eventId}}/enrollment-status",
+          "host": ["{{baseUrl}}"],
+          "path": ["events", "Hackathon", "{{eventId}}", "enrollment-status"]
+        },
+        "description": "Check if user is enrolled and has pending callback for a hackathon"
+      },
+      "response": []
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import { Course, ICourse } from '@/database/models/Course.model';
 import { Bootcamp, IBootcamp } from '@/database/models/Bootcamp.model';
 import {
   CatalogueItem,
+  CatalogueItemType,
   CatalogueQueryParams,
   CataloguePaginatedResponse,
 } from '@/common/interfaces/catalogue.interface';
@@ -63,10 +64,28 @@ export class CatalogueService {
         allItems.push(...courses.map(this.mapCourseToCatalogueItem));
       }
 
-      // Fetch bootcamps if type is not specified or is 'bootcamp'
-      if (!queryParams.type || queryParams.type === 'bootcamp') {
+      // Fetch bootcamps if type is 'bootcamp'
+      if (queryParams.type === 'bootcamp') {
         const bootcamps = await this.fetchBootcamps(queryParams, sortBy, sortOrder, limit + 1);
         allItems.push(...bootcamps.map(this.mapBootcampToCatalogueItem));
+      }
+
+      // Fetch workshops if type is 'workshop'
+      if (queryParams.type === 'workshop') {
+        const workshops = await this.fetchBootcamps(queryParams, sortBy, sortOrder, limit + 1);
+        allItems.push(...workshops.map(this.mapBootcampToCatalogueItem));
+      }
+
+      // Fetch hackathons if type is 'hackathon'
+      if (queryParams.type === 'hackathon') {
+        const hackathons = await this.fetchBootcamps(queryParams, sortBy, sortOrder, limit + 1);
+        allItems.push(...hackathons.map(this.mapBootcampToCatalogueItem));
+      }
+
+      // If no type specified, fetch all event types (bootcamp, workshop, hackathon)
+      if (!queryParams.type) {
+        const allEvents = await this.fetchBootcamps(queryParams, sortBy, sortOrder, limit + 1);
+        allItems.push(...allEvents.map(this.mapBootcampToCatalogueItem));
       }
 
       // Sort combined results
@@ -144,7 +163,7 @@ export class CatalogueService {
       total = courseTotal;
     }
 
-    if (queryParams.type === 'bootcamp') {
+    if (queryParams.type === 'bootcamp' || queryParams.type === 'workshop' || queryParams.type === 'hackathon') {
       const [bootcamps, bootcampTotal] = await Promise.all([
         this.fetchBootcamps(queryParams, sortBy, sortOrder, limit, skip),
         this.countBootcamps(queryParams),
@@ -152,6 +171,17 @@ export class CatalogueService {
 
       items = bootcamps.map(this.mapBootcampToCatalogueItem);
       total = bootcampTotal;
+    }
+
+    // If no type, fetch all events
+    if (!queryParams.type) {
+      const [allEvents, eventTotal] = await Promise.all([
+        this.fetchBootcamps(queryParams, sortBy, sortOrder, limit, skip),
+        this.countBootcamps(queryParams),
+      ]);
+
+      items = allEvents.map(this.mapBootcampToCatalogueItem);
+      total = eventTotal;
     }
 
     const totalPages = Math.ceil(total / limit);
@@ -266,6 +296,16 @@ export class CatalogueService {
   private buildBootcampFilter(queryParams: CatalogueQueryParams): any {
     const filter: any = { isActive: true };
 
+    // Filter by event type
+    if (queryParams.type === 'bootcamp') {
+      filter.type = 'Bootcamp';
+    } else if (queryParams.type === 'workshop') {
+      filter.type = 'Workshop';
+    } else if (queryParams.type === 'hackathon') {
+      filter.type = 'Hackathon';
+    }
+    // If no type specified, return all types (no type filter)
+
     if (queryParams.status) {
       filter.status = queryParams.status;
     } else {
@@ -325,9 +365,25 @@ export class CatalogueService {
    * Map bootcamp to catalogue item
    */
   private mapBootcampToCatalogueItem(bootcamp: IBootcamp): CatalogueItem {
+    // Convert database type to lowercase for API response
+    // Database: 'Workshop' → API: 'workshop'
+    let apiType: CatalogueItemType;
+    switch (bootcamp.type) {
+      case 'Workshop':
+        apiType = 'workshop';
+        break;
+      case 'Hackathon':
+        apiType = 'hackathon';
+        break;
+      case 'Bootcamp':
+      default:
+        apiType = 'bootcamp';
+        break;
+    }
+
     return {
       id: bootcamp._id.toString(),
-      type: 'bootcamp',
+      type: apiType,
       title: bootcamp.title,
       slug: bootcamp.slug,
       description: bootcamp.description,
@@ -350,7 +406,6 @@ export class CatalogueService {
       canRegister: bootcamp.canRegister(),
       primaryCTA: bootcamp.getPrimaryCTA(),
       secondaryCTA: bootcamp.getSecondaryCTA(),
-      cta: bootcamp.getCTAState(),
       createdAt: bootcamp.createdAt.toISOString(),
       updatedAt: bootcamp.updatedAt.toISOString(),
     };

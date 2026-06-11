@@ -122,6 +122,102 @@ export class CatalogueController {
       next(error);
     }
   }
+
+  /**
+   * Get workshops only (public endpoint)
+   * GET /api/v1/workshops
+   */
+  public async getWorkshops(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const queryParams: CatalogueQueryParams = {
+        type: 'workshop', // Force type to workshop
+        cursor: req.query.cursor as string,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        page: req.query.page ? parseInt(req.query.page as string) : undefined,
+        category: req.query.category ? (req.query.category as string).trim() : undefined,
+        mode: req.query.mode ? (req.query.mode as string).trim() as any : undefined,
+        status: req.query.status ? (req.query.status as string).trim() : undefined,
+        minPrice: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
+        maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
+        minRating: req.query.minRating ? parseFloat(req.query.minRating as string) : undefined,
+        tags: req.query.tags ? (req.query.tags as string).trim() : undefined,
+        search: req.query.search ? (req.query.search as string).trim() : undefined,
+        sortBy: req.query.sortBy as any,
+        sortOrder: req.query.sortOrder as any,
+      };
+
+      const result = await catalogueService.getCatalogueItems(queryParams);
+
+      res.status(200).json(result);
+    } catch (error: any) {
+      logger.error('Get workshops controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get hackathons only (public endpoint)
+   * GET /api/v1/hackathons
+   */
+  public async getHackathons(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const queryParams: CatalogueQueryParams = {
+        type: 'hackathon', // Force type to hackathon
+        cursor: req.query.cursor as string,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        page: req.query.page ? parseInt(req.query.page as string) : undefined,
+        category: req.query.category ? (req.query.category as string).trim() : undefined,
+        mode: req.query.mode ? (req.query.mode as string).trim() as any : undefined,
+        status: req.query.status ? (req.query.status as string).trim() : undefined,
+        minPrice: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
+        maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
+        minRating: req.query.minRating ? parseFloat(req.query.minRating as string) : undefined,
+        tags: req.query.tags ? (req.query.tags as string).trim() : undefined,
+        search: req.query.search ? (req.query.search as string).trim() : undefined,
+        sortBy: req.query.sortBy as any,
+        sortOrder: req.query.sortOrder as any,
+      };
+
+      const result = await catalogueService.getCatalogueItems(queryParams);
+
+      res.status(200).json(result);
+    } catch (error: any) {
+      logger.error('Get hackathons controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get all events (bootcamps + workshops + hackathons) (public endpoint)
+   * GET /api/v1/events
+   */
+  public async getAllEvents(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const queryParams: CatalogueQueryParams = {
+        // No type filter - returns all event types
+        cursor: req.query.cursor as string,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        page: req.query.page ? parseInt(req.query.page as string) : undefined,
+        category: req.query.category ? (req.query.category as string).trim() : undefined,
+        mode: req.query.mode ? (req.query.mode as string).trim() as any : undefined,
+        status: req.query.status ? (req.query.status as string).trim() : undefined,
+        minPrice: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
+        maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
+        minRating: req.query.minRating ? parseFloat(req.query.minRating as string) : undefined,
+        tags: req.query.tags ? (req.query.tags as string).trim() : undefined,
+        search: req.query.search ? (req.query.search as string).trim() : undefined,
+        sortBy: req.query.sortBy as any,
+        sortOrder: req.query.sortOrder as any,
+      };
+
+      const result = await catalogueService.getCatalogueItems(queryParams);
+
+      res.status(200).json(result);
+    } catch (error: any) {
+      logger.error('Get all events controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const catalogueController = CatalogueController.getInstance();
