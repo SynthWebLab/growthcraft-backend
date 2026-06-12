@@ -1,5 +1,5 @@
 import { EventDetails, IEventDetails } from '@/database/models/EventDetails.model';
-import { Bootcamp, EventType } from '@/database/models/Bootcamp.model';
+import { Bootcamp, EventType, IBootcamp } from '@/database/models/Bootcamp.model';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { logger } from '@/common/utils/logger.util';
 
@@ -18,7 +18,7 @@ export class EventDetailsService {
   /**
    * Get complete event details by slug
    */
-  public async getEventDetailsBySlug(slug: string): Promise<IEventDetails> {
+  public async getEventDetailsBySlug(slug: string): Promise<Record<string, unknown>> {
     try {
       const eventDetails = await EventDetails.findOne({ slug })
         .populate('eventId')
@@ -28,7 +28,7 @@ export class EventDetailsService {
         throw new NotFoundError('Event details not found', 'EVENT_DETAILS_NOT_FOUND');
       }
 
-      return eventDetails;
+      return this.serializeEventDetails(eventDetails);
     } catch (error) {
       logger.error('Get event details by slug error:', error);
       throw error;
@@ -138,7 +138,7 @@ export class EventDetailsService {
   /**
    * Get event details by slug and type
    */
-  public async getEventDetailsBySlugAndType(slug: string, eventType: EventType): Promise<IEventDetails> {
+  public async getEventDetailsBySlugAndType(slug: string, eventType: EventType): Promise<Record<string, unknown>> {
     try {
       const eventDetails = await EventDetails.findOne({ slug, type: eventType })
         .populate('eventId')
@@ -148,7 +148,7 @@ export class EventDetailsService {
         throw new NotFoundError(`${eventType} details not found`, 'EVENT_DETAILS_NOT_FOUND');
       }
 
-      return eventDetails;
+      return this.serializeEventDetails(eventDetails);
     } catch (error) {
       logger.error('Get event details by slug and type error:', error);
       throw error;
@@ -216,6 +216,34 @@ export class EventDetailsService {
       logger.error('Delete event details error:', error);
       throw error;
     }
+  }
+
+  private serializeEventDetails(eventDetails: IEventDetails): Record<string, unknown> {
+    const serialized = eventDetails.toJSON() as Record<string, unknown>;
+    const populatedEvent = eventDetails.eventId as unknown as IBootcamp;
+
+    if (!populatedEvent || typeof populatedEvent.getCTAState !== 'function') {
+      return serialized;
+    }
+
+    const event = populatedEvent.toJSON() as Record<string, unknown>;
+    const cta = populatedEvent.getCTAState();
+
+    serialized.eventId = {
+      ...event,
+      availableSeats: populatedEvent.getAvailableSeats(),
+      canRegister: populatedEvent.canRegister(),
+      primaryCTA: cta.primaryCTA,
+      secondaryCTA: cta.secondaryCTA,
+      cta,
+    };
+    serialized.availableSeats = populatedEvent.getAvailableSeats();
+    serialized.canRegister = populatedEvent.canRegister();
+    serialized.primaryCTA = cta.primaryCTA;
+    serialized.secondaryCTA = cta.secondaryCTA;
+    serialized.cta = cta;
+
+    return serialized;
   }
 }
 
