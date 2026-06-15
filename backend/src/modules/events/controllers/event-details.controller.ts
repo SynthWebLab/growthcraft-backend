@@ -23,13 +23,13 @@ export class EventDetailsController {
     try {
       const { slug } = req.params;
 
-      let eventDetails = await eventDetailsService.getEventDetailsBySlug(slug);
+      let eventDetails = await eventDetailsService.getEventDetailsBySlug(slug) as any;
 
       if (req.user?.userId && eventDetails) {
         const userId = req.user.userId;
         const { eventEnrollmentService } = await import('@/modules/events/services/event-enrollment.service');
 
-        const eventIdObj = eventDetails.eventId;
+        const eventIdObj = eventDetails.eventId as any;
         if (eventIdObj) {
           const eventIdStr = (eventIdObj._id || eventIdObj.id || eventIdObj).toString();
 

@@ -11,6 +11,22 @@ const PORT = process.env.PORT || 5002;
 const BASE_URL = `http://localhost:${PORT}`;
 const MONGODB_URI = process.env.MONGODB_URI;
 
+// Helper functions to find items in responses
+function findCourse(res: any, id: string) {
+  const arr = Array.isArray(res.data?.data) ? res.data.data : (res.data?.data?.items || res.data?.data?.courses || []);
+  return arr.find((c: any) => c.id === id || c._id === id);
+}
+
+function findBootcamp(res: any, id: string) {
+  const arr = Array.isArray(res.data?.data) ? res.data.data : (res.data?.data?.items || res.data?.data?.bootcamps || []);
+  return arr.find((b: any) => b.id === id || b._id === id);
+}
+
+function findProgram(res: any, id: string) {
+  const arr = Array.isArray(res.data?.data) ? res.data.data : (res.data?.data?.programs || res.data?.data?.items || []);
+  return arr.find((p: any) => p._id === id || p.id === id);
+}
+
 async function run() {
   console.log('🚀 Running Dynamic CTA Verification Tests...\n');
   
@@ -50,9 +66,9 @@ async function run() {
     };
 
     // 2. Find a course, event/bootcamp, and training program
-    const Course = mongoose.model('Course', new mongoose.Schema({}, { strict: false }));
-    const Bootcamp = mongoose.model('Bootcamp', new mongoose.Schema({}, { strict: false }));
-    const TrainingProgram = mongoose.model('TrainingProgram', new mongoose.Schema({}, { strict: false }));
+    const Course = mongoose.models.Course || mongoose.model('Course', new mongoose.Schema({}, { strict: false }));
+    const Bootcamp = mongoose.models.Bootcamp || mongoose.model('Bootcamp', new mongoose.Schema({}, { strict: false }));
+    const TrainingProgram = mongoose.models.TrainingProgram || mongoose.model('TrainingProgram', new mongoose.Schema({}, { strict: false }));
 
     const courseDoc = await Course.findOne({ isPublished: true }) || await Course.findOne();
     const bootcampDoc = await Bootcamp.findOne({ isPublished: true }) || await Bootcamp.findOne();
@@ -77,48 +93,49 @@ async function run() {
     console.log(`🎓 Target Training Program: ${trainingProgramSlug} [ID: ${trainingProgramId}]`);
 
     console.log('\n--- TEST CASE 1: GUEST USER (Unauthenticated) ---');
+    
     const guestCoursesRes = await axios.get(`${BASE_URL}/api/v1/courses`);
-    const guestCourse = guestCoursesRes.data.data.items?.find((c: any) => c.id === courseId) || guestCoursesRes.data.data.courses?.find((c: any) => c.id === courseId || c._id === courseId);
+    const guestCourse = findCourse(guestCoursesRes, courseId);
     console.log('Guest Course CTA:', guestCourse ? { primary: guestCourse.primaryCTA, secondary: guestCourse.secondaryCTA, isEnrolled: guestCourse.isEnrolled, hasCallback: guestCourse.hasCallbackRequest } : 'Not found');
 
-    const guestBootcampsRes = await axios.get(`${BASE_URL}/api/v1/bootcamps`);
-    const guestBootcamp = guestBootcampsRes.data.data.items?.find((b: any) => b.id === bootcampId);
+    const guestBootcampsRes = await axios.get(`${BASE_URL}/api/v1/events?search=${bootcampSlug}`);
+    const guestBootcamp = findBootcamp(guestBootcampsRes, bootcampId);
     console.log('Guest Bootcamp CTA:', guestBootcamp ? { primary: guestBootcamp.primaryCTA, secondary: guestBootcamp.secondaryCTA, isEnrolled: guestBootcamp.isEnrolled, hasCallback: guestBootcamp.hasCallbackRequest } : 'Not found');
 
     const guestProgramsRes = await axios.get(`${BASE_URL}/api/v1/training-programs`);
-    const guestProgram = guestProgramsRes.data.data.programs?.find((p: any) => p._id === trainingProgramId || p.id === trainingProgramId);
+    const guestProgram = findProgram(guestProgramsRes, trainingProgramId);
     console.log('Guest Program CTA:', guestProgram ? { primary: guestProgram.primaryCTA, secondary: guestProgram.secondaryCTA, isEnrolled: guestProgram.isEnrolled, hasCallback: guestProgram.hasCallbackRequest } : 'Not found');
 
     console.log('\n--- TEST CASE 2: LOGGED-IN NO ENROLLMENT / NO CALLBACK ---');
     const loggedInCoursesRes = await axios.get(`${BASE_URL}/api/v1/courses`, { headers: authHeaders });
-    const loggedInCourse = loggedInCoursesRes.data.data.items?.find((c: any) => c.id === courseId) || loggedInCoursesRes.data.data.courses?.find((c: any) => c.id === courseId || c._id === courseId);
+    const loggedInCourse = findCourse(loggedInCoursesRes, courseId);
     console.log('Logged-in Course CTA:', loggedInCourse ? { primary: loggedInCourse.primaryCTA, secondary: loggedInCourse.secondaryCTA, isEnrolled: loggedInCourse.isEnrolled, hasCallback: loggedInCourse.hasCallbackRequest } : 'Not found');
 
-    const loggedInBootcampsRes = await axios.get(`${BASE_URL}/api/v1/bootcamps`, { headers: authHeaders });
-    const loggedInBootcamp = loggedInBootcampsRes.data.data.items?.find((b: any) => b.id === bootcampId);
+    const loggedInBootcampsRes = await axios.get(`${BASE_URL}/api/v1/events?search=${bootcampSlug}`, { headers: authHeaders });
+    const loggedInBootcamp = findBootcamp(loggedInBootcampsRes, bootcampId);
     console.log('Logged-in Bootcamp CTA:', loggedInBootcamp ? { primary: loggedInBootcamp.primaryCTA, secondary: loggedInBootcamp.secondaryCTA, isEnrolled: loggedInBootcamp.isEnrolled, hasCallback: loggedInBootcamp.hasCallbackRequest } : 'Not found');
 
     const loggedInProgramsRes = await axios.get(`${BASE_URL}/api/v1/training-programs`, { headers: authHeaders });
-    const loggedInProgram = loggedInProgramsRes.data.data.programs?.find((p: any) => p._id === trainingProgramId || p.id === trainingProgramId);
+    const loggedInProgram = findProgram(loggedInProgramsRes, trainingProgramId);
     console.log('Logged-in Program CTA:', loggedInProgram ? { primary: loggedInProgram.primaryCTA, secondary: loggedInProgram.secondaryCTA, isEnrolled: loggedInProgram.isEnrolled, hasCallback: loggedInProgram.hasCallbackRequest } : 'Not found');
 
 
     console.log('\n--- TEST CASE 3: ENROLLED USER ---');
     
     // Inject mock enrollments in parallel
-    const CourseEnrollment = mongoose.model('CourseEnrollment', new mongoose.Schema({
+    const CourseEnrollment = mongoose.models.CourseEnrollment || mongoose.model('CourseEnrollment', new mongoose.Schema({
       userId: mongoose.Schema.Types.ObjectId,
       courseId: mongoose.Schema.Types.ObjectId,
       status: String
     }, { collection: 'courseenrollments' }));
 
-    const EventEnrollment = mongoose.model('EventEnrollment', new mongoose.Schema({
+    const EventEnrollment = mongoose.models.EventEnrollment || mongoose.model('EventEnrollment', new mongoose.Schema({
       userId: mongoose.Schema.Types.ObjectId,
       eventId: mongoose.Schema.Types.ObjectId,
       status: String
     }, { collection: 'eventenrollments' }));
 
-    const TrainingProgramEnrollment = mongoose.model('TrainingProgramEnrollment', new mongoose.Schema({
+    const TrainingProgramEnrollment = mongoose.models.TrainingProgramEnrollment || mongoose.model('TrainingProgramEnrollment', new mongoose.Schema({
       userId: mongoose.Schema.Types.ObjectId,
       programId: mongoose.Schema.Types.ObjectId,
       status: String
@@ -132,15 +149,15 @@ async function run() {
     try {
       // Query endpoints as student
       const enrolledCoursesRes = await axios.get(`${BASE_URL}/api/v1/courses`, { headers: authHeaders });
-      const enrolledCourse = enrolledCoursesRes.data.data.items?.find((c: any) => c.id === courseId) || enrolledCoursesRes.data.data.courses?.find((c: any) => c.id === courseId || c._id === courseId);
+      const enrolledCourse = findCourse(enrolledCoursesRes, courseId);
       console.log('Enrolled Course CTA (Expect Already Enrolled):', enrolledCourse ? { primary: enrolledCourse.primaryCTA, secondary: enrolledCourse.secondaryCTA, isEnrolled: enrolledCourse.isEnrolled } : 'Not found');
 
-      const enrolledBootcampsRes = await axios.get(`${BASE_URL}/api/v1/bootcamps`, { headers: authHeaders });
-      const enrolledBootcamp = enrolledBootcampsRes.data.data.items?.find((b: any) => b.id === bootcampId);
+      const enrolledBootcampsRes = await axios.get(`${BASE_URL}/api/v1/events?search=${bootcampSlug}`, { headers: authHeaders });
+      const enrolledBootcamp = findBootcamp(enrolledBootcampsRes, bootcampId);
       console.log('Enrolled Bootcamp CTA (Expect Already Enrolled):', enrolledBootcamp ? { primary: enrolledBootcamp.primaryCTA, secondary: enrolledBootcamp.secondaryCTA, isEnrolled: enrolledBootcamp.isEnrolled } : 'Not found');
 
       const enrolledProgramsRes = await axios.get(`${BASE_URL}/api/v1/training-programs`, { headers: authHeaders });
-      const enrolledProgram = enrolledProgramsRes.data.data.programs?.find((p: any) => p._id === trainingProgramId || p.id === trainingProgramId);
+      const enrolledProgram = findProgram(enrolledProgramsRes, trainingProgramId);
       console.log('Enrolled Program CTA (Expect Already Enrolled):', enrolledProgram ? { primary: enrolledProgram.primaryCTA, secondary: enrolledProgram.secondaryCTA, isEnrolled: enrolledProgram.isEnrolled } : 'Not found');
 
       // Test event details
@@ -164,19 +181,19 @@ async function run() {
     console.log('\n--- TEST CASE 4: CALLBACK REQUESTED USER ---');
 
     // Inject mock callback requests
-    const CourseCallbackRequest = mongoose.model('CourseCallbackRequest', new mongoose.Schema({
+    const CourseCallbackRequest = mongoose.models.CourseCallbackRequest || mongoose.model('CourseCallbackRequest', new mongoose.Schema({
       userId: mongoose.Schema.Types.ObjectId,
       courseId: mongoose.Schema.Types.ObjectId,
       status: String
     }, { collection: 'coursecallbackrequests' }));
 
-    const EventCallbackRequest = mongoose.model('EventCallbackRequest', new mongoose.Schema({
+    const EventCallbackRequest = mongoose.models.EventCallbackRequest || mongoose.model('EventCallbackRequest', new mongoose.Schema({
       userId: mongoose.Schema.Types.ObjectId,
       eventId: mongoose.Schema.Types.ObjectId,
       status: String
     }, { collection: 'eventcallbackrequests' }));
 
-    const TrainingProgramCallbackRequest = mongoose.model('TrainingProgramCallbackRequest', new mongoose.Schema({
+    const TrainingProgramCallbackRequest = mongoose.models.TrainingProgramCallbackRequest || mongoose.model('TrainingProgramCallbackRequest', new mongoose.Schema({
       userId: mongoose.Schema.Types.ObjectId,
       programId: mongoose.Schema.Types.ObjectId,
       status: String
@@ -189,15 +206,15 @@ async function run() {
     try {
       // Query endpoints as student
       const callbackCoursesRes = await axios.get(`${BASE_URL}/api/v1/courses`, { headers: authHeaders });
-      const callbackCourse = callbackCoursesRes.data.data.items?.find((c: any) => c.id === courseId) || callbackCoursesRes.data.data.courses?.find((c: any) => c.id === courseId || c._id === courseId);
+      const callbackCourse = findCourse(callbackCoursesRes, courseId);
       console.log('Callback Course CTA (Expect Callback Requested):', callbackCourse ? { primary: callbackCourse.primaryCTA, secondary: callbackCourse.secondaryCTA, hasCallbackRequest: callbackCourse.hasCallbackRequest } : 'Not found');
 
-      const callbackBootcampsRes = await axios.get(`${BASE_URL}/api/v1/bootcamps`, { headers: authHeaders });
-      const callbackBootcamp = callbackBootcampsRes.data.data.items?.find((b: any) => b.id === bootcampId);
+      const callbackBootcampsRes = await axios.get(`${BASE_URL}/api/v1/events?search=${bootcampSlug}`, { headers: authHeaders });
+      const callbackBootcamp = findBootcamp(callbackBootcampsRes, bootcampId);
       console.log('Callback Bootcamp CTA (Expect Callback Requested):', callbackBootcamp ? { primary: callbackBootcamp.primaryCTA, secondary: callbackBootcamp.secondaryCTA, hasCallbackRequest: callbackBootcamp.hasCallbackRequest } : 'Not found');
 
       const callbackProgramsRes = await axios.get(`${BASE_URL}/api/v1/training-programs`, { headers: authHeaders });
-      const callbackProgram = callbackProgramsRes.data.data.programs?.find((p: any) => p._id === trainingProgramId || p.id === trainingProgramId);
+      const callbackProgram = findProgram(callbackProgramsRes, trainingProgramId);
       console.log('Callback Program CTA (Expect Callback Requested):', callbackProgram ? { primary: callbackProgram.primaryCTA, secondary: callbackProgram.secondaryCTA, hasCallbackRequest: callbackProgram.hasCallbackRequest } : 'Not found');
 
       // Test event details
