@@ -1,0 +1,360 @@
+{
+  "info": {
+    "name": "Training Programs API",
+    "description": "Complete API collection for Training Programs module - 40-day internship programs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "programId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Public - Get All Programs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs"]
+        },
+        "description": "Get all published training programs. Default shows active programs only."
+      }
+    },
+    {
+      "name": "2. Public - Get Programs with Filters",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs?domain=Web Development&level=Intermediate&page=1&limit=12&sortBy=enrollmentCount&sortOrder=desc",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs"],
+          "query": [
+            {
+              "key": "domain",
+              "value": "Web Development",
+              "description": "Filter by domain"
+            },
+            {
+              "key": "level",
+              "value": "Intermediate",
+              "description": "Filter by level (Beginner/Intermediate/Advanced)"
+            },
+            {
+              "key": "status",
+              "value": "active",
+              "description": "Filter by status (active/coming-soon/draft)",
+              "disabled": true
+            },
+            {
+              "key": "search",
+              "value": "react",
+              "description": "Search in title and description",
+              "disabled": true
+            },
+            {
+              "key": "page",
+              "value": "1",
+              "description": "Page number"
+            },
+            {
+              "key": "limit",
+              "value": "12",
+              "description": "Items per page"
+            },
+            {
+              "key": "sortBy",
+              "value": "enrollmentCount",
+              "description": "Sort field (enrollmentCount, rating, price, createdAt)"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc",
+              "description": "Sort order (asc/desc)"
+            }
+          ]
+        },
+        "description": "Filter and paginate training programs. All query parameters are optional."
+      }
+    },
+    {
+      "name": "3. Public - Search Programs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs?search=react development",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs"],
+          "query": [
+            {
+              "key": "search",
+              "value": "react development",
+              "description": "Full-text search in title and description"
+            }
+          ]
+        },
+        "description": "Search training programs using full-text search."
+      }
+    },
+    {
+      "name": "4. Public - Get All Domains",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/filters/domains",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "filters", "domains"]
+        },
+        "description": "Get list of all unique domains for filtering."
+      }
+    },
+    {
+      "name": "5. Public - Get Popular Programs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/popular?limit=6",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "popular"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "6",
+              "description": "Number of programs to return"
+            }
+          ]
+        },
+        "description": "Get most popular programs based on enrollment count and rating."
+      }
+    },
+    {
+      "name": "6. Public - Get Program by Slug",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/full-stack-web-development",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "full-stack-web-development"]
+        },
+        "description": "Get detailed information about a specific program by slug."
+      }
+    },
+    {
+      "name": "7. Public - Get Similar Programs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/full-stack-web-development/similar?limit=4",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "full-stack-web-development", "similar"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "4",
+              "description": "Number of similar programs to return"
+            }
+          ]
+        },
+        "description": "Get programs similar to the specified one (same domain)."
+      }
+    },
+    {
+      "name": "8. Public - Get Program Details (All)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/full-stack-web-development/details",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "full-stack-web-development", "details"]
+        },
+        "description": "Get complete program details including overview, syllabus, mentors, and FAQs."
+      }
+    },
+    {
+      "name": "9. Public - Get Program Overview",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/full-stack-web-development/overview",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "full-stack-web-development", "overview"]
+        },
+        "description": "Get only the overview section (about, what you'll learn, prerequisites, included)."
+      }
+    },
+    {
+      "name": "10. Public - Get Program Syllabus",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/full-stack-web-development/syllabus",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "full-stack-web-development", "syllabus"]
+        },
+        "description": "Get week-by-week syllabus breakdown."
+      }
+    },
+    {
+      "name": "11. Public - Get Program Mentors",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/full-stack-web-development/mentors",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "full-stack-web-development", "mentors"]
+        },
+        "description": "Get program mentors with their details."
+      }
+    },
+    {
+      "name": "12. Public - Get Program FAQs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/full-stack-web-development/faqs",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "full-stack-web-development", "faqs"]
+        },
+        "description": "Get frequently asked questions for the program."
+      }
+    },
+    {
+      "name": "13. Protected - Enroll in Program",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+919876543210\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/{{programId}}/enroll",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "{{programId}}", "enroll"]
+        },
+        "description": "Enroll the authenticated user in a training program. Requires JWT token.\n\nNote: Set {{programId}} variable with a valid program ID."
+      }
+    },
+    {
+      "name": "14. Protected - Request Callback",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+919876543210\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/{{programId}}/request-callback",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "{{programId}}", "request-callback"]
+        },
+        "description": "Request a callback from the team. Requires JWT token.\n\nNote: Set {{programId}} variable with a valid program ID."
+      }
+    },
+    {
+      "name": "15. Protected - Get My Enrollments",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/enrollments/my-enrollments",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "enrollments", "my-enrollments"]
+        },
+        "description": "Get all enrollments for the authenticated user."
+      }
+    },
+    {
+      "name": "16. Protected - Get My Callback Requests",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/callbacks/my-requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "callbacks", "my-requests"]
+        },
+        "description": "Get all callback requests for the authenticated user."
+      }
+    },
+    {
+      "name": "17. Protected - Check Enrollment Status",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/training-programs/{{programId}}/enrollment-status",
+          "host": ["{{baseUrl}}"],
+          "path": ["training-programs", "{{programId}}", "enrollment-status"]
+        },
+        "description": "Check if user is enrolled or has pending callback request for a program.\n\nNote: Set {{programId}} variable with a valid program ID."
+      }
+    }
+  ]
+}
