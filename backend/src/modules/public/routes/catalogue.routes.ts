@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { catalogueController } from '../controllers/catalogue.controller';
+import { optionalAuthenticate } from '@/common/middleware/authenticate.middleware';
 
 const router = Router();
 
@@ -93,7 +94,7 @@ const router = Router();
  *                   nullable: true
  *                   description: Cursor for next page (null if no more items)
  */
-router.get('/courses', (req: Request, res: Response, next: NextFunction) => {
+router.get('/courses', optionalAuthenticate, (req: Request, res: Response, next: NextFunction) => {
   void catalogueController.getCourses(req, res, next);
 });
 
@@ -194,7 +195,7 @@ router.get('/courses', (req: Request, res: Response, next: NextFunction) => {
  *                   nullable: true
  *                   description: Cursor for next page (null if no more items)
  */
-router.get('/bootcamps', (req: Request, res: Response, next: NextFunction) => {
+router.get('/bootcamps', optionalAuthenticate, (req: Request, res: Response, next: NextFunction) => {
   void catalogueController.getBootcamps(req, res, next);
 });
 
@@ -225,7 +226,7 @@ router.get('/bootcamps', (req: Request, res: Response, next: NextFunction) => {
  *       200:
  *         description: Workshops retrieved successfully
  */
-router.get('/workshops', (req: Request, res: Response, next: NextFunction) => {
+router.get('/workshops', optionalAuthenticate, (req: Request, res: Response, next: NextFunction) => {
   void catalogueController.getWorkshops(req, res, next);
 });
 
@@ -256,7 +257,7 @@ router.get('/workshops', (req: Request, res: Response, next: NextFunction) => {
  *       200:
  *         description: Hackathons retrieved successfully
  */
-router.get('/hackathons', (req: Request, res: Response, next: NextFunction) => {
+router.get('/hackathons', optionalAuthenticate, (req: Request, res: Response, next: NextFunction) => {
   void catalogueController.getHackathons(req, res, next);
 });
 
@@ -299,7 +300,7 @@ router.get('/hackathons', (req: Request, res: Response, next: NextFunction) => {
  *       200:
  *         description: All events retrieved successfully
  */
-router.get('/events', (req: Request, res: Response, next: NextFunction) => {
+router.get('/events', optionalAuthenticate, (req: Request, res: Response, next: NextFunction) => {
   void catalogueController.getAllEvents(req, res, next);
 });
 
@@ -333,7 +334,7 @@ router.get('/events', (req: Request, res: Response, next: NextFunction) => {
  *       404:
  *         description: Bootcamp not found
  */
-router.get('/bootcamps/id/:id', (req: Request, res: Response, next: NextFunction) => {
+router.get('/bootcamps/id/:id', optionalAuthenticate, (req: Request, res: Response, next: NextFunction) => {
   void catalogueController.getBootcampById(req, res, next);
 });
 
@@ -368,7 +369,7 @@ router.get('/bootcamps/id/:id', (req: Request, res: Response, next: NextFunction
  *       404:
  *         description: Bootcamp not found
  */
-router.get('/bootcamps/:slug', (req: Request, res: Response, next: NextFunction) => {
+router.get('/bootcamps/:slug', optionalAuthenticate, (req: Request, res: Response, next: NextFunction) => {
   void catalogueController.getBootcampBySlug(req, res, next);
 });
 

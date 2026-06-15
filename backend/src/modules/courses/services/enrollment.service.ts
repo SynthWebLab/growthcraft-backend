@@ -285,6 +285,31 @@ export class EnrollmentService {
   }
 
   /**
+   * Get course IDs where the user has a pending callback request
+   */
+  public async getUserPendingCallbackCourseIds(userId: string, courseIds: string[]): Promise<Set<string>> {
+    try {
+      if (courseIds.length === 0) {
+        return new Set();
+      }
+
+      const requests = await CourseCallbackRequest.find({
+        userId,
+        courseId: { $in: courseIds },
+        status: 'pending',
+      })
+        .select('courseId')
+        .lean()
+        .exec();
+
+      return new Set(requests.map(request => request.courseId.toString()));
+    } catch (error: any) {
+      logger.error('Get user pending callback course IDs error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get enrollment by ID
    */
   public async getEnrollmentById(enrollmentId: string): Promise<ICourseEnrollment | null> {

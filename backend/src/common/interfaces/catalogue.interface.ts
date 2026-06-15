@@ -55,6 +55,8 @@ export interface CatalogueItem {
   canRegister?: boolean; // For bootcamps
   primaryCTA?: string;
   secondaryCTA?: string | null;
+  isEnrolled?: boolean;
+  hasCallbackRequest?: boolean;
   
   // Timestamps
   createdAt: string;

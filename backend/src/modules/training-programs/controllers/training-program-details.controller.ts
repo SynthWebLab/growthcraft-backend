@@ -23,7 +23,32 @@ export class TrainingProgramDetailsController {
     try {
       const { slug } = req.params;
 
-      const programDetails = await trainingProgramDetailsService.getProgramDetailsBySlug(slug);
+      let programDetails = await trainingProgramDetailsService.getProgramDetailsBySlug(slug);
+
+      if (req.user?.userId && programDetails) {
+        const userId = req.user.userId;
+        const { TrainingProgramEnrollment } = await import('@/database/models/TrainingProgramEnrollment.model');
+        const { TrainingProgramCallbackRequest } = await import('@/database/models/TrainingProgramCallbackRequest.model');
+        
+        const programIdStr = programDetails.programId?.toString();
+        if (programIdStr) {
+          const isEnrolled = await TrainingProgramEnrollment.findOne({
+            userId,
+            programId: programIdStr,
+            status: { $in: ['pending', 'confirmed'] },
+          }).select('_id').lean().exec();
+          
+          const hasCallback = await TrainingProgramCallbackRequest.findOne({
+            userId,
+            programId: programIdStr,
+            status: 'pending',
+          }).select('_id').lean().exec();
+          
+          programDetails = JSON.parse(JSON.stringify(programDetails));
+          (programDetails as any).isEnrolled = !!isEnrolled;
+          (programDetails as any).hasCallbackRequest = !!hasCallback;
+        }
+      }
 
       SuccessResponseHelper.ok(res, { programDetails }, 'Training program details retrieved successfully');
     } catch (error: any) {

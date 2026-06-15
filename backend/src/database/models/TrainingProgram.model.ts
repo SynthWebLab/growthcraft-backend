@@ -29,6 +29,9 @@ export interface ITrainingProgram extends Document {
   deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  getPrimaryCTA(): string;
+  getSecondaryCTA(): string | null;
+  canEnroll(): boolean;
 }
 
 const trainingProgramSchema = new Schema<ITrainingProgram>(
@@ -156,10 +159,44 @@ trainingProgramSchema.index({ isPublished: 1, status: 1 });
 trainingProgramSchema.index({ domain: 1, level: 1, status: 1 });
 trainingProgramSchema.index({ rating: -1, enrollmentCount: -1 });
 
+// Methods for CTAs
+trainingProgramSchema.methods.getPrimaryCTA = function (): string {
+  switch (this.status) {
+    case 'active':
+      return 'Enroll Now';
+    case 'coming-soon':
+      return 'Register Interest';
+    case 'draft':
+    default:
+      return 'Request Callback';
+  }
+};
+
+trainingProgramSchema.methods.getSecondaryCTA = function (): string | null {
+  switch (this.status) {
+    case 'active':
+      return 'Request Callback';
+    case 'coming-soon':
+    case 'draft':
+    default:
+      return null;
+  }
+};
+
+trainingProgramSchema.methods.canEnroll = function (): boolean {
+  return this.status === 'active';
+};
+
 // Remove __v from JSON response
 trainingProgramSchema.methods.toJSON = function (): Record<string, unknown> {
   const obj = this.toObject() as Record<string, unknown>;
   delete obj.__v;
+  
+  // Add computed fields
+  obj.primaryCTA = this.getPrimaryCTA();
+  obj.secondaryCTA = this.getSecondaryCTA();
+  obj.canEnroll = this.canEnroll();
+  
   return obj;
 };
 

@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { eventDetailsController } from '../controllers/event-details.controller';
+import { optionalAuthenticate } from '@/common/middleware/authenticate.middleware';
 
 const router = Router();
 
@@ -28,7 +29,7 @@ const router = Router();
  *       404:
  *         description: Event details not found
  */
-router.get('/:slug/details', (req: Request, res: Response, next: NextFunction) => {
+router.get('/:slug/details', optionalAuthenticate, (req: Request, res: Response, next: NextFunction) => {
   void eventDetailsController.getAllDetails(req, res, next);
 });
 

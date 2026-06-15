@@ -334,6 +334,41 @@ export class EventEnrollmentService {
   }
 
   /**
+   * Get event IDs where the user has a pending callback request
+   */
+  public async getUserPendingCallbackEventIds(
+    userId: string,
+    eventIds: string[],
+    eventType?: EventType
+  ): Promise<Set<string>> {
+    try {
+      if (eventIds.length === 0) {
+        return new Set();
+      }
+
+      const filter: any = {
+        userId,
+        eventId: { $in: eventIds },
+        status: 'pending',
+      };
+
+      if (eventType) {
+        filter.eventType = eventType;
+      }
+
+      const requests = await EventCallbackRequest.find(filter)
+        .select('eventId')
+        .lean()
+        .exec();
+
+      return new Set(requests.map(request => request.eventId.toString()));
+    } catch (error: any) {
+      logger.error('Get user pending callback event IDs error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get enrollment by ID
    */
   public async getEnrollmentById(enrollmentId: string): Promise<IEventEnrollment | null> {

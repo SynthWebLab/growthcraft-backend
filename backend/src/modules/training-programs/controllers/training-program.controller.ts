@@ -43,7 +43,9 @@ export class TrainingProgramController {
         sortOrder: sortOrder as 'asc' | 'desc',
       });
 
-      SuccessResponseHelper.ok(res, result, 'Training programs retrieved successfully');
+      const processedPrograms = await this.processProgramsCTAs(req, result.programs);
+
+      SuccessResponseHelper.ok(res, { ...result, programs: processedPrograms }, 'Training programs retrieved successfully');
     } catch (error: any) {
       logger.error('Get all training programs controller error:', error);
       next(error);
@@ -60,7 +62,9 @@ export class TrainingProgramController {
 
       const program = await trainingProgramService.getProgramBySlug(slug);
 
-      SuccessResponseHelper.ok(res, { program }, 'Training program retrieved successfully');
+      const [processedProgram] = await this.processProgramsCTAs(req, [program]);
+
+      SuccessResponseHelper.ok(res, { program: processedProgram }, 'Training program retrieved successfully');
     } catch (error: any) {
       logger.error('Get training program by slug controller error:', error);
       next(error);
@@ -94,7 +98,9 @@ export class TrainingProgramController {
         limit ? parseInt(limit as string) : undefined
       );
 
-      SuccessResponseHelper.ok(res, { programs }, 'Popular training programs retrieved successfully');
+      const processedPrograms = await this.processProgramsCTAs(req, programs);
+
+      SuccessResponseHelper.ok(res, { programs: processedPrograms }, 'Popular training programs retrieved successfully');
     } catch (error: any) {
       logger.error('Get popular training programs controller error:', error);
       next(error);
@@ -119,10 +125,89 @@ export class TrainingProgramController {
         limit ? parseInt(limit as string) : undefined
       );
 
-      SuccessResponseHelper.ok(res, { programs }, 'Similar training programs retrieved successfully');
+      const processedPrograms = await this.processProgramsCTAs(req, programs);
+
+      SuccessResponseHelper.ok(res, { programs: processedPrograms }, 'Similar training programs retrieved successfully');
     } catch (error: any) {
       logger.error('Get similar training programs controller error:', error);
       next(error);
+    }
+  }
+
+  private async processProgramsCTAs(req: Request, programs: any[]): Promise<any[]> {
+    const userId = req.user?.userId;
+    
+    // First map the default CTAs for everyone since they are lean objects
+    const mappedPrograms = programs.map(p => {
+      const obj = JSON.parse(JSON.stringify(p));
+      const defaults = this.getProgramDefaultCTAs(obj.status);
+      obj.primaryCTA = defaults.primaryCTA;
+      obj.secondaryCTA = defaults.secondaryCTA;
+      obj.canEnroll = defaults.canEnroll;
+      obj.isEnrolled = false;
+      obj.hasCallbackRequest = false;
+      return obj;
+    });
+
+    if (!userId || mappedPrograms.length === 0) {
+      return mappedPrograms;
+    }
+
+    const programIds = mappedPrograms.map(p => (p._id || p.id).toString());
+    const { TrainingProgramEnrollment } = await import('@/database/models/TrainingProgramEnrollment.model');
+    const { TrainingProgramCallbackRequest } = await import('@/database/models/TrainingProgramCallbackRequest.model');
+
+    const enrollments = await TrainingProgramEnrollment.find({
+      userId,
+      programId: { $in: programIds },
+      status: { $in: ['pending', 'confirmed'] },
+    }).select('programId').lean().exec();
+
+    const callbacks = await TrainingProgramCallbackRequest.find({
+      userId,
+      programId: { $in: programIds },
+      status: 'pending',
+    }).select('programId').lean().exec();
+
+    const enrolledSet = new Set(enrollments.map(e => e.programId.toString()));
+    const callbackSet = new Set(callbacks.map(c => c.programId.toString()));
+
+    return mappedPrograms.map(obj => {
+      const programIdStr = (obj._id || obj.id).toString();
+      const isEnrolled = enrolledSet.has(programIdStr);
+      const hasCallback = callbackSet.has(programIdStr);
+
+      obj.isEnrolled = isEnrolled;
+      obj.hasCallbackRequest = hasCallback;
+
+      if (isEnrolled) {
+        obj.primaryCTA = 'Already Enrolled';
+        obj.secondaryCTA = null;
+      } else if (hasCallback) {
+        if (obj.primaryCTA && obj.primaryCTA.toLowerCase().includes('register')) {
+          obj.primaryCTA = 'Interest Registered';
+          obj.secondaryCTA = null;
+        } else if (obj.primaryCTA && obj.primaryCTA.toLowerCase().includes('callback')) {
+          obj.primaryCTA = 'Callback Requested';
+          obj.secondaryCTA = null;
+        } else {
+          obj.secondaryCTA = 'Callback Requested';
+        }
+      }
+
+      return obj;
+    });
+  }
+
+  private getProgramDefaultCTAs(status: string) {
+    switch (status) {
+      case 'active':
+        return { primaryCTA: 'Enroll Now', secondaryCTA: 'Request Callback', canEnroll: true };
+      case 'coming-soon':
+        return { primaryCTA: 'Register Interest', secondaryCTA: null, canEnroll: false };
+      case 'draft':
+      default:
+        return { primaryCTA: 'Request Callback', secondaryCTA: null, canEnroll: false };
     }
   }
 }

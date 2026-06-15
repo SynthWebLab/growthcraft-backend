@@ -6,7 +6,7 @@ import { logger } from '@/common/utils/logger.util';
 export class EventDetailsController {
   private static instance: EventDetailsController;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): EventDetailsController {
     if (!EventDetailsController.instance) {
@@ -23,7 +23,60 @@ export class EventDetailsController {
     try {
       const { slug } = req.params;
 
-      const eventDetails = await eventDetailsService.getEventDetailsBySlug(slug);
+      let eventDetails = await eventDetailsService.getEventDetailsBySlug(slug);
+
+      if (req.user?.userId && eventDetails) {
+        const userId = req.user.userId;
+        const { eventEnrollmentService } = await import('@/modules/events/services/event-enrollment.service');
+
+        const eventIdObj = eventDetails.eventId;
+        if (eventIdObj) {
+          const eventIdStr = (eventIdObj._id || eventIdObj.id || eventIdObj).toString();
+
+          const isEnrolled = await eventEnrollmentService.isUserEnrolled(userId, eventIdStr);
+          const { hasCallbackRequest } = await eventEnrollmentService.getEnrollmentStatus(userId, eventIdStr);
+
+          eventDetails = JSON.parse(JSON.stringify(eventDetails));
+
+          if (typeof eventDetails.eventId === 'object' && eventDetails.eventId !== null) {
+            const eventObj = eventDetails.eventId as any;
+            eventObj.isEnrolled = isEnrolled;
+            eventObj.hasCallbackRequest = hasCallbackRequest;
+
+            if (isEnrolled) {
+              eventObj.primaryCTA = 'Already Enrolled';
+              eventObj.secondaryCTA = null;
+            } else if (hasCallbackRequest) {
+              if (eventObj.primaryCTA && eventObj.primaryCTA.toLowerCase().includes('register')) {
+                eventObj.primaryCTA = 'Interest Registered';
+                eventObj.secondaryCTA = null;
+              } else if (eventObj.primaryCTA && eventObj.primaryCTA.toLowerCase().includes('callback')) {
+                eventObj.primaryCTA = 'Callback Requested';
+                eventObj.secondaryCTA = null;
+              } else {
+                eventObj.secondaryCTA = 'Callback Requested';
+              }
+            }
+          }
+
+          eventDetails.isEnrolled = isEnrolled;
+          eventDetails.hasCallbackRequest = hasCallbackRequest;
+          if (isEnrolled) {
+            eventDetails.primaryCTA = 'Already Enrolled';
+            eventDetails.secondaryCTA = null;
+          } else if (hasCallbackRequest) {
+            if (eventDetails.primaryCTA && eventDetails.primaryCTA.toLowerCase().includes('register')) {
+              eventDetails.primaryCTA = 'Interest Registered';
+              eventDetails.secondaryCTA = null;
+            } else if (eventDetails.primaryCTA && eventDetails.primaryCTA.toLowerCase().includes('callback')) {
+              eventDetails.primaryCTA = 'Callback Requested';
+              eventDetails.secondaryCTA = null;
+            } else {
+              eventDetails.secondaryCTA = 'Callback Requested';
+            }
+          }
+        }
+      }
 
       SuccessResponseHelper.ok(res, { eventDetails }, 'Event details retrieved successfully');
     } catch (error: any) {

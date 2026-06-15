@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { catalogueService } from '../services/catalogue.service';
 import { bootcampService } from '@/modules/bootcamps/services/bootcamp.service';
-import { CatalogueQueryParams } from '@/common/interfaces/catalogue.interface';
+import { CatalogueQueryParams, CatalogueItem } from '@/common/interfaces/catalogue.interface';
 import { logger } from '@/common/utils/logger.util';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 
@@ -41,8 +41,13 @@ export class CatalogueController {
       };
 
       const result = await catalogueService.getCatalogueItems(queryParams);
+      
+      const processedItems = await this.processCatalogueCTAs(req, result.items);
 
-      res.status(200).json(result);
+      res.status(200).json({
+        ...result,
+        items: processedItems
+      });
     } catch (error: any) {
       logger.error('Get courses controller error:', error);
       next(error);
@@ -74,7 +79,12 @@ export class CatalogueController {
 
       const result = await catalogueService.getCatalogueItems(queryParams);
 
-      res.status(200).json(result);
+      const processedItems = await this.processCatalogueCTAs(req, result.items);
+
+      res.status(200).json({
+        ...result,
+        items: processedItems
+      });
     } catch (error: any) {
       logger.error('Get bootcamps controller error:', error);
       next(error);
@@ -95,7 +105,9 @@ export class CatalogueController {
         throw new NotFoundError(`Bootcamp with slug '${slug}' not found`, 'BOOTCAMP_NOT_FOUND');
       }
 
-      res.status(200).json({ bootcamp });
+      const processedBootcamp = await this.processSingleBootcamp(req, bootcamp);
+
+      res.status(200).json({ bootcamp: processedBootcamp });
     } catch (error: any) {
       logger.error('Get bootcamp by slug controller error:', error);
       next(error);
@@ -116,7 +128,9 @@ export class CatalogueController {
         throw new NotFoundError(`Bootcamp with ID '${id}' not found`, 'BOOTCAMP_NOT_FOUND');
       }
 
-      res.status(200).json({ bootcamp });
+      const processedBootcamp = await this.processSingleBootcamp(req, bootcamp);
+
+      res.status(200).json({ bootcamp: processedBootcamp });
     } catch (error: any) {
       logger.error('Get bootcamp by ID controller error:', error);
       next(error);
@@ -148,7 +162,12 @@ export class CatalogueController {
 
       const result = await catalogueService.getCatalogueItems(queryParams);
 
-      res.status(200).json(result);
+      const processedItems = await this.processCatalogueCTAs(req, result.items);
+
+      res.status(200).json({
+        ...result,
+        items: processedItems
+      });
     } catch (error: any) {
       logger.error('Get workshops controller error:', error);
       next(error);
@@ -180,7 +199,12 @@ export class CatalogueController {
 
       const result = await catalogueService.getCatalogueItems(queryParams);
 
-      res.status(200).json(result);
+      const processedItems = await this.processCatalogueCTAs(req, result.items);
+
+      res.status(200).json({
+        ...result,
+        items: processedItems
+      });
     } catch (error: any) {
       logger.error('Get hackathons controller error:', error);
       next(error);
@@ -212,11 +236,143 @@ export class CatalogueController {
 
       const result = await catalogueService.getCatalogueItems(queryParams);
 
-      res.status(200).json(result);
+      const processedItems = await this.processCatalogueCTAs(req, result.items);
+
+      res.status(200).json({
+        ...result,
+        items: processedItems
+      });
     } catch (error: any) {
       logger.error('Get all events controller error:', error);
       next(error);
     }
+  }
+
+  private async processCatalogueCTAs(req: Request, items: CatalogueItem[]): Promise<CatalogueItem[]> {
+    const userId = req.user?.userId;
+
+    // By default, initialize all fields for all items
+    const processedItems = items.map(item => {
+      const obj = { ...item };
+      obj.isEnrolled = false;
+      obj.hasCallbackRequest = false;
+      return obj;
+    });
+
+    if (!userId || processedItems.length === 0) {
+      return processedItems;
+    }
+
+    // Separate course and event items
+    const courseItems = processedItems.filter(item => item.type === 'course');
+    const eventItems = processedItems.filter(item => item.type !== 'course');
+
+    const courseIds = courseItems.map(item => item.id);
+    const eventIds = eventItems.map(item => item.id);
+
+    // Fetch in parallel
+    const [
+      enrolledCourseIds,
+      callbackCourseIds,
+      enrolledEventIds,
+      callbackEventIds
+    ] = await Promise.all([
+      // Courses
+      courseIds.length > 0 
+        ? (async () => {
+            const { enrollmentService } = await import('@/modules/courses/services/enrollment.service');
+            return enrollmentService.getUserEnrolledCourseIds(userId, courseIds);
+          })()
+        : Promise.resolve(new Set<string>()),
+      courseIds.length > 0 
+        ? (async () => {
+            const { enrollmentService } = await import('@/modules/courses/services/enrollment.service');
+            return enrollmentService.getUserPendingCallbackCourseIds(userId, courseIds);
+          })()
+        : Promise.resolve(new Set<string>()),
+      
+      // Events
+      eventIds.length > 0
+        ? (async () => {
+            const { eventEnrollmentService } = await import('@/modules/events/services/event-enrollment.service');
+            return eventEnrollmentService.getUserEnrolledEventIds(userId, eventIds);
+          })()
+        : Promise.resolve(new Set<string>()),
+      eventIds.length > 0
+        ? (async () => {
+            const { eventEnrollmentService } = await import('@/modules/events/services/event-enrollment.service');
+            return eventEnrollmentService.getUserPendingCallbackEventIds(userId, eventIds);
+          })()
+        : Promise.resolve(new Set<string>())
+    ]);
+
+    return processedItems.map(item => {
+      let isEnrolled = false;
+      let hasCallback = false;
+
+      if (item.type === 'course') {
+        isEnrolled = enrolledCourseIds.has(item.id);
+        hasCallback = callbackCourseIds.has(item.id);
+      } else {
+        isEnrolled = enrolledEventIds.has(item.id);
+        hasCallback = callbackEventIds.has(item.id);
+      }
+
+      item.isEnrolled = isEnrolled;
+      item.hasCallbackRequest = hasCallback;
+
+      if (isEnrolled) {
+        item.primaryCTA = 'Already Enrolled';
+        item.secondaryCTA = null;
+      } else if (hasCallback) {
+        if (item.primaryCTA && item.primaryCTA.toLowerCase().includes('register')) {
+          item.primaryCTA = 'Interest Registered';
+          item.secondaryCTA = null;
+        } else if (item.primaryCTA && item.primaryCTA.toLowerCase().includes('callback')) {
+          item.primaryCTA = 'Callback Requested';
+          item.secondaryCTA = null;
+        } else {
+          item.secondaryCTA = 'Callback Requested';
+        }
+      }
+
+      return item;
+    });
+  }
+
+  private async processSingleBootcamp(req: Request, bootcamp: any): Promise<any> {
+    let bootcampData = typeof bootcamp.toJSON === 'function' ? bootcamp.toJSON() : { ...bootcamp };
+    const userId = req.user?.userId;
+
+    if (userId) {
+      const bootcampIdStr = (bootcampData._id || bootcampData.id).toString();
+      const { eventEnrollmentService } = await import('@/modules/events/services/event-enrollment.service');
+      const isEnrolled = await eventEnrollmentService.isUserEnrolled(userId, bootcampIdStr);
+      const { hasCallbackRequest } = await eventEnrollmentService.getEnrollmentStatus(userId, bootcampIdStr);
+
+      bootcampData.isEnrolled = isEnrolled;
+      bootcampData.hasCallbackRequest = hasCallbackRequest;
+
+      if (isEnrolled) {
+        bootcampData.primaryCTA = 'Already Enrolled';
+        bootcampData.secondaryCTA = null;
+      } else if (hasCallbackRequest) {
+        if (bootcampData.primaryCTA && bootcampData.primaryCTA.toLowerCase().includes('register')) {
+          bootcampData.primaryCTA = 'Interest Registered';
+          bootcampData.secondaryCTA = null;
+        } else if (bootcampData.primaryCTA && bootcampData.primaryCTA.toLowerCase().includes('callback')) {
+          bootcampData.primaryCTA = 'Callback Requested';
+          bootcampData.secondaryCTA = null;
+        } else {
+          bootcampData.secondaryCTA = 'Callback Requested';
+        }
+      }
+    } else {
+      bootcampData.isEnrolled = false;
+      bootcampData.hasCallbackRequest = false;
+    }
+
+    return bootcampData;
   }
 }
 

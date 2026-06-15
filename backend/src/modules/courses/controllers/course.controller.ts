@@ -24,9 +24,35 @@ export class CourseController {
     return (course._id || course.id).toString();
   }
 
-  private courseToResponse(course: any, enrolledCourseIds: Set<string> = new Set()): any {
+  private courseToResponse(
+    course: any,
+    enrolledCourseIds: Set<string> = new Set(),
+    callbackCourseIds: Set<string> = new Set()
+  ): any {
     const courseData = typeof course.toJSON === 'function' ? course.toJSON() : { ...course };
-    courseData.isEnrolled = enrolledCourseIds.has(this.getCourseId(courseData));
+    const courseIdStr = this.getCourseId(courseData);
+    
+    const isEnrolled = enrolledCourseIds.has(courseIdStr);
+    const hasCallback = callbackCourseIds.has(courseIdStr);
+    
+    courseData.isEnrolled = isEnrolled;
+    courseData.hasCallbackRequest = hasCallback;
+
+    if (isEnrolled) {
+      courseData.primaryCTA = 'Already Enrolled';
+      courseData.secondaryCTA = null;
+    } else if (hasCallback) {
+      if (courseData.primaryCTA && courseData.primaryCTA.toLowerCase().includes('register')) {
+        courseData.primaryCTA = 'Interest Registered';
+        courseData.secondaryCTA = null;
+      } else if (courseData.primaryCTA && courseData.primaryCTA.toLowerCase().includes('callback')) {
+        courseData.primaryCTA = 'Callback Requested';
+        courseData.secondaryCTA = null;
+      } else {
+        courseData.secondaryCTA = 'Callback Requested';
+      }
+    }
+
     return courseData;
   }
 
@@ -37,6 +63,18 @@ export class CourseController {
     }
 
     return enrollmentService.getUserEnrolledCourseIds(
+      userId,
+      courses.map(course => this.getCourseId(course))
+    );
+  }
+
+  private async getCallbackCourseIdsForRequest(req: Request, courses: any[]): Promise<Set<string>> {
+    const userId = req.user?.userId;
+    if (!userId || courses.length === 0) {
+      return new Set();
+    }
+
+    return enrollmentService.getUserPendingCallbackCourseIds(
       userId,
       courses.map(course => this.getCourseId(course))
     );
@@ -92,7 +130,8 @@ export class CourseController {
       // Check if cursor-based or offset-based response
       if ('nextCursor' in result) {
         const enrolledCourseIds = await this.getEnrolledCourseIdsForRequest(req, result.items);
-        const items = result.items.map(course => this.courseToResponse(course, enrolledCourseIds));
+        const callbackCourseIds = await this.getCallbackCourseIdsForRequest(req, result.items);
+        const items = result.items.map(course => this.courseToResponse(course, enrolledCourseIds, callbackCourseIds));
 
         // Cursor-based response
         SuccessResponseHelper.ok(
@@ -106,7 +145,8 @@ export class CourseController {
         );
       } else {
         const enrolledCourseIds = await this.getEnrolledCourseIdsForRequest(req, result.courses);
-        const courses = result.courses.map(course => this.courseToResponse(course, enrolledCourseIds));
+        const callbackCourseIds = await this.getCallbackCourseIdsForRequest(req, result.courses);
+        const courses = result.courses.map(course => this.courseToResponse(course, enrolledCourseIds, callbackCourseIds));
 
         // Offset-based response (original format)
         SuccessResponseHelper.paginated(
@@ -137,7 +177,8 @@ export class CourseController {
       }
 
       const enrolledCourseIds = await this.getEnrolledCourseIdsForRequest(req, [course]);
-      const courseData = this.courseToResponse(course, enrolledCourseIds);
+      const callbackCourseIds = await this.getCallbackCourseIdsForRequest(req, [course]);
+      const courseData = this.courseToResponse(course, enrolledCourseIds, callbackCourseIds);
 
       SuccessResponseHelper.ok(res, { course: courseData }, 'Course retrieved successfully');
     } catch (error: any) {
@@ -171,7 +212,8 @@ export class CourseController {
       }
 
       const enrolledCourseIds = await this.getEnrolledCourseIdsForRequest(req, [course]);
-      const courseData = this.courseToResponse(course, enrolledCourseIds);
+      const callbackCourseIds = await this.getCallbackCourseIdsForRequest(req, [course]);
+      const courseData = this.courseToResponse(course, enrolledCourseIds, callbackCourseIds);
 
       // Combine course and details
       const response: any = { course: courseData };

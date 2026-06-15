@@ -3,7 +3,7 @@ import { trainingProgramController } from '../controllers/training-program.contr
 import { trainingProgramDetailsController } from '../controllers/training-program-details.controller';
 import { trainingProgramEnrollmentController } from '../controllers/training-program-enrollment.controller';
 import { trainingProgramEnrollmentValidator } from '../validators/training-program-enrollment.validator';
-import { authenticate } from '@/common/middleware/authenticate.middleware';
+import { authenticate, optionalAuthenticate } from '@/common/middleware/authenticate.middleware';
 
 const router = Router();
 
@@ -17,7 +17,7 @@ const router = Router();
  * @access  Public
  * @query   domain, level, status, search, page, limit, sortBy, sortOrder
  */
-router.get('/', trainingProgramController.getAllPrograms.bind(trainingProgramController));
+router.get('/', optionalAuthenticate, trainingProgramController.getAllPrograms.bind(trainingProgramController));
 
 /**
  * @route   GET /api/v1/training-programs/filters/domains
@@ -37,6 +37,7 @@ router.get(
  */
 router.get(
   '/popular',
+  optionalAuthenticate,
   trainingProgramController.getPopularPrograms.bind(trainingProgramController)
 );
 
@@ -47,6 +48,7 @@ router.get(
  */
 router.get(
   '/:slug',
+  optionalAuthenticate,
   trainingProgramController.getProgramBySlug.bind(trainingProgramController)
 );
 
@@ -58,6 +60,7 @@ router.get(
  */
 router.get(
   '/:slug/similar',
+  optionalAuthenticate,
   trainingProgramController.getSimilarPrograms.bind(trainingProgramController)
 );
 
@@ -72,6 +75,7 @@ router.get(
  */
 router.get(
   '/:slug/details',
+  optionalAuthenticate,
   trainingProgramDetailsController.getAllDetails.bind(trainingProgramDetailsController)
 );
 
