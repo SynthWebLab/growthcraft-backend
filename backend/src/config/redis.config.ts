@@ -35,7 +35,8 @@ export class RedisConfig {
         password: config.REDIS_PASSWORD || undefined,
         socket: {
           connectTimeout: 5000, // Reduced timeout to fail faster
-          keepAlive: 30000, // Send keepalive packets every 30 seconds
+          keepAlive: true, // Enable keepalive packets
+          keepAliveInitialDelay: 30000, // Send keepalive packets after 30 seconds idle
           reconnectStrategy: (retries) => {
             // Only try 3 times during initial connection
             if (retries > 3) {

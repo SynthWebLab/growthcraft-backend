@@ -287,12 +287,12 @@ export class BootcampService {
         return;
       }
 
-      let cursor = 0;
+      let cursor = '0';
       let totalDeleted = 0;
       const patterns = ['public:bootcamp:id:*', 'public:bootcamp:slug:*', 'public:bootcamps:*'];
 
       for (const pattern of patterns) {
-        cursor = 0;
+        cursor = '0';
         do {
           const result = await client.scan(cursor, {
             MATCH: pattern,
@@ -306,7 +306,7 @@ export class BootcampService {
             await client.del(keys);
             totalDeleted += keys.length;
           }
-        } while (cursor !== 0);
+        } while (cursor !== '0');
       }
 
       if (totalDeleted > 0) {

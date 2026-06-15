@@ -326,7 +326,7 @@ export class CourseService {
         return;
       }
 
-      let cursor = 0;
+      let cursor = '0';
       let totalDeleted = 0;
       const patterns = [
         'public:courses:*',
@@ -337,7 +337,7 @@ export class CourseService {
 
       // Use SCAN to iterate through keys without blocking Redis
       for (const pattern of patterns) {
-        cursor = 0;
+        cursor = '0';
         do {
           const result = await client.scan(cursor, {
             MATCH: pattern,
@@ -351,7 +351,7 @@ export class CourseService {
             await client.del(keys);
             totalDeleted += keys.length;
           }
-        } while (cursor !== 0);
+        } while (cursor !== '0');
       }
       
       if (totalDeleted > 0) {
