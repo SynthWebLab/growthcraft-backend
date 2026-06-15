@@ -8,6 +8,7 @@ import reservationRoutes from '@/modules/reservations/routes/reservation.routes'
 import adminRoutes from '@/modules/admin/routes/admin.routes';
 import eventEnrollmentRoutes from '@/modules/events/routes/event-enrollment.routes';
 import eventDetailsRoutes from '@/modules/events/routes/event-details.routes';
+import trainingProgramRoutes from '@/modules/training-programs/routes/training-program.routes';
 
 const router = Router();
 
@@ -17,6 +18,7 @@ router.use('/users', userRoutes);
 router.use('/courses', courseRoutes);
 router.use('/events', eventEnrollmentRoutes);
 router.use('/events', eventDetailsRoutes);
+router.use('/training-programs', trainingProgramRoutes);
 router.use('/reservations', reservationRoutes);
 router.use('/admin', adminRoutes);
 
