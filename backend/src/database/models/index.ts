@@ -23,3 +23,5 @@ export { Notification, INotification } from './Notification.model';
 export { Enrollment, IEnrollment, EnrollmentStatus } from './Enrollment.model';
 export { Attendance, IAttendance } from './Attendance.model';
 export { ProgressNote, IProgressNote } from './ProgressNote.model';
+export { Lead, ILead } from './Lead.model';
+
