@@ -9,6 +9,7 @@ import adminRoutes from '@/modules/admin/routes/admin.routes';
 import eventEnrollmentRoutes from '@/modules/events/routes/event-enrollment.routes';
 import eventDetailsRoutes from '@/modules/events/routes/event-details.routes';
 import trainingProgramRoutes from '@/modules/training-programs/routes/training-program.routes';
+import studentRoutes from '@/modules/students/routes/student.routes';
 
 const router = Router();
 
@@ -20,6 +21,7 @@ router.use('/events', eventEnrollmentRoutes);
 router.use('/events', eventDetailsRoutes);
 router.use('/training-programs', trainingProgramRoutes);
 router.use('/reservations', reservationRoutes);
+router.use('/students', studentRoutes);
 router.use('/admin', adminRoutes);
 
 // Public routes (no auth required)
