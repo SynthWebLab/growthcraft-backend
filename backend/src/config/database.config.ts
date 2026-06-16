@@ -1,3 +1,4 @@
+import dns from 'dns';
 import mongoose from 'mongoose';
 import { config } from './index';
 import { logger } from '@/common/utils/logger.util';
@@ -22,6 +23,21 @@ export class DatabaseConfig {
     }
 
     try {
+      // On some Windows setups c-ares fails to read the system DNS config and
+      // falls back to 127.0.0.1, where nothing listens on port 53 — this breaks
+      // the SRV lookup required by mongodb+srv:// (ECONNREFUSED querySrv). Detect
+      // that broken state and fall back to public resolvers. Note: the callback
+      // API (dns) and the promise API (dns.promises) use SEPARATE resolver
+      // instances, and the MongoDB driver resolves SRV via dns.promises — so we
+      // must set servers on BOTH.
+      const servers = dns.getServers();
+      if (servers.length === 0 || servers.every((s) => s === '127.0.0.1' || s === '::1')) {
+        const fallback = ['8.8.8.8', '1.1.1.1'];
+        dns.setServers(fallback);
+        dns.promises.setServers(fallback);
+        logger.warn(`No usable system DNS resolver (${servers.join(', ') || 'none'}); falling back to ${fallback.join(', ')}`);
+      }
+
       const mongoUri = config.NODE_ENV === 'test' ? config.MONGODB_TEST_URI : config.MONGODB_URI;
 
       await mongoose.connect(mongoUri, {

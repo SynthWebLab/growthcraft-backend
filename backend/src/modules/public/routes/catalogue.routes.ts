@@ -280,7 +280,7 @@ router.get('/hackathons', optionalAuthenticate, (req: Request, res: Response, ne
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Items per page (max: 50)
+ *         description: "Items per page (max: 50)"
  *       - in: query
  *         name: status
  *         schema:
