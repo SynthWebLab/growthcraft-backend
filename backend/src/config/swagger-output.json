@@ -1842,6 +1842,69 @@
         }
       }
     },
+    "/api/v1/students/mentors": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "expertise",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/students/mentor-sessions": {
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mentorUserId": {
+                    "example": "any"
+                  },
+                  "topic": {
+                    "example": "any"
+                  },
+                  "scheduledDate": {
+                    "example": "any"
+                  },
+                  "timeSlot": {
+                    "example": "any"
+                  },
+                  "sessionType": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/api/v1/admin/batches": {
       "post": {
         "description": "",

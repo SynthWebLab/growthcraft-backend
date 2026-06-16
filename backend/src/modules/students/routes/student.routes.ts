@@ -296,4 +296,89 @@ router.get('/support', (req: Request, res: Response, next: NextFunction) => {
   void studentDashboardController.getSupportTickets(req, res, next);
 });
 
+/**
+ * @swagger
+ * /students/mentors:
+ *   get:
+ *     summary: Get available mentors
+ *     tags: [Student Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: expertise
+ *         schema:
+ *           type: string
+ *         description: Filter mentors by area of expertise
+ *     responses:
+ *       200:
+ *         description: Mentors retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/mentors', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.getMentors(req, res, next);
+});
+
+/**
+ * @swagger
+ * /students/mentor-sessions:
+ *   post:
+ *     summary: Book a mentor session
+ *     tags: [Student Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [mentorUserId, topic, scheduledDate, timeSlot]
+ *             properties:
+ *               mentorUserId:
+ *                 type: string
+ *               topic:
+ *                 type: string
+ *               scheduledDate:
+ *                 type: string
+ *                 format: date-time
+ *               timeSlot:
+ *                 type: string
+ *                 example: "10:00 AM"
+ *               sessionType:
+ *                 type: string
+ *                 enum: ["1:1", "Group"]
+ *     responses:
+ *       201:
+ *         description: Mentor session booked successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       409:
+ *         description: Already booked at that time
+ */
+router.post('/mentor-sessions', StudentValidator.bookMentorSession(), (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.bookMentorSession(req, res, next);
+});
+
+/**
+ * @swagger
+ * /students/mentor-sessions:
+ *   get:
+ *     summary: Get the student's mentor sessions
+ *     tags: [Student Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Mentor sessions retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/mentor-sessions', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.getMentorSessions(req, res, next);
+});
+
 export default router;

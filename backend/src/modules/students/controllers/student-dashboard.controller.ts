@@ -250,6 +250,72 @@ export class StudentDashboardController {
       next(error);
     }
   }
+
+  /**
+   * Get available mentors (optionally filtered by ?expertise=)
+   * GET /api/v1/students/mentors
+   */
+  public async getMentors(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      this.getUserId(req);
+      const expertise =
+        typeof req.query.expertise === 'string' && req.query.expertise.length > 0
+          ? req.query.expertise
+          : undefined;
+      const mentors = await studentDashboardService.getMentors(expertise);
+      SuccessResponseHelper.ok(res, { mentors }, 'Mentors retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get mentors controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Book a mentor session
+   * POST /api/v1/students/mentor-sessions
+   */
+  public async bookMentorSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const validationErrors = errors.array().map((err: any) => ({
+          field: err.path || err.param || 'unknown',
+          message: err.msg,
+          value: err.value,
+        }));
+        throw new ValidationError('Validation failed', validationErrors);
+      }
+
+      const userId = this.getUserId(req);
+      const { mentorUserId, topic, scheduledDate, timeSlot, sessionType } = req.body;
+      const session = await studentDashboardService.bookMentorSession(userId, {
+        mentorUserId,
+        topic,
+        scheduledDate,
+        timeSlot,
+        sessionType,
+      });
+      SuccessResponseHelper.created(res, { session }, 'Mentor session booked successfully');
+    } catch (error: any) {
+      logger.error('Book mentor session controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get the student's mentor sessions
+   * GET /api/v1/students/mentor-sessions
+   */
+  public async getMentorSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const sessions = await studentDashboardService.getMentorSessions(userId);
+      SuccessResponseHelper.ok(res, { sessions }, 'Mentor sessions retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get mentor sessions controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const studentDashboardController = StudentDashboardController.getInstance();

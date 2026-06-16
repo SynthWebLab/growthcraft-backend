@@ -105,4 +105,41 @@ export class StudentValidator {
         .withMessage('Message must be between 10 and 2000 characters'),
     ];
   }
+
+  /**
+   * Validate a mentor session booking.
+   */
+  public static bookMentorSession(): ValidationChain[] {
+    return [
+      body('mentorUserId')
+        .trim()
+        .notEmpty()
+        .withMessage('Mentor is required')
+        .isMongoId()
+        .withMessage('Invalid mentor id'),
+
+      body('topic')
+        .trim()
+        .notEmpty()
+        .withMessage('Topic is required')
+        .isLength({ max: 150 })
+        .withMessage('Topic cannot exceed 150 characters'),
+
+      body('scheduledDate')
+        .notEmpty()
+        .withMessage('Scheduled date is required')
+        .isISO8601()
+        .withMessage('Scheduled date must be a valid date'),
+
+      body('timeSlot')
+        .trim()
+        .notEmpty()
+        .withMessage('Time slot is required'),
+
+      body('sessionType')
+        .optional()
+        .isIn(['1:1', 'Group'])
+        .withMessage('Session type must be 1:1 or Group'),
+    ];
+  }
 }

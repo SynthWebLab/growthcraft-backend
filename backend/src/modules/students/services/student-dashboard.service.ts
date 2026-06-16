@@ -6,7 +6,11 @@ import {
 } from '@/database/models/TrainingProgramEnrollment.model';
 import { StudentProfile, IStudentProfile } from '@/database/models/StudentProfile.model';
 import { SupportTicket, ISupportTicket } from '@/database/models/SupportTicket.model';
+import { MentorProfile, IMentorProfile } from '@/database/models/MentorProfile.model';
+import { MentorSession, IMentorSession } from '@/database/models/MentorSession.model';
 import { EventType } from '@/database/models/Bootcamp.model';
+import { NotFoundError } from '@/common/errors/NotFoundError';
+import { ConflictError } from '@/common/errors/ConflictError';
 import { logger } from '@/common/utils/logger.util';
 
 export type StudentCertification = IStudentProfile['certifications'][number];
@@ -209,6 +213,91 @@ export class StudentDashboardService {
       return await SupportTicket.find({ userId }).sort({ createdAt: -1 }).exec();
     } catch (error: any) {
       logger.error('Get support tickets error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get available (verified) mentors, optionally filtered by area of expertise.
+   */
+  public async getMentors(areaOfExpertise?: string): Promise<IMentorProfile[]> {
+    try {
+      const filter: Record<string, unknown> = {};
+      if (areaOfExpertise) {
+        filter.areaOfExpertise = areaOfExpertise;
+      }
+
+      return await MentorProfile.find(filter)
+        .populate('userId', 'fullName email')
+        .sort({ rating: -1, totalSessions: -1 })
+        .exec();
+    } catch (error: any) {
+      logger.error('Get mentors error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Book a mentor session for the student.
+   */
+  public async bookMentorSession(
+    studentUserId: string,
+    data: {
+      mentorUserId: string;
+      topic: string;
+      scheduledDate: string | Date;
+      timeSlot: string;
+      sessionType?: '1:1' | 'Group';
+    }
+  ): Promise<IMentorSession> {
+    try {
+      // Ensure the mentor exists.
+      const mentor = await MentorProfile.findOne({ userId: data.mentorUserId });
+      if (!mentor) {
+        throw new NotFoundError('Mentor not found');
+      }
+
+      const existing = await MentorSession.findOne({
+        studentUserId,
+        mentorUserId: data.mentorUserId,
+        scheduledDate: new Date(data.scheduledDate),
+        timeSlot: data.timeSlot,
+      });
+      if (existing) {
+        throw new ConflictError('You already have a session booked with this mentor at that time');
+      }
+
+      const session = await MentorSession.create({
+        studentUserId,
+        mentorUserId: data.mentorUserId,
+        topic: data.topic,
+        scheduledDate: new Date(data.scheduledDate),
+        timeSlot: data.timeSlot,
+        sessionType: data.sessionType ?? '1:1',
+        status: 'scheduled',
+      });
+
+      await MentorProfile.updateOne({ userId: data.mentorUserId }, { $inc: { totalSessions: 1 } });
+
+      logger.info(`Mentor session ${session._id} booked by student ${studentUserId}`);
+      return session;
+    } catch (error: any) {
+      logger.error('Book mentor session error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the student's mentor sessions (most recent first), mentor populated.
+   */
+  public async getMentorSessions(studentUserId: string): Promise<IMentorSession[]> {
+    try {
+      return await MentorSession.find({ studentUserId })
+        .populate('mentorUserId', 'fullName email')
+        .sort({ scheduledDate: -1 })
+        .exec();
+    } catch (error: any) {
+      logger.error('Get mentor sessions error:', error);
       throw error;
     }
   }
