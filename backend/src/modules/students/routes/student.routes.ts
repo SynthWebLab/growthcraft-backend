@@ -242,4 +242,58 @@ router.get('/certificates', (req: Request, res: Response, next: NextFunction) =>
   void studentDashboardController.getCertificates(req, res, next);
 });
 
+/**
+ * @swagger
+ * /students/support:
+ *   post:
+ *     summary: Submit a support ticket
+ *     tags: [Student Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - subject
+ *               - message
+ *             properties:
+ *               subject:
+ *                 type: string
+ *                 example: Cannot access my course
+ *               message:
+ *                 type: string
+ *                 example: I enrolled yesterday but the course isn't showing up.
+ *     responses:
+ *       201:
+ *         description: Support ticket created
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/support', StudentValidator.createSupportTicket(), (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.createSupportTicket(req, res, next);
+});
+
+/**
+ * @swagger
+ * /students/support:
+ *   get:
+ *     summary: Get the student's support tickets
+ *     tags: [Student Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Support tickets retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/support', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.getSupportTickets(req, res, next);
+});
+
 export default router;

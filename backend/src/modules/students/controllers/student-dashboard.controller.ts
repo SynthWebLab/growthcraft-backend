@@ -205,6 +205,51 @@ export class StudentDashboardController {
       next(error);
     }
   }
+
+  /**
+   * Submit a support ticket
+   * POST /api/v1/students/support
+   */
+  public async createSupportTicket(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const validationErrors = errors.array().map((err: any) => ({
+          field: err.path || err.param || 'unknown',
+          message: err.msg,
+          value: err.value,
+        }));
+        throw new ValidationError('Validation failed', validationErrors);
+      }
+
+      const userId = this.getUserId(req);
+      const { subject, message } = req.body;
+      const ticket = await studentDashboardService.createSupportTicket(userId, { subject, message });
+      SuccessResponseHelper.created(
+        res,
+        { ticket },
+        'Your message has been sent. Our team will get back to you soon.'
+      );
+    } catch (error: any) {
+      logger.error('Create support ticket controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get the student's support tickets
+   * GET /api/v1/students/support
+   */
+  public async getSupportTickets(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const tickets = await studentDashboardService.getSupportTickets(userId);
+      SuccessResponseHelper.ok(res, { tickets }, 'Support tickets retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get support tickets controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const studentDashboardController = StudentDashboardController.getInstance();

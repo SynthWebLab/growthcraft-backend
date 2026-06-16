@@ -5,6 +5,7 @@ import {
   ITrainingProgramEnrollment,
 } from '@/database/models/TrainingProgramEnrollment.model';
 import { StudentProfile, IStudentProfile } from '@/database/models/StudentProfile.model';
+import { SupportTicket, ISupportTicket } from '@/database/models/SupportTicket.model';
 import { EventType } from '@/database/models/Bootcamp.model';
 import { logger } from '@/common/utils/logger.util';
 
@@ -173,6 +174,41 @@ export class StudentDashboardService {
       return (profile?.certifications ?? []) as StudentCertification[];
     } catch (error: any) {
       logger.error('Get student certificates error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a support ticket for the student
+   */
+  public async createSupportTicket(
+    userId: string,
+    data: { subject: string; message: string }
+  ): Promise<ISupportTicket> {
+    try {
+      const ticket = await SupportTicket.create({
+        userId,
+        subject: data.subject,
+        message: data.message,
+        status: 'open',
+      });
+
+      logger.info(`Support ticket ${ticket._id} created by user ${userId}`);
+      return ticket;
+    } catch (error: any) {
+      logger.error('Create support ticket error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the student's support tickets (most recent first)
+   */
+  public async getSupportTickets(userId: string): Promise<ISupportTicket[]> {
+    try {
+      return await SupportTicket.find({ userId }).sort({ createdAt: -1 }).exec();
+    } catch (error: any) {
+      logger.error('Get support tickets error:', error);
       throw error;
     }
   }
