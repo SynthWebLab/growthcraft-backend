@@ -1,5 +1,15 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export const PARTNERSHIP_TIERS = ['Silver', 'Gold', 'Platinum'] as const;
+export type PartnershipTier = (typeof PARTNERSHIP_TIERS)[number];
+
+export interface ICollegeNotificationPreferences {
+  studentEnrollments: boolean;
+  programUpdates: boolean;
+  reportsReady: boolean;
+  marketingEmails: boolean;
+}
+
 export interface ICollegeProfile extends Document {
   userId: mongoose.Types.ObjectId;
   collegeName: string;
@@ -27,6 +37,15 @@ export interface ICollegeProfile extends Document {
     duration: number;
     description?: string;
   }[];
+  partnershipTier: PartnershipTier;
+  partnershipStartDate?: Date;
+  spoc?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    designation?: string;
+  };
+  notificationPreferences: ICollegeNotificationPreferences;
   isVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -93,6 +112,26 @@ const collegeProfileSchema = new Schema<ICollegeProfile>(
       ],
       default: [],
     },
+    partnershipTier: {
+      type: String,
+      enum: PARTNERSHIP_TIERS,
+      default: 'Silver',
+    },
+    partnershipStartDate: {
+      type: Date,
+    },
+    spoc: {
+      name: { type: String, trim: true },
+      email: { type: String, trim: true, lowercase: true },
+      phone: { type: String, trim: true },
+      designation: { type: String, trim: true },
+    },
+    notificationPreferences: {
+      studentEnrollments: { type: Boolean, default: true },
+      programUpdates: { type: Boolean, default: true },
+      reportsReady: { type: Boolean, default: true },
+      marketingEmails: { type: Boolean, default: false },
+    },
     isVerified: {
       type: Boolean,
       default: false,
@@ -106,4 +145,7 @@ const collegeProfileSchema = new Schema<ICollegeProfile>(
 // Index for faster queries (userId index already created by unique: true)
 collegeProfileSchema.index({ collegeName: 1 });
 
-export const CollegeProfile = mongoose.model<ICollegeProfile>('CollegeProfile', collegeProfileSchema);
+export const CollegeProfile = mongoose.model<ICollegeProfile>(
+  'CollegeProfile',
+  collegeProfileSchema
+);

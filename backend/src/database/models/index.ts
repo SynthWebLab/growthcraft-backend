@@ -1,7 +1,18 @@
 // Export all models
 export { User, IUser, IRefreshToken } from './User.model';
 export { StudentProfile, IStudentProfile } from './StudentProfile.model';
-export { CollegeProfile, ICollegeProfile } from './CollegeProfile.model';
+export {
+  CollegeProfile,
+  ICollegeProfile,
+  ICollegeNotificationPreferences,
+  PARTNERSHIP_TIERS,
+  PartnershipTier,
+} from './CollegeProfile.model';
+export {
+  CollegePartnershipRequest,
+  ICollegePartnershipRequest,
+  PartnershipRequestStatus,
+} from './CollegePartnershipRequest.model';
 export { MentorProfile, IMentorProfile } from './MentorProfile.model';
 export { EmployerProfile, IEmployerProfile } from './EmployerProfile.model';
 export { Course, ICourse, CourseLevel, CourseCategory } from './Course.model';

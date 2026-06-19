@@ -10,6 +10,7 @@ import eventEnrollmentRoutes from '@/modules/events/routes/event-enrollment.rout
 import eventDetailsRoutes from '@/modules/events/routes/event-details.routes';
 import trainingProgramRoutes from '@/modules/training-programs/routes/training-program.routes';
 import studentRoutes from '@/modules/students/routes/student.routes';
+import collegeRoutes from '@/modules/colleges/routes/college.routes';
 import leadRoutes from '@/modules/leads/routes/lead.routes';
 
 const router = Router();
@@ -23,6 +24,7 @@ router.use('/events', eventDetailsRoutes);
 router.use('/training-programs', trainingProgramRoutes);
 router.use('/reservations', reservationRoutes);
 router.use('/students', studentRoutes);
+router.use('/colleges', collegeRoutes);
 router.use('/admin', adminRoutes);
 router.use('/leads', leadRoutes);
 
