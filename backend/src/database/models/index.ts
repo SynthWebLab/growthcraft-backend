@@ -7,6 +7,7 @@ export {
   ICollegeNotificationPreferences,
   PARTNERSHIP_TIERS,
   PartnershipTier,
+  COHORT_LIMITS,
 } from './CollegeProfile.model';
 export {
   CollegePartnershipRequest,

@@ -1,21 +1,27 @@
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 import {
   CollegeProfile,
   ICollegeProfile,
   PARTNERSHIP_TIERS,
   PartnershipTier,
+  COHORT_LIMITS,
 } from '@/database/models/CollegeProfile.model';
 import {
   CollegePartnershipRequest,
   ICollegePartnershipRequest,
 } from '@/database/models/CollegePartnershipRequest.model';
 import { CourseEnrollment } from '@/database/models/CourseEnrollment.model';
+import { EventEnrollment } from '@/database/models/EventEnrollment.model';
+import { Bootcamp } from '@/database/models/Bootcamp.model';
 import { StudentProfile, IStudentProfile } from '@/database/models/StudentProfile.model';
 import { SupportTicket, ISupportTicket } from '@/database/models/SupportTicket.model';
 import { User, IUser } from '@/database/models/User.model';
 import { UserRole } from '@/common/constants/user.constants';
+import { AppError } from '@/common/errors/AppError';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ValidationError } from '@/common/errors/ValidationError';
+import { CohortLimitError } from '@/common/errors/CohortLimitError';
 import { logger } from '@/common/utils/logger.util';
 
 /**
@@ -36,15 +42,45 @@ export interface CollegeStudentRow {
   lastActive: Date;
 }
 
+export interface CohortStatus {
+  subscribed: boolean;
+  tier: PartnershipTier;
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+  unlimited: boolean;
+}
+
 export interface CollegeDashboardSummary {
   kpis: {
     totalStudentsEnrolled: number;
     activeCourses: number;
     partnershipTier: PartnershipTier;
+    cohortLimit: number | null;
+    cohortRemaining: number | null;
   };
   enrollmentTrend: { month: string; students: number }[];
   topPerformers: { name: string; course: string; progress: number }[];
   recentActivity: { text: string; date: Date }[];
+}
+
+export interface ImportStudentInput {
+  fullName: string;
+  email: string;
+  phone: string;
+  enrollmentNumber?: string;
+  degree?: string;
+  branch?: string;
+  yearOfStudy?: number;
+}
+
+export interface ImportStudentsResult {
+  created: number;
+  linkedExisting: number;
+  alreadyInCohort: number;
+  eventsEnrolled: number;
+  skipped: { email: string; reason: string }[];
+  cohort: CohortStatus;
 }
 
 export interface CollegeMonthlyReport {
@@ -76,41 +112,31 @@ export interface UpdateCollegeProfileData {
  * Tiers are a business catalogue, not user data, so they live here rather than the DB.
  */
 const TIER_BENEFITS: Record<PartnershipTier, string[]> = {
-  Silver: [
-    'Up to 100 students per cohort',
-    'Mentor sessions (2/month)',
-    'Basic analytics dashboard',
-    'Placement support for top 20% students',
-  ],
+  Silver: ['Up to 50 students per cohort', 'Mentor sessions (4/month)', 'Placement support'],
   Gold: [
-    'Up to 200 students per cohort',
-    'Dedicated mentor sessions (4/month)',
-    'Co-branded certificate portal',
+    'Up to 150 students per cohort',
+    'Mentor sessions (12/month)',
+    'Co-branded portal',
     'Dedicated SPOC',
-    'Placement support for top 50% students',
-    'Monthly analytics dashboard',
+    'Placement support',
   ],
   Platinum: [
     'Unlimited students per cohort',
-    'Dedicated mentor sessions (8+/month)',
-    'Co-branded certificate portal',
+    'Unlimited mentor sessions',
+    'Co-branded portal',
     'Dedicated SPOC',
-    'Placement support for all students',
-    'Real-time analytics dashboard',
-    'Custom curriculum',
-    'Unlimited on-campus workshops',
+    'Placement support',
+    'Analytics dashboard',
   ],
 };
 
 const TIER_COMPARISON = [
-  { label: 'Students per cohort', values: ['Up to 100', 'Up to 200', 'Unlimited'] },
-  { label: 'Mentor sessions / month', values: ['2', '4', '8+'] },
+  { label: 'Students per cohort', values: ['Up to 50', 'Up to 150', 'Unlimited'] },
+  { label: 'Mentor sessions / month', values: ['4', '12', 'Unlimited'] },
   { label: 'Branded portal', values: [false, true, true] },
   { label: 'Dedicated SPOC', values: [false, true, true] },
-  { label: 'Placement support', values: ['Top 20%', 'Top 50%', 'All students'] },
-  { label: 'Analytics dashboard', values: ['Basic', 'Monthly', 'Real-time'] },
-  { label: 'Custom curriculum', values: [false, false, true] },
-  { label: 'On-campus workshops', values: ['1/quarter', '2/quarter', 'Unlimited'] },
+  { label: 'Placement support', values: [true, true, true] },
+  { label: 'Analytics dashboard', values: [false, false, true] },
 ];
 
 const MONTH_LABELS = [
@@ -304,11 +330,15 @@ export class CollegeDashboardService {
         date: (e as { createdAt: Date }).createdAt,
       }));
 
+      const cohort = this.computeCohortStatus(college);
+
       return {
         kpis: {
-          totalStudentsEnrolled: rows.length,
+          totalStudentsEnrolled: cohort.used,
           activeCourses: activeCourseIds.length,
           partnershipTier: college.partnershipTier,
+          cohortLimit: cohort.limit,
+          cohortRemaining: cohort.remaining,
         },
         enrollmentTrend: trend,
         topPerformers,
@@ -318,6 +348,31 @@ export class CollegeDashboardService {
       logger.error('Get college dashboard error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Compute cohort usage vs the tier cap. `used` is the authoritative count of
+   * students explicitly registered to the college (registeredStudents).
+   */
+  private computeCohortStatus(college: ICollegeProfile): CohortStatus {
+    const limit = COHORT_LIMITS[college.partnershipTier];
+    const used = college.registeredStudents?.length ?? 0;
+    return {
+      subscribed: college.partnershipActive,
+      tier: college.partnershipTier,
+      limit,
+      used,
+      remaining: limit === null ? null : Math.max(0, limit - used),
+      unlimited: limit === null,
+    };
+  }
+
+  /**
+   * Public cohort status for the authenticated college.
+   */
+  public async getCohortStatus(userId: string): Promise<CohortStatus> {
+    const college = await this.getProfileOrThrow(userId);
+    return this.computeCohortStatus(college);
   }
 
   /**
@@ -419,6 +474,7 @@ export class CollegeDashboardService {
    * Partnership details: current tier, SPOC, benefits and tier comparison table.
    */
   public async getPartnership(userId: string): Promise<{
+    active: boolean;
     currentTier: PartnershipTier;
     nextTier: PartnershipTier | null;
     startDate?: Date;
@@ -435,6 +491,7 @@ export class CollegeDashboardService {
         : null;
 
     return {
+      active: college.partnershipActive,
       currentTier: college.partnershipTier,
       nextTier,
       startDate: college.partnershipStartDate,
@@ -443,6 +500,36 @@ export class CollegeDashboardService {
       tiers: [...PARTNERSHIP_TIERS],
       comparison: TIER_COMPARISON,
     };
+  }
+
+  /**
+   * Activate (or switch) the college's subscription to the given tier. This is the
+   * "choose a plan" action — it sets the tier active immediately and stamps the
+   * start date. Used both for first-time subscription and tier changes.
+   */
+  public async activateSubscription(userId: string, tier: PartnershipTier): Promise<CohortStatus> {
+    try {
+      const profile = await CollegeProfile.findOneAndUpdate(
+        { userId },
+        {
+          $set: {
+            partnershipTier: tier,
+            partnershipActive: true,
+            partnershipStartDate: new Date(),
+          },
+        },
+        { new: true, runValidators: true }
+      ).exec();
+
+      if (!profile) {
+        throw new NotFoundError('College profile not found');
+      }
+      logger.info(`College ${userId} subscription activated on ${tier}`);
+      return this.computeCohortStatus(profile);
+    } catch (error: any) {
+      logger.error('Activate college subscription error:', error);
+      throw error;
+    }
   }
 
   /**
@@ -659,6 +746,321 @@ export class CollegeDashboardService {
       logger.error('Get college support tickets error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Parse a CSV string into student rows. Tolerates quoted values and maps a few
+   * common header aliases. Returns one record per data row (header is required).
+   */
+  private parseCsv(csv: string): ImportStudentInput[] {
+    const lines = csv
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    if (lines.length < 2) {
+      throw new ValidationError('CSV must contain a header row and at least one student row');
+    }
+
+    const splitRow = (row: string): string[] => {
+      const out: string[] = [];
+      let cur = '';
+      let inQuotes = false;
+      for (let i = 0; i < row.length; i++) {
+        const ch = row[i];
+        if (ch === '"') {
+          if (inQuotes && row[i + 1] === '"') {
+            cur += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === ',' && !inQuotes) {
+          out.push(cur);
+          cur = '';
+        } else {
+          cur += ch;
+        }
+      }
+      out.push(cur);
+      return out.map((c) => c.trim());
+    };
+
+    const aliasMap: Record<string, keyof ImportStudentInput> = {
+      name: 'fullName',
+      fullname: 'fullName',
+      'full name': 'fullName',
+      email: 'email',
+      'email address': 'email',
+      phone: 'phone',
+      mobile: 'phone',
+      'phone number': 'phone',
+      enrollmentnumber: 'enrollmentNumber',
+      enrollment: 'enrollmentNumber',
+      roll: 'enrollmentNumber',
+      'roll number': 'enrollmentNumber',
+      degree: 'degree',
+      branch: 'branch',
+      yearofstudy: 'yearOfStudy',
+      year: 'yearOfStudy',
+    };
+
+    const headers = splitRow(lines[0]).map((h) => h.toLowerCase());
+    const fields = headers.map((h) => aliasMap[h]);
+
+    return lines.slice(1).map((line) => {
+      const cells = splitRow(line);
+      const record: Record<string, unknown> = {};
+      fields.forEach((field, idx) => {
+        if (!field) {
+          return;
+        }
+        const value = cells[idx];
+        if (value === undefined || value === '') {
+          return;
+        }
+        if (field === 'yearOfStudy') {
+          const year = Number(value);
+          if (!Number.isNaN(year)) {
+            record[field] = year;
+          }
+        } else {
+          record[field] = value;
+        }
+      });
+      return record as unknown as ImportStudentInput;
+    });
+  }
+
+  /**
+   * Bulk-import students into the college's cohort from a parsed `students` array
+   * and/or a raw `csv` string. Enforces the tier cohort cap *before* writing:
+   * if the import would push the cohort past the limit it throws CohortLimitError
+   * and nothing is created. Imported students become real student accounts (so
+   * they can sign into the student dashboard) and can optionally be enrolled into
+   * the supplied events.
+   */
+  public async importStudents(
+    userId: string,
+    input: {
+      students?: ImportStudentInput[];
+      csv?: string;
+      eventIds?: string[];
+      defaultPassword?: string;
+    }
+  ): Promise<ImportStudentsResult> {
+    try {
+      const college = await this.getProfileOrThrow(userId);
+
+      // 0. A subscription is required before any cohort import/export.
+      if (!college.partnershipActive) {
+        throw new AppError(
+          'No active subscription. Choose a partnership plan before importing students.',
+          403,
+          'SUBSCRIPTION_REQUIRED'
+        );
+      }
+
+      // 1. Collect rows from JSON array and/or CSV.
+      const rows: ImportStudentInput[] = [
+        ...(input.students ?? []),
+        ...(input.csv ? this.parseCsv(input.csv) : []),
+      ];
+      if (rows.length === 0) {
+        throw new ValidationError('Provide at least one student via "students" or "csv"');
+      }
+
+      // 2. Validate + de-duplicate by email within the payload.
+      const skipped: { email: string; reason: string }[] = [];
+      const seen = new Set<string>();
+      const valid: ImportStudentInput[] = [];
+      for (const row of rows) {
+        const email = (row.email ?? '').toLowerCase().trim();
+        if (!row.fullName || !email || !row.phone) {
+          skipped.push({
+            email: email || '(missing)',
+            reason: 'Missing fullName, email, or phone',
+          });
+          continue;
+        }
+        if (!/^\S+@\S+\.\S+$/.test(email)) {
+          skipped.push({ email, reason: 'Invalid email format' });
+          continue;
+        }
+        if (seen.has(email)) {
+          skipped.push({ email, reason: 'Duplicate row in import' });
+          continue;
+        }
+        seen.add(email);
+        valid.push({ ...row, email });
+      }
+
+      if (valid.length === 0) {
+        throw new ValidationError('No valid student rows to import');
+      }
+
+      // 3. Map existing users; determine which rows are NEW to the cohort.
+      const existingUsers = await User.find({ email: { $in: valid.map((v) => v.email) } })
+        .select('email role')
+        .lean()
+        .exec();
+      const userByEmail = new Map<string, { _id: mongoose.Types.ObjectId; role?: string }>(
+        existingUsers.map((u) => [u.email, { _id: u._id, role: u.role }])
+      );
+      const cohortSet = new Set((college.registeredStudents ?? []).map((id) => String(id)));
+
+      const importable = valid.filter((row) => {
+        const existing = userByEmail.get(row.email);
+        if (existing && existing.role !== UserRole.STUDENT) {
+          skipped.push({ email: row.email, reason: 'Email belongs to a non-student account' });
+          return false;
+        }
+        return true;
+      });
+
+      const newToCohort = importable.filter((row) => {
+        const existing = userByEmail.get(row.email);
+        return !existing || !cohortSet.has(String(existing._id));
+      });
+
+      // 4. Enforce the tier cohort cap BEFORE any writes.
+      const limit = COHORT_LIMITS[college.partnershipTier];
+      const used = cohortSet.size;
+      if (limit !== null && used + newToCohort.length > limit) {
+        const currentIndex = PARTNERSHIP_TIERS.indexOf(college.partnershipTier);
+        const nextTier =
+          currentIndex < PARTNERSHIP_TIERS.length - 1 ? PARTNERSHIP_TIERS[currentIndex + 1] : null;
+        throw new CohortLimitError({
+          tier: college.partnershipTier,
+          limit,
+          used,
+          attempted: newToCohort.length,
+          remaining: Math.max(0, limit - used),
+          nextTier,
+        });
+      }
+
+      // 5. Create / link students.
+      let created = 0;
+      let linkedExisting = 0;
+      let alreadyInCohort = 0;
+      const newCohortIds: mongoose.Types.ObjectId[] = [];
+
+      for (const row of importable) {
+        let user = userByEmail.get(row.email);
+
+        if (!user) {
+          const createdUser = await User.create({
+            fullName: row.fullName,
+            email: row.email,
+            phone: row.phone,
+            password: input.defaultPassword || crypto.randomBytes(12).toString('base64url'),
+            role: UserRole.STUDENT,
+            isEmailVerified: false,
+          });
+          await StudentProfile.create({
+            userId: createdUser._id,
+            collegeName: college.collegeName,
+            enrollmentNumber: row.enrollmentNumber,
+            degree: row.degree,
+            branch: row.branch,
+            yearOfStudy: row.yearOfStudy,
+          });
+          user = { _id: createdUser._id };
+          userByEmail.set(row.email, { _id: user._id, role: UserRole.STUDENT });
+          created++;
+        } else {
+          // Existing student: ensure a profile exists and is tagged to this college.
+          await StudentProfile.updateOne(
+            { userId: user._id },
+            { $setOnInsert: { userId: user._id }, $set: { collegeName: college.collegeName } },
+            { upsert: true, runValidators: true }
+          ).exec();
+          if (cohortSet.has(String(user._id))) {
+            alreadyInCohort++;
+          } else {
+            linkedExisting++;
+          }
+        }
+
+        if (!cohortSet.has(String(user._id))) {
+          cohortSet.add(String(user._id));
+          newCohortIds.push(user._id);
+        }
+      }
+
+      // 6. Persist new cohort members.
+      if (newCohortIds.length > 0) {
+        await CollegeProfile.updateOne(
+          { userId },
+          {
+            $addToSet: { registeredStudents: { $each: newCohortIds } },
+            $set: { totalStudents: cohortSet.size },
+          }
+        ).exec();
+      }
+
+      // 7. Optionally enroll all imported students into the supplied events.
+      let eventsEnrolled = 0;
+      if (input.eventIds && input.eventIds.length > 0) {
+        eventsEnrolled = await this.enrollCohortInEvents(importable, input.eventIds, userByEmail);
+      }
+
+      const refreshed = await this.getProfileOrThrow(userId);
+      return {
+        created,
+        linkedExisting,
+        alreadyInCohort,
+        eventsEnrolled,
+        skipped,
+        cohort: this.computeCohortStatus(refreshed),
+      };
+    } catch (error: any) {
+      logger.error('Import college students error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Enroll the given students into the given events (best-effort; duplicates and
+   * unknown events are skipped). Returns the number of enrollments created.
+   */
+  private async enrollCohortInEvents(
+    students: ImportStudentInput[],
+    eventIds: string[],
+    userByEmail: Map<string, { _id: mongoose.Types.ObjectId }>
+  ): Promise<number> {
+    const validEventIds = eventIds.filter((id) => mongoose.isValidObjectId(id));
+    if (validEventIds.length === 0) {
+      return 0;
+    }
+
+    const events = await Bootcamp.find({ _id: { $in: validEventIds } })
+      .select('title type')
+      .lean()
+      .exec();
+
+    let enrolled = 0;
+    for (const event of events) {
+      for (const row of students) {
+        const user = userByEmail.get(row.email);
+        try {
+          await EventEnrollment.create({
+            userId: user?._id,
+            eventId: event._id,
+            eventType: event.type,
+            fullName: row.fullName,
+            email: row.email,
+            phone: row.phone,
+            title: event.title,
+            status: 'confirmed',
+          });
+          enrolled++;
+        } catch {
+          // Duplicate enrollment (unique index) or validation issue — skip silently.
+        }
+      }
+    }
+    return enrolled;
   }
 }
 

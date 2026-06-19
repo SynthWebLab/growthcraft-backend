@@ -86,6 +86,41 @@ export class CollegeDashboardController {
   }
 
   /**
+   * GET /api/v1/colleges/cohort
+   */
+  public async getCohort(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const cohort = await collegeDashboardService.getCohortStatus(userId);
+      SuccessResponseHelper.ok(res, cohort, 'Cohort status retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get college cohort controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/colleges/students/import
+   */
+  public async importStudents(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      this.assertValid(req);
+      const userId = this.getUserId(req);
+      const { students, csv, eventIds, defaultPassword } = req.body;
+      const result = await collegeDashboardService.importStudents(userId, {
+        students,
+        csv,
+        eventIds,
+        defaultPassword,
+      });
+      SuccessResponseHelper.created(res, result, 'Students imported successfully');
+    } catch (error: any) {
+      logger.error('Import college students controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
    * GET /api/v1/colleges/profile
    */
   public async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -124,6 +159,22 @@ export class CollegeDashboardController {
       SuccessResponseHelper.ok(res, partnership, 'Partnership details retrieved successfully');
     } catch (error: any) {
       logger.error('Get college partnership controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/colleges/subscription
+   */
+  public async subscribe(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      this.assertValid(req);
+      const userId = this.getUserId(req);
+      const { tier } = req.body as { tier: PartnershipTier };
+      const cohort = await collegeDashboardService.activateSubscription(userId, tier);
+      SuccessResponseHelper.ok(res, cohort, `Subscription activated on ${tier}`);
+    } catch (error: any) {
+      logger.error('College subscribe controller error:', error);
       next(error);
     }
   }

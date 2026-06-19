@@ -79,6 +79,84 @@ router.get(
 
 /**
  * @swagger
+ * /colleges/cohort:
+ *   get:
+ *     summary: Get cohort usage vs the partnership tier cap
+ *     tags: [College Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Returns `{ tier, limit, used, remaining, unlimited }`. `limit`/`remaining` are null for Platinum (unlimited).
+ *     responses:
+ *       200:
+ *         description: Cohort status retrieved successfully
+ */
+router.get('/cohort', (req: Request, res: Response, next: NextFunction) => {
+  void collegeDashboardController.getCohort(req, res, next);
+});
+
+/**
+ * @swagger
+ * /colleges/students/import:
+ *   post:
+ *     summary: Bulk-import students into the cohort (enforces the tier cap)
+ *     tags: [College Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     description: >
+ *       Adds students to the college cohort from a parsed `students` array and/or a raw
+ *       `csv` string. The tier cohort cap (Silver 50, Gold 150, Platinum unlimited) is
+ *       enforced server-side BEFORE any writes: if the import would exceed the limit it
+ *       fails with 403 `COHORT_LIMIT_EXCEEDED` and `error.details` carries the numbers to
+ *       prompt an upgrade. Imported students become student accounts and can optionally be
+ *       enrolled into the supplied `eventIds`.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               students:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [fullName, email, phone]
+ *                   properties:
+ *                     fullName: { type: string }
+ *                     email: { type: string, format: email }
+ *                     phone: { type: string }
+ *                     enrollmentNumber: { type: string }
+ *                     degree: { type: string }
+ *                     branch: { type: string }
+ *                     yearOfStudy: { type: integer }
+ *               csv:
+ *                 type: string
+ *                 description: Raw CSV with a header row (fullName,email,phone,...)
+ *               eventIds:
+ *                 type: array
+ *                 items: { type: string }
+ *                 description: Optional events to enroll the imported students into
+ *               defaultPassword:
+ *                 type: string
+ *                 description: Optional shared initial password; otherwise a random one is set per student
+ *     responses:
+ *       201:
+ *         description: Students imported successfully
+ *       400:
+ *         description: Validation error
+ *       403:
+ *         description: Cohort limit exceeded (COHORT_LIMIT_EXCEEDED) — upgrade required
+ */
+router.post(
+  '/students/import',
+  CollegeValidator.importStudents(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void collegeDashboardController.importStudents(req, res, next);
+  }
+);
+
+/**
+ * @swagger
  * /colleges/profile:
  *   get:
  *     summary: Get the college's institution profile
@@ -159,6 +237,40 @@ router.put(
 router.get('/partnership', (req: Request, res: Response, next: NextFunction) => {
   void collegeDashboardController.getPartnership(req, res, next);
 });
+
+/**
+ * @swagger
+ * /colleges/subscription:
+ *   post:
+ *     summary: Activate / choose a subscription plan
+ *     tags: [College Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Activates the given tier immediately (sets it active and stamps the start date). Required before cohort import/export when no subscription is active.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [tier]
+ *             properties:
+ *               tier:
+ *                 type: string
+ *                 enum: [Silver, Gold, Platinum]
+ *     responses:
+ *       200:
+ *         description: Subscription activated; returns cohort status
+ *       400:
+ *         description: Validation error
+ */
+router.post(
+  '/subscription',
+  CollegeValidator.subscribe(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void collegeDashboardController.subscribe(req, res, next);
+  }
+);
 
 /**
  * @swagger

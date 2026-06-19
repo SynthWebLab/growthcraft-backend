@@ -1955,6 +1955,49 @@
         }
       }
     },
+    "/api/v1/colleges/cohort": {
+      "get": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/colleges/students/import": {
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "students": {
+                    "example": "any"
+                  },
+                  "csv": {
+                    "example": "any"
+                  },
+                  "eventIds": {
+                    "example": "any"
+                  },
+                  "defaultPassword": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/colleges/profile": {
       "get": {
         "description": "",
@@ -1979,6 +2022,30 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/colleges/subscription": {
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tier": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
           }
         }
       }

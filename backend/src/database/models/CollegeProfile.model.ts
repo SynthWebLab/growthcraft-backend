@@ -3,6 +3,16 @@ import mongoose, { Schema, Document } from 'mongoose';
 export const PARTNERSHIP_TIERS = ['Silver', 'Gold', 'Platinum'] as const;
 export type PartnershipTier = (typeof PARTNERSHIP_TIERS)[number];
 
+/**
+ * Maximum number of students a college can hold in its cohort per partnership
+ * tier (see the public /for-colleges page). `null` means unlimited (Platinum).
+ */
+export const COHORT_LIMITS: Record<PartnershipTier, number | null> = {
+  Silver: 50,
+  Gold: 150,
+  Platinum: null,
+};
+
 export interface ICollegeNotificationPreferences {
   studentEnrollments: boolean;
   programUpdates: boolean;
@@ -38,6 +48,7 @@ export interface ICollegeProfile extends Document {
     description?: string;
   }[];
   partnershipTier: PartnershipTier;
+  partnershipActive: boolean;
   partnershipStartDate?: Date;
   spoc?: {
     name?: string;
@@ -116,6 +127,15 @@ const collegeProfileSchema = new Schema<ICollegeProfile>(
       type: String,
       enum: PARTNERSHIP_TIERS,
       default: 'Silver',
+    },
+    // Whether the college has an active subscription. A college without one must
+    // choose a plan before using cohort features (import/export students).
+    // TESTING PHASE: defaults to `true` so every college (new and existing, via
+    // Mongoose default-on-hydration) is auto-activated on Silver. Flip to `false`
+    // once paid subscriptions go live to enforce the "choose a plan first" gate.
+    partnershipActive: {
+      type: Boolean,
+      default: true,
     },
     partnershipStartDate: {
       type: Date,

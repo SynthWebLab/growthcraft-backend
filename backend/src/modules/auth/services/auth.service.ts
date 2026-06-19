@@ -69,6 +69,10 @@ export class AuthService {
             },
             website: registerDto.collegeData.website || undefined,
             isVerified: false,
+            // TESTING PHASE: auto-activate a Silver subscription on registration.
+            partnershipTier: 'Silver',
+            partnershipActive: true,
+            partnershipStartDate: new Date(),
           });
 
           await collegeProfile.save();
@@ -76,7 +80,10 @@ export class AuthService {
         } catch (profileError) {
           // If college profile creation fails, delete the user to maintain consistency
           await User.findByIdAndDelete(user._id);
-          logger.error('Failed to create college profile, rolling back user creation:', profileError);
+          logger.error(
+            'Failed to create college profile, rolling back user creation:',
+            profileError
+          );
           throw new Error('Failed to create college profile. Please try again.');
         }
       }
@@ -105,7 +112,10 @@ export class AuthService {
         } catch (profileError) {
           // If employer profile creation fails, delete the user to maintain consistency
           await User.findByIdAndDelete(user._id);
-          logger.error('Failed to create employer profile, rolling back user creation:', profileError);
+          logger.error(
+            'Failed to create employer profile, rolling back user creation:',
+            profileError
+          );
           throw new Error('Failed to create employer profile. Please try again.');
         }
       }
@@ -128,7 +138,10 @@ export class AuthService {
         } catch (profileError) {
           // If mentor profile creation fails, delete the user to maintain consistency
           await User.findByIdAndDelete(user._id);
-          logger.error('Failed to create mentor profile, rolling back user creation:', profileError);
+          logger.error(
+            'Failed to create mentor profile, rolling back user creation:',
+            profileError
+          );
           throw new Error('Failed to create mentor profile. Please try again.');
         }
       }
@@ -301,7 +314,7 @@ export class AuthService {
       if (redisTokenService.isAvailable()) {
         // Validate token from Redis
         const metadata = await redisTokenService.validateRefreshToken(refreshToken);
-        
+
         if (metadata?.userId === userId) {
           // Remove old token
           await redisTokenService.removeRefreshToken(userId, refreshToken);
@@ -316,7 +329,9 @@ export class AuthService {
           // Store new token in Redis
           await redisTokenService.storeRefreshToken(userId, tokens.refreshToken, deviceInfo);
         } else {
-          logger.warn(`Refresh token not found in Redis for user ${userId}; trying MongoDB fallback`);
+          logger.warn(
+            `Refresh token not found in Redis for user ${userId}; trying MongoDB fallback`
+          );
           tokens = await tokenService.rotateRefreshToken(
             userId,
             refreshToken,
@@ -520,7 +535,9 @@ export class AuthService {
 
   public async requestPasswordReset(email: string): Promise<void> {
     try {
-      const user = await User.findOne({ email }).select('+passwordResetToken +passwordResetExpires');
+      const user = await User.findOne({ email }).select(
+        '+passwordResetToken +passwordResetExpires'
+      );
 
       if (!user) {
         // Don't reveal if user exists or not for security
@@ -537,11 +554,7 @@ export class AuthService {
       await user.save();
 
       // Send password reset email
-      await emailService.sendPasswordResetEmail(
-        user.email,
-        resetToken,
-        user.fullName
-      );
+      await emailService.sendPasswordResetEmail(user.email, resetToken, user.fullName);
 
       logger.info(`Password reset email sent to: ${user.email}`);
     } catch (error: any) {

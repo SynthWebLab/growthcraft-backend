@@ -54,6 +54,19 @@ export class CollegeValidator {
   }
 
   /**
+   * Validate a subscription activation (choose a plan).
+   */
+  public static subscribe(): ValidationChain[] {
+    return [
+      body('tier')
+        .notEmpty()
+        .withMessage('Tier is required')
+        .isIn(PARTNERSHIP_TIERS)
+        .withMessage(`Tier must be one of: ${PARTNERSHIP_TIERS.join(', ')}`),
+    ];
+  }
+
+  /**
    * Validate a partnership tier upgrade request.
    */
   public static requestUpgrade(): ValidationChain[] {
@@ -104,6 +117,49 @@ export class CollegeValidator {
         .optional()
         .isBoolean()
         .withMessage('marketingEmails must be a boolean'),
+    ];
+  }
+
+  /**
+   * Validate a bulk student import. Requires `students` (non-empty array) and/or
+   * a `csv` string. Per-row field validation happens in the service.
+   */
+  public static importStudents(): ValidationChain[] {
+    return [
+      body('students')
+        .optional()
+        .isArray({ min: 1 })
+        .withMessage('students must be a non-empty array'),
+      body('students.*.fullName')
+        .if(body('students').exists())
+        .trim()
+        .notEmpty()
+        .withMessage('Each student needs a fullName'),
+      body('students.*.email')
+        .if(body('students').exists())
+        .trim()
+        .isEmail()
+        .withMessage('Each student needs a valid email'),
+      body('students.*.phone')
+        .if(body('students').exists())
+        .trim()
+        .notEmpty()
+        .withMessage('Each student needs a phone'),
+      body('csv').optional().isString().withMessage('csv must be a string'),
+      body('eventIds').optional().isArray().withMessage('eventIds must be an array'),
+      body('eventIds.*').optional().isMongoId().withMessage('Each eventId must be a valid id'),
+      body('defaultPassword')
+        .optional()
+        .isLength({ min: 8 })
+        .withMessage('defaultPassword must be at least 8 characters'),
+      body().custom((value) => {
+        const hasStudents = Array.isArray(value.students) && value.students.length > 0;
+        const hasCsv = typeof value.csv === 'string' && value.csv.trim().length > 0;
+        if (!hasStudents && !hasCsv) {
+          throw new Error('Provide students[] or a csv string');
+        }
+        return true;
+      }),
     ];
   }
 
