@@ -753,7 +753,9 @@ export class CollegeDashboardService {
    * common header aliases. Returns one record per data row (header is required).
    */
   private parseCsv(csv: string): ImportStudentInput[] {
-    const lines = csv
+    // Strip a leading UTF-8 BOM (common in exported CSVs) without a literal BOM in source.
+    const normalized = csv.charCodeAt(0) === 0xfeff ? csv.slice(1) : csv;
+    const lines = normalized
       .split(/\r?\n/)
       .map((l) => l.trim())
       .filter((l) => l.length > 0);
@@ -789,23 +791,51 @@ export class CollegeDashboardService {
       name: 'fullName',
       fullname: 'fullName',
       'full name': 'fullName',
+      'student name': 'fullName',
       email: 'email',
       'email address': 'email',
+      'e-mail': 'email',
+      mail: 'email',
       phone: 'phone',
       mobile: 'phone',
+      'mobile number': 'phone',
       'phone number': 'phone',
+      'phone no': 'phone',
+      contact: 'phone',
+      'contact number': 'phone',
       enrollmentnumber: 'enrollmentNumber',
+      'enrollment number': 'enrollmentNumber',
       enrollment: 'enrollmentNumber',
       roll: 'enrollmentNumber',
       'roll number': 'enrollmentNumber',
+      'roll no': 'enrollmentNumber',
       degree: 'degree',
       branch: 'branch',
       yearofstudy: 'yearOfStudy',
+      'year of study': 'yearOfStudy',
       year: 'yearOfStudy',
     };
 
-    const headers = splitRow(lines[0]).map((h) => h.toLowerCase());
+    // Normalize headers: lowercase, collapse internal whitespace, drop surrounding quotes.
+    const headers = splitRow(lines[0]).map((h) =>
+      h
+        .toLowerCase()
+        .replace(/^["']|["']$/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+    );
     const fields = headers.map((h) => aliasMap[h]);
+
+    // Fail fast with an actionable message if required columns are absent.
+    const missing = (['fullName', 'email', 'phone'] as const).filter(
+      (req) => !fields.includes(req)
+    );
+    if (missing.length > 0) {
+      throw new ValidationError(
+        `CSV is missing required column(s): ${missing.join(', ')}. ` +
+          `Detected columns: [${headers.join(', ')}]. Required headers: fullName, email, phone.`
+      );
+    }
 
     return lines.slice(1).map((line) => {
       const cells = splitRow(line);
@@ -895,7 +925,14 @@ export class CollegeDashboardService {
       }
 
       if (valid.length === 0) {
-        throw new ValidationError('No valid student rows to import');
+        const reasons = skipped
+          .map((s) => `${s.email}: ${s.reason}`)
+          .slice(0, 5)
+          .join('; ');
+        throw new ValidationError(
+          `No valid student rows to import. Every row was skipped${reasons ? ` — ${reasons}` : ''}. ` +
+            `Each row needs a non-empty fullName, email, and phone.`
+        );
       }
 
       // 3. Map existing users; determine which rows are NEW to the cohort.
