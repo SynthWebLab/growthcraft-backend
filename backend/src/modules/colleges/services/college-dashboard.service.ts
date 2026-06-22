@@ -59,7 +59,11 @@ export interface CollegeDashboardSummary {
     cohortLimit: number | null;
     cohortRemaining: number | null;
   };
-  enrollmentTrend: { month: string; students: number }[];
+  enrollmentTrend: {
+    weekly: { label: string; students: number }[];
+    monthly: { label: string; students: number }[];
+    yearly: { label: string; students: number }[];
+  };
   topPerformers: { name: string; course: string; progress: number }[];
   recentActivity: { text: string; date: Date }[];
 }
@@ -182,7 +186,7 @@ export class CollegeDashboardService {
    * Primary source is the explicit `registeredStudents` list; if that is empty
    * we fall back to matching student profiles by college name.
    */
-  private async resolveStudentUserIds(
+  public async resolveStudentUserIds(
     college: ICollegeProfile
   ): Promise<mongoose.Types.ObjectId[]> {
     if (college.registeredStudents && college.registeredStudents.length > 0) {
@@ -210,7 +214,7 @@ export class CollegeDashboardService {
       return [];
     }
 
-    const [users, profiles, enrollmentCounts] = await Promise.all([
+    const [users, profiles, courseEnrollmentCounts, eventEnrollmentCounts] = await Promise.all([
       User.find({ _id: { $in: userIds }, role: UserRole.STUDENT })
         .select('fullName email updatedAt')
         .lean()
@@ -223,13 +227,20 @@ export class CollegeDashboardService {
         { $match: { userId: { $in: userIds }, status: { $in: ACTIVE_ENROLLMENT_STATUSES } } },
         { $group: { _id: '$userId', count: { $sum: 1 } } },
       ]),
+      EventEnrollment.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
+        { $match: { userId: { $in: userIds }, status: { $in: ['pending', 'confirmed'] } } },
+        { $group: { _id: '$userId', count: { $sum: 1 } } },
+      ]),
     ]);
 
     const profileByUser = new Map<string, IStudentProfile>(
       profiles.map((p) => [String(p.userId), p as unknown as IStudentProfile])
     );
-    const countByUser = new Map<string, number>(
-      enrollmentCounts.map((c) => [String(c._id), c.count])
+    const courseCountByUser = new Map<string, number>(
+      courseEnrollmentCounts.map((c) => [String(c._id), c.count])
+    );
+    const eventCountByUser = new Map<string, number>(
+      eventEnrollmentCounts.map((c) => [String(c._id), c.count])
     );
 
     return users.map((user) => {
@@ -237,14 +248,16 @@ export class CollegeDashboardService {
       const profile = profileByUser.get(idStr);
       const enrolled = profile?.enrolledCourses?.length ?? 0;
       const completed = profile?.completedCourses?.length ?? 0;
-      const enrollmentCount = countByUser.get(idStr) ?? enrolled;
+      const courseCount = courseCountByUser.get(idStr) ?? enrolled;
+      const eventCount = eventCountByUser.get(idStr) ?? 0;
+      const totalEnrollmentCount = courseCount + eventCount;
 
       const avgProgress = enrolled > 0 ? Math.round((completed / enrolled) * 100) : 0;
 
       let status: StudentStatus;
       if (enrolled > 0 && completed >= enrolled) {
         status = 'completed';
-      } else if (enrollmentCount > 0 || enrolled > 0) {
+      } else if (totalEnrollmentCount > 0 || enrolled > 0) {
         status = 'active';
       } else {
         status = 'pending';
@@ -254,7 +267,7 @@ export class CollegeDashboardService {
         userId: idStr,
         name: user.fullName,
         email: user.email,
-        courses: enrollmentCount,
+        courses: totalEnrollmentCount,
         avgProgress,
         status,
         lastActive: (user as unknown as IUser).updatedAt,
@@ -306,41 +319,67 @@ export class CollegeDashboardService {
       const userIds = await this.resolveStudentUserIds(college);
       const rows = await this.buildStudentRows(userIds);
 
-      const [activeCourseIds, trend, recent] = await Promise.all([
+      const [activeCourseIds, activeEventIds, weeklyTrend, monthlyTrend, yearlyTrend, recentCourses, recentEvents] = await Promise.all([
         CourseEnrollment.distinct('courseId', {
           userId: { $in: userIds },
           status: { $in: ACTIVE_ENROLLMENT_STATUSES },
         }),
-        this.getEnrollmentTrend(userIds),
+        EventEnrollment.distinct('eventId', {
+          userId: { $in: userIds },
+          status: { $in: ['pending', 'confirmed'] },
+        }),
+        this.getEnrollmentTrendWeekly(userIds),
+        this.getEnrollmentTrendMonthly(userIds),
+        this.getEnrollmentTrendYearly(userIds),
         CourseEnrollment.find({ userId: { $in: userIds } })
           .sort({ createdAt: -1 })
           .limit(5)
           .select('fullName title createdAt')
           .lean()
           .exec(),
+        EventEnrollment.find({ userId: { $in: userIds } })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .select('fullName title eventType createdAt')
+          .lean()
+          .exec(),
       ]);
+
+      const combinedRecent = [
+        ...recentCourses.map((c) => ({
+          text: `${c.fullName} enrolled in ${c.title}`,
+          date: (c as { createdAt: Date }).createdAt,
+        })),
+        ...recentEvents.map((e) => ({
+          text: `${e.fullName} enrolled in ${e.title} (${e.eventType})`,
+          date: (e as { createdAt: Date }).createdAt,
+        })),
+      ];
+
+      const recentActivity = combinedRecent
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .slice(0, 5);
 
       const topPerformers = [...rows]
         .sort((a, b) => b.avgProgress - a.avgProgress)
         .slice(0, 5)
         .map((r) => ({ name: r.name, course: '', progress: r.avgProgress }));
 
-      const recentActivity = recent.map((e) => ({
-        text: `${e.fullName} enrolled in ${e.title}`,
-        date: (e as { createdAt: Date }).createdAt,
-      }));
-
       const cohort = this.computeCohortStatus(college);
 
       return {
         kpis: {
           totalStudentsEnrolled: cohort.used,
-          activeCourses: activeCourseIds.length,
+          activeCourses: activeCourseIds.length + activeEventIds.length,
           partnershipTier: college.partnershipTier,
           cohortLimit: cohort.limit,
           cohortRemaining: cohort.remaining,
         },
-        enrollmentTrend: trend,
+        enrollmentTrend: {
+          weekly: weeklyTrend,
+          monthly: monthlyTrend,
+          yearly: yearlyTrend,
+        },
         topPerformers,
         recentActivity,
       };
@@ -378,39 +417,163 @@ export class CollegeDashboardService {
   /**
    * Monthly enrolment counts for the trailing 6 months (including the current one).
    */
-  private async getEnrollmentTrend(
+  /**
+   * Weekly enrolment counts for the trailing 6 weeks.
+   */
+  private async getEnrollmentTrendWeekly(
     userIds: mongoose.Types.ObjectId[]
-  ): Promise<{ month: string; students: number }[]> {
+  ): Promise<{ label: string; students: number }[]> {
+    const now = new Date();
+    const start = new Date(now.getTime() - 6 * 7 * 24 * 60 * 60 * 1000);
+
+    const [groupedCourses, groupedEvents] = await Promise.all([
+      userIds.length
+        ? CourseEnrollment.find({
+            userId: { $in: userIds },
+            status: { $in: ACTIVE_ENROLLMENT_STATUSES },
+            createdAt: { $gte: start },
+          }).select('createdAt').lean().exec()
+        : Promise.resolve([]),
+      userIds.length
+        ? EventEnrollment.find({
+            userId: { $in: userIds },
+            status: { $in: ['pending', 'confirmed'] },
+            createdAt: { $gte: start },
+          }).select('createdAt').lean().exec()
+        : Promise.resolve([]),
+    ]);
+
+    const result: { label: string; students: number }[] = [];
+    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+
+    for (let i = 5; i >= 0; i--) {
+      const bucketStart = new Date(now.getTime() - i * oneWeekMs);
+      const bucketEnd = new Date(bucketStart.getTime() + oneWeekMs);
+      
+      const courseCount = groupedCourses.filter(c => {
+        const d = new Date((c as any).createdAt);
+        return d >= bucketStart && d < bucketEnd;
+      }).length;
+
+      const eventCount = groupedEvents.filter(e => {
+        const d = new Date((e as any).createdAt);
+        return d >= bucketStart && d < bucketEnd;
+      }).length;
+
+      const weekLabel = bucketStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      result.push({ label: weekLabel, students: courseCount + eventCount });
+    }
+    return result;
+  }
+
+  /**
+   * Monthly enrolment counts for the trailing 6 months.
+   */
+  private async getEnrollmentTrendMonthly(
+    userIds: mongoose.Types.ObjectId[]
+  ): Promise<{ label: string; students: number }[]> {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-    const grouped = userIds.length
-      ? await CourseEnrollment.aggregate<{ _id: { y: number; m: number }; count: number }>([
-          {
-            $match: {
-              userId: { $in: userIds },
-              status: { $in: ACTIVE_ENROLLMENT_STATUSES },
-              createdAt: { $gte: start },
+    const [groupedCourses, groupedEvents] = await Promise.all([
+      userIds.length
+        ? CourseEnrollment.aggregate<{ _id: { y: number; m: number }; count: number }>([
+            {
+              $match: {
+                userId: { $in: userIds },
+                status: { $in: ACTIVE_ENROLLMENT_STATUSES },
+                createdAt: { $gte: start },
+              },
             },
-          },
-          {
-            $group: {
-              _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } },
-              count: { $sum: 1 },
+            {
+              $group: {
+                _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } },
+                count: { $sum: 1 },
+              },
             },
-          },
-        ])
-      : [];
+          ])
+        : Promise.resolve([]),
+      userIds.length
+        ? EventEnrollment.aggregate<{ _id: { y: number; m: number }; count: number }>([
+            {
+              $match: {
+                userId: { $in: userIds },
+                status: { $in: ['pending', 'confirmed'] },
+                createdAt: { $gte: start },
+              },
+            },
+            {
+              $group: {
+                _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } },
+                count: { $sum: 1 },
+              },
+            },
+          ])
+        : Promise.resolve([]),
+    ]);
 
-    const countByKey = new Map<string, number>(
-      grouped.map((g) => [`${g._id.y}-${g._id.m}`, g.count])
-    );
+    const countByKey = new Map<string, number>();
 
-    const result: { month: string; students: number }[] = [];
+    groupedCourses.forEach((g) => {
+      const key = `${g._id.y}-${g._id.m}`;
+      countByKey.set(key, (countByKey.get(key) || 0) + g.count);
+    });
+
+    groupedEvents.forEach((g) => {
+      const key = `${g._id.y}-${g._id.m}`;
+      countByKey.set(key, (countByKey.get(key) || 0) + g.count);
+    });
+
+    const result: { label: string; students: number }[] = [];
     for (let i = 0; i < 6; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
       const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
-      result.push({ month: MONTH_LABELS[d.getMonth()], students: countByKey.get(key) ?? 0 });
+      result.push({ label: MONTH_LABELS[d.getMonth()], students: countByKey.get(key) ?? 0 });
+    }
+    return result;
+  }
+
+  /**
+   * Yearly enrolment counts for the trailing 5 years.
+   */
+  private async getEnrollmentTrendYearly(
+    userIds: mongoose.Types.ObjectId[]
+  ): Promise<{ label: string; students: number }[]> {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const startYear = currentYear - 4;
+    const start = new Date(startYear, 0, 1);
+
+    const [groupedCourses, groupedEvents] = await Promise.all([
+      userIds.length
+        ? CourseEnrollment.find({
+            userId: { $in: userIds },
+            status: { $in: ACTIVE_ENROLLMENT_STATUSES },
+            createdAt: { $gte: start },
+          }).select('createdAt').lean().exec()
+        : Promise.resolve([]),
+      userIds.length
+        ? EventEnrollment.find({
+            userId: { $in: userIds },
+            status: { $in: ['pending', 'confirmed'] },
+            createdAt: { $gte: start },
+          }).select('createdAt').lean().exec()
+        : Promise.resolve([]),
+    ]);
+
+    const result: { label: string; students: number }[] = [];
+    for (let year = startYear; year <= currentYear; year++) {
+      const courseCount = groupedCourses.filter(c => {
+        const d = new Date((c as any).createdAt);
+        return d.getFullYear() === year;
+      }).length;
+
+      const eventCount = groupedEvents.filter(e => {
+        const d = new Date((e as any).createdAt);
+        return d.getFullYear() === year;
+      }).length;
+
+      result.push({ label: String(year), students: courseCount + eventCount });
     }
     return result;
   }
@@ -581,34 +744,68 @@ export class CollegeDashboardService {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-      const grouped = userIds.length
-        ? await CourseEnrollment.aggregate<{
-            _id: { y: number; m: number };
-            total: number;
-            confirmed: number;
-          }>([
-            { $match: { userId: { $in: userIds }, createdAt: { $gte: start } } },
-            {
-              $group: {
-                _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } },
-                total: { $sum: 1 },
-                confirmed: {
-                  $sum: { $cond: [{ $eq: ['$status', 'confirmed'] }, 1, 0] },
+      const [groupedCourses, groupedEvents] = await Promise.all([
+        userIds.length
+          ? CourseEnrollment.aggregate<{
+              _id: { y: number; m: number };
+              total: number;
+              confirmed: number;
+            }>([
+              { $match: { userId: { $in: userIds }, createdAt: { $gte: start } } },
+              {
+                $group: {
+                  _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } },
+                  total: { $sum: 1 },
+                  confirmed: {
+                    $sum: { $cond: [{ $eq: ['$status', 'confirmed'] }, 1, 0] },
+                  },
                 },
               },
-            },
-          ])
-        : [];
+            ])
+          : Promise.resolve([]),
+        userIds.length
+          ? EventEnrollment.aggregate<{
+              _id: { y: number; m: number };
+              total: number;
+              confirmed: number;
+            }>([
+              { $match: { userId: { $in: userIds }, createdAt: { $gte: start } } },
+              {
+                $group: {
+                  _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } },
+                  total: { $sum: 1 },
+                  confirmed: {
+                    $sum: { $cond: [{ $eq: ['$status', 'confirmed'] }, 1, 0] },
+                  },
+                },
+              },
+            ])
+          : Promise.resolve([]),
+      ]);
 
-      const byKey = new Map(grouped.map((g) => [`${g._id.y}-${g._id.m}`, g]));
+      const byKey = new Map<string, { total: number; confirmed: number }>();
+
+      groupedCourses.forEach((g) => {
+        const key = `${g._id.y}-${g._id.m}`;
+        byKey.set(key, { total: g.total, confirmed: g.confirmed });
+      });
+
+      groupedEvents.forEach((g) => {
+        const key = `${g._id.y}-${g._id.m}`;
+        const existing = byKey.get(key) || { total: 0, confirmed: 0 };
+        byKey.set(key, {
+          total: existing.total + g.total,
+          confirmed: existing.confirmed + g.confirmed,
+        });
+      });
 
       const reports: CollegeMonthlyReport[] = [];
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
-        const entry = byKey.get(key);
-        const total = entry?.total ?? 0;
-        const completionRate = total > 0 ? Math.round(((entry?.confirmed ?? 0) / total) * 100) : 0;
+        const entry = byKey.get(key) || { total: 0, confirmed: 0 };
+        const total = entry.total;
+        const completionRate = total > 0 ? Math.round((entry.confirmed / total) * 100) : 0;
         reports.push({
           month: `${MONTH_LABELS[d.getMonth()]} ${d.getFullYear()}`,
           enrollments: total,
@@ -1098,6 +1295,154 @@ export class CollegeDashboardService {
       }
     }
     return enrolled;
+  }
+
+  /**
+   * Get all cohort students and their access status (enrolled vs not enrolled) for a particular event.
+   */
+  public async getEventAccessStatus(
+    userId: string,
+    eventId: string
+  ): Promise<{ userId: string; name: string; email: string; phone: string; hasAccess: boolean }[]> {
+    try {
+      const college = await this.getProfileOrThrow(userId);
+      const studentUserIds = await this.resolveStudentUserIds(college);
+      if (studentUserIds.length === 0) {
+        return [];
+      }
+
+      // Query student users
+      const users = await User.find({ _id: { $in: studentUserIds }, role: UserRole.STUDENT })
+        .select('fullName email phone')
+        .lean()
+        .exec();
+
+      // Query active event enrollments for the event and student IDs
+      const enrollments = await EventEnrollment.find({
+        eventId: new mongoose.Types.ObjectId(eventId),
+        userId: { $in: studentUserIds },
+        status: { $in: ['pending', 'confirmed'] },
+      })
+        .select('userId')
+        .lean()
+        .exec();
+
+      const enrolledSet = new Set(enrollments.map((e) => String(e.userId)));
+
+      return users.map((user) => ({
+        userId: String(user._id),
+        name: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        hasAccess: enrolledSet.has(String(user._id)),
+      }));
+    } catch (error: any) {
+      logger.error('Get event access status error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Grant or revoke access to a specific event for a set of cohort students.
+   */
+  public async updateEventAccess(
+    userId: string,
+    eventId: string,
+    payload: { studentIds: string[]; action: 'grant' | 'revoke' }
+  ): Promise<{ success: boolean; modifiedCount: number }> {
+    try {
+      const college = await this.getProfileOrThrow(userId);
+      const collegeStudentIds = await this.resolveStudentUserIds(college);
+      const collegeStudentIdStrings = new Set(collegeStudentIds.map((id) => String(id)));
+
+      // Filter input student IDs to only those belonging to this college's cohort
+      const validStudentIds = payload.studentIds.filter((id) => collegeStudentIdStrings.has(id));
+
+      if (validStudentIds.length === 0) {
+        return { success: true, modifiedCount: 0 };
+      }
+
+      const event = await Bootcamp.findById(eventId);
+      if (!event) {
+        throw new NotFoundError('Event not found');
+      }
+
+      let modifiedCount = 0;
+
+      if (payload.action === 'grant') {
+        const users = await User.find({ _id: { $in: validStudentIds }, role: UserRole.STUDENT })
+          .select('fullName email phone')
+          .lean()
+          .exec();
+
+        for (const student of users) {
+          try {
+            // Find existing enrollment (including pending or cancelled to reactivate/overwrite)
+            const existing = await EventEnrollment.findOne({
+              eventId: event._id,
+              userId: student._id,
+            });
+
+            if (existing) {
+              if (existing.status !== 'confirmed') {
+                existing.status = 'confirmed';
+                existing.paymentStatus = 'completed';
+                await existing.save();
+                modifiedCount++;
+              }
+            } else {
+              await EventEnrollment.create({
+                userId: student._id,
+                eventId: event._id,
+                eventType: event.type,
+                fullName: student.fullName,
+                email: student.email,
+                phone: student.phone,
+                title: event.title,
+                status: 'confirmed',
+                paymentStatus: 'completed',
+                enrollmentDate: new Date(),
+              });
+              modifiedCount++;
+            }
+          } catch (err: any) {
+            logger.error(`Failed to grant access to student ${student._id}:`, err.message);
+          }
+        }
+
+        if (modifiedCount > 0) {
+          // Increment enrolledCount on the event
+          await Bootcamp.findByIdAndUpdate(eventId, {
+            $inc: { enrolledCount: modifiedCount },
+          });
+        }
+      } else if (payload.action === 'revoke') {
+        // Find existing confirmed/pending enrollments to know how much to decrement enrolledCount
+        const existingCount = await EventEnrollment.countDocuments({
+          eventId: event._id,
+          userId: { $in: validStudentIds },
+          status: { $in: ['pending', 'confirmed'] },
+        });
+
+        if (existingCount > 0) {
+          const deleteResult = await EventEnrollment.deleteMany({
+            eventId: event._id,
+            userId: { $in: validStudentIds },
+          });
+          modifiedCount = deleteResult.deletedCount || existingCount;
+
+          // Decrement enrolledCount on the event
+          await Bootcamp.findByIdAndUpdate(eventId, {
+            $inc: { enrolledCount: -modifiedCount },
+          });
+        }
+      }
+
+      return { success: true, modifiedCount };
+    } catch (error: any) {
+      logger.error('Update event access error:', error);
+      throw error;
+    }
   }
 }
 

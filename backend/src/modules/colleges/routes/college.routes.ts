@@ -453,4 +453,12 @@ router.get('/support', (req: Request, res: Response, next: NextFunction) => {
   void collegeDashboardController.getSupportTickets(req, res, next);
 });
 
+router.get('/events/:eventId/students', (req: Request, res: Response, next: NextFunction) => {
+  void collegeDashboardController.getEventAccessStudents(req, res, next);
+});
+
+router.post('/events/:eventId/access', (req: Request, res: Response, next: NextFunction) => {
+  void collegeDashboardController.updateEventAccess(req, res, next);
+});
+
 export default router;

@@ -304,6 +304,44 @@ export class CollegeDashboardController {
       next(error);
     }
   }
+  /**
+   * GET /api/v1/colleges/events/:eventId/students
+   */
+  public async getEventAccessStudents(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const { eventId } = req.params;
+      const students = await collegeDashboardService.getEventAccessStatus(userId, eventId);
+      SuccessResponseHelper.ok(res, students, 'Event student access status retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get event access students controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/colleges/events/:eventId/access
+   */
+  public async updateEventAccess(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const { eventId } = req.params;
+      const { studentIds, action } = req.body as { studentIds: string[]; action: 'grant' | 'revoke' };
+
+      if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+        throw new ValidationError('studentIds must be a non-empty array');
+      }
+      if (action !== 'grant' && action !== 'revoke') {
+        throw new ValidationError('action must be either "grant" or "revoke"');
+      }
+
+      const result = await collegeDashboardService.updateEventAccess(userId, eventId, { studentIds, action });
+      SuccessResponseHelper.ok(res, result, `Event student access updated successfully: ${action}`);
+    } catch (error: any) {
+      logger.error('Update event access controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const collegeDashboardController = CollegeDashboardController.getInstance();
