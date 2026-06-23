@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import { catalogueService } from '../services/catalogue.service';
 import { bootcampService } from '@/modules/bootcamps/services/bootcamp.service';
 import { CatalogueQueryParams, CatalogueItem } from '@/common/interfaces/catalogue.interface';
@@ -268,7 +269,6 @@ export class CatalogueController {
         const { collegeDashboardService } = await import('@/modules/colleges/services/college-dashboard.service');
         const { CollegeProfile } = await import('@/database/models/CollegeProfile.model');
         const { EventEnrollment } = await import('@/database/models/EventEnrollment.model');
-        const mongoose = await import('mongoose');
 
         const college = await CollegeProfile.findOne({ userId }).exec();
         if (college) {

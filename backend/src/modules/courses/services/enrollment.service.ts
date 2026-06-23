@@ -1,4 +1,5 @@
 import { CourseEnrollment, ICourseEnrollment } from '@/database/models/CourseEnrollment.model';
+import { User } from '@/database/models/User.model';
 import {
   CourseCallbackRequest,
   ICourseCallbackRequest,
@@ -214,11 +215,12 @@ export class EnrollmentService {
    */
   public async isUserEnrolled(userId: string, courseId: string): Promise<boolean> {
     try {
-      const enrollment = await CourseEnrollment.findOne({
-        userId,
-        courseId,
-        status: { $in: ['pending', 'confirmed'] },
-      });
+      const user = await User.findById(userId).select('email').lean().exec();
+      const filter = user
+        ? { $or: [{ userId }, { email: user.email }], courseId, status: { $in: ['pending', 'confirmed'] } }
+        : { userId, courseId, status: { $in: ['pending', 'confirmed'] } };
+
+      const enrollment = await CourseEnrollment.findOne(filter);
 
       return !!enrollment;
     } catch (error: any) {
@@ -235,19 +237,20 @@ export class EnrollmentService {
     courseId: string
   ): Promise<{ isEnrolled: boolean; hasCallbackRequest: boolean }> {
     try {
+      const user = await User.findById(userId).select('email').lean().exec();
+      const enrollmentFilter = user
+        ? { $or: [{ userId }, { email: user.email }], courseId, status: { $in: ['pending', 'confirmed'] } }
+        : { userId, courseId, status: { $in: ['pending', 'confirmed'] } };
+
+      const callbackFilter = user
+        ? { $or: [{ userId }, { email: user.email }], courseId, status: 'pending' }
+        : { userId, courseId, status: 'pending' };
+
       // Check enrollment
-      const enrollment = await CourseEnrollment.findOne({
-        userId,
-        courseId,
-        status: { $in: ['pending', 'confirmed'] },
-      });
+      const enrollment = await CourseEnrollment.findOne(enrollmentFilter);
 
       // Check callback request
-      const callbackRequest = await CourseCallbackRequest.findOne({
-        userId,
-        courseId,
-        status: 'pending',
-      });
+      const callbackRequest = await CourseCallbackRequest.findOne(callbackFilter);
 
       return {
         isEnrolled: !!enrollment,
@@ -268,11 +271,12 @@ export class EnrollmentService {
         return new Set();
       }
 
-      const enrollments = await CourseEnrollment.find({
-        userId,
-        courseId: { $in: courseIds },
-        status: { $in: ['pending', 'confirmed'] },
-      })
+      const user = await User.findById(userId).select('email').lean().exec();
+      const filter = user
+        ? { $or: [{ userId }, { email: user.email }], courseId: { $in: courseIds }, status: { $in: ['pending', 'confirmed'] } }
+        : { userId, courseId: { $in: courseIds }, status: { $in: ['pending', 'confirmed'] } };
+
+      const enrollments = await CourseEnrollment.find(filter)
         .select('courseId')
         .lean()
         .exec();
@@ -293,11 +297,12 @@ export class EnrollmentService {
         return new Set();
       }
 
-      const requests = await CourseCallbackRequest.find({
-        userId,
-        courseId: { $in: courseIds },
-        status: 'pending',
-      })
+      const user = await User.findById(userId).select('email').lean().exec();
+      const filter = user
+        ? { $or: [{ userId }, { email: user.email }], courseId: { $in: courseIds }, status: 'pending' }
+        : { userId, courseId: { $in: courseIds }, status: 'pending' };
+
+      const requests = await CourseCallbackRequest.find(filter)
         .select('courseId')
         .lean()
         .exec();
