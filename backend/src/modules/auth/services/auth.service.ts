@@ -434,7 +434,12 @@ export class AuthService {
     try {
       // Try Redis first, fallback to MongoDB
       if (redisTokenService.isAvailable()) {
-        await redisTokenService.removeRefreshToken(userId, refreshToken);
+        try {
+          await redisTokenService.removeRefreshToken(userId, refreshToken);
+        } catch (redisError) {
+          logger.warn('Redis logout failed, falling back to MongoDB:', redisError);
+          await tokenService.removeRefreshToken(userId, refreshToken);
+        }
       } else {
         await tokenService.removeRefreshToken(userId, refreshToken);
       }
@@ -449,7 +454,12 @@ export class AuthService {
     try {
       // Try Redis first, fallback to MongoDB
       if (redisTokenService.isAvailable()) {
-        await redisTokenService.removeAllRefreshTokens(userId);
+        try {
+          await redisTokenService.removeAllRefreshTokens(userId);
+        } catch (redisError) {
+          logger.warn('Redis logoutAll failed, falling back to MongoDB:', redisError);
+          await tokenService.removeAllRefreshTokens(userId);
+        }
       } else {
         await tokenService.removeAllRefreshTokens(userId);
       }

@@ -359,7 +359,11 @@ export class AuthController {
       const refreshToken = req.cookies.refreshToken;
 
       if (refreshToken) {
-        await authService.logout(userId, refreshToken);
+        try {
+          await authService.logout(userId, refreshToken);
+        } catch (dbError) {
+          logger.error('Failed to invalidate token in database/Redis during logout:', dbError);
+        }
       }
 
       // Clear cookies
@@ -378,7 +382,11 @@ export class AuthController {
     try {
       const userId = (req as any).user.userId;
 
-      await authService.logoutAll(userId);
+      try {
+        await authService.logoutAll(userId);
+      } catch (dbError) {
+        logger.error('Failed to invalidate all tokens in database/Redis during logoutAll:', dbError);
+      }
 
       // Clear cookies
       this.clearTokenCookies(res);
