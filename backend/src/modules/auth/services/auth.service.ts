@@ -2,6 +2,7 @@ import { User, IUser } from '@/database/models/User.model';
 import { CollegeProfile } from '@/database/models/CollegeProfile.model';
 import { EmployerProfile } from '@/database/models/EmployerProfile.model';
 import { MentorProfile } from '@/database/models/MentorProfile.model';
+import { StudentProfile } from '@/database/models/StudentProfile.model';
 import { RegisterDto, RegisterResponseDto } from '../dto/register.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
 import { logger } from '@/common/utils/logger.util';
@@ -28,7 +29,64 @@ export class AuthService {
       // Check if user already exists
       const existingUser = await User.findOne({ email: registerDto.email });
       if (existingUser) {
-        throw new Error('User with this email already exists');
+        if (existingUser.role === 'student' && !existingUser.isEmailVerified) {
+          existingUser.fullName = registerDto.fullName;
+          existingUser.phone = registerDto.phone;
+          existingUser.password = registerDto.password;
+
+          const otp = generateOTP();
+          const hashedOTP = hashToken(otp);
+          existingUser.emailVerificationOTP = hashedOTP;
+          existingUser.emailVerificationOTPExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+          existingUser.emailVerificationOTPAttempts = 0;
+
+          await existingUser.save();
+
+          let studentProfile = await StudentProfile.findOne({ userId: existingUser._id });
+          if (!studentProfile) {
+            await StudentProfile.create({
+              userId: existingUser._id,
+              skills: [],
+              interests: [],
+            });
+          }
+
+          try {
+            await emailService.sendVerificationOTP(existingUser.email, otp, existingUser.fullName);
+          } catch (emailError) {
+            logger.error('Failed to send verification OTP:', emailError);
+          }
+
+          const tokens = tokenService.generateTokenPair({
+            userId: existingUser._id.toString(),
+            email: existingUser.email,
+            role: existingUser.role,
+          });
+
+          try {
+            if (redisTokenService.isAvailable()) {
+              await redisTokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
+            } else {
+              await tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
+            }
+          } catch (error) {
+            await tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
+          }
+
+          return {
+            user: {
+              id: existingUser._id.toString(),
+              fullName: existingUser.fullName,
+              email: existingUser.email,
+              phone: existingUser.phone,
+              role: existingUser.role,
+              isEmailVerified: existingUser.isEmailVerified,
+            },
+            tokens,
+          };
+        } else {
+          throw new Error('User with this email already exists');
+        }
       }
 
       // Generate OTP
