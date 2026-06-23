@@ -2,6 +2,9 @@ import nodemailer from 'nodemailer';
 import { config } from '@/config';
 import { logger } from '@/common/utils/logger.util';
 
+const smtpUser = (config as any).SMTP_USER || '';
+const frontendUrl = config.FRONTEND_URL || 'http://localhost:3000';
+
 class EmailService {
   private transporter: nodemailer.Transporter;
 
@@ -11,7 +14,7 @@ class EmailService {
       port: config.SMTP_PORT,
       secure: config.SMTP_PORT === 465, // true for 465, false for other ports
       auth: {
-        user: config.SMTP_USER,
+        user: smtpUser,
         pass: config.SMTP_PASS,
       },
     });
@@ -21,8 +24,18 @@ class EmailService {
    * Send email verification OTP to user
    */
   async sendVerificationOTP(email: string, otp: string, fullName: string): Promise<void> {
+    if (config.NODE_ENV === 'development') {
+      logger.info(`
+============================================================
+[DEVELOPMENT] Email Verification OTP
+Recipient: ${email} (${fullName})
+Verification Code (OTP): ${otp}
+============================================================
+      `);
+    }
+
     const mailOptions = {
-      from: `"GrowthCraft" <${config.SMTP_USER}>`,
+      from: '"GrowthCraft" <' + smtpUser + '>',
       to: email,
       subject: 'Verify Your Email - GrowthCraft',
       html: `
@@ -116,10 +129,20 @@ class EmailService {
    * Send password reset email
    */
   async sendPasswordResetEmail(email: string, token: string, fullName: string): Promise<void> {
-    const resetUrl = `${config.FRONTEND_URL}/reset-password?token=${token}`;
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+
+    if (config.NODE_ENV === 'development') {
+      logger.info(`
+============================================================
+[DEVELOPMENT] Password Reset Email
+Recipient: ${email} (${fullName})
+Reset Link: ${resetUrl}
+============================================================
+      `);
+    }
 
     const mailOptions = {
-      from: `"GrowthCraft" <${config.SMTP_USER}>`,
+      from: '"GrowthCraft" <' + smtpUser + '>',
       to: email,
       subject: 'Password Reset Request - GrowthCraft',
       html: `
@@ -173,10 +196,19 @@ class EmailService {
    * Send welcome email after successful verification
    */
   async sendWelcomeEmail(email: string, fullName: string): Promise<void> {
-    const dashboardUrl = `${config.FRONTEND_URL}/dashboard`;
+    const dashboardUrl = `${frontendUrl}/dashboard`;
+
+    if (config.NODE_ENV === 'development') {
+      logger.info(`
+============================================================
+[DEVELOPMENT] Welcome Email
+Recipient: ${email} (${fullName})
+============================================================
+      `);
+    }
 
     const mailOptions = {
-      from: `"GrowthCraft" <${config.SMTP_USER}>`,
+      from: '"GrowthCraft" <' + smtpUser + '>',
       to: email,
       subject: 'Welcome to GrowthCraft! 🎉',
       html: `

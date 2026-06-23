@@ -11,6 +11,7 @@ import { redisTokenService } from './redis-token.service';
 import { emailService } from '@/common/services/email.service';
 import { generateVerificationToken, generateOTP, hashToken } from '@/common/utils/token.util';
 import { jwtConfig } from '@/config/jwt.config';
+import { config } from '@/config';
 
 export class AuthService {
   private static instance: AuthService;
@@ -571,13 +572,13 @@ export class AuthService {
         throw new Error('Email is already verified');
       }
 
-      // Rate limiting: Check if last OTP was sent recently (within 2 minutes)
+      // Rate limiting: Check if last OTP was sent recently (30 seconds)
       if (user.emailVerificationOTPExpires) {
         const otpAge = Date.now() - (user.emailVerificationOTPExpires.getTime() - 10 * 60 * 1000);
-        const twoMinutes = 2 * 60 * 1000;
+        const rateLimitDuration = 30 * 1000;
 
-        if (otpAge < twoMinutes) {
-          const waitTime = Math.ceil((twoMinutes - otpAge) / 1000);
+        if (otpAge < rateLimitDuration) {
+          const waitTime = Math.ceil((rateLimitDuration - otpAge) / 1000);
           throw new Error(`Please wait ${waitTime} seconds before requesting another OTP`);
         }
       }
@@ -592,7 +593,15 @@ export class AuthService {
       await user.save();
 
       // Send verification OTP
-      await emailService.sendVerificationOTP(user.email, otp, user.fullName);
+      try {
+        await emailService.sendVerificationOTP(user.email, otp, user.fullName);
+      } catch (emailError) {
+        if (config.NODE_ENV === 'development') {
+          logger.warn(`[DEVELOPMENT ONLY] Failed to send verification OTP email: ${(emailError as any).message}`);
+        } else {
+          throw emailError;
+        }
+      }
 
       logger.info(`Verification OTP resent to: ${user.email}`);
     } catch (error: any) {
@@ -622,7 +631,15 @@ export class AuthService {
       await user.save();
 
       // Send password reset email
-      await emailService.sendPasswordResetEmail(user.email, resetToken, user.fullName);
+      try {
+        await emailService.sendPasswordResetEmail(user.email, resetToken, user.fullName);
+      } catch (emailError) {
+        if (config.NODE_ENV === 'development') {
+          logger.warn(`[DEVELOPMENT ONLY] Failed to send password reset email: ${(emailError as any).message}`);
+        } else {
+          throw emailError;
+        }
+      }
 
       logger.info(`Password reset email sent to: ${user.email}`);
     } catch (error: any) {
