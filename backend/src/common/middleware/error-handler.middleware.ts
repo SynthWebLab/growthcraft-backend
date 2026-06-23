@@ -18,6 +18,7 @@ export const errorHandler = (
   let code = 'INTERNAL_ERROR';
   let message = 'An unexpected error occurred';
   let isOperational = false;
+  let details: unknown;
 
   // Handle AppError instances
   if (err instanceof AppError) {
@@ -25,6 +26,11 @@ export const errorHandler = (
     code = err.code;
     message = err.message;
     isOperational = err.isOperational;
+    // Some operational errors (e.g. cohort limit) carry structured details the
+    // client needs; surface them on the response when present.
+    if ('details' in err && (err as { details?: unknown }).details !== undefined) {
+      details = (err as { details?: unknown }).details;
+    }
   }
 
   // Handle Mongoose validation errors
@@ -95,9 +101,9 @@ export const errorHandler = (
     error: {
       message,
       code,
+      ...(details !== undefined && { details }),
       ...(config.NODE_ENV === 'development' && {
         stack: err.stack,
-        details: err,
       }),
     },
   });

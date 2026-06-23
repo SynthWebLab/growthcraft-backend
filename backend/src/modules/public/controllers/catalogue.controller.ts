@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import { catalogueService } from '../services/catalogue.service';
 import { bootcampService } from '@/modules/bootcamps/services/bootcamp.service';
 import { CatalogueQueryParams, CatalogueItem } from '@/common/interfaces/catalogue.interface';
@@ -261,6 +262,55 @@ export class CatalogueController {
 
     if (!userId || processedItems.length === 0) {
       return processedItems;
+    }
+
+    if (req.user?.role === 'college') {
+      try {
+        const { collegeDashboardService } = await import('@/modules/colleges/services/college-dashboard.service');
+        const { CollegeProfile } = await import('@/database/models/CollegeProfile.model');
+        const { EventEnrollment } = await import('@/database/models/EventEnrollment.model');
+
+        const college = await CollegeProfile.findOne({ userId }).exec();
+        if (college) {
+          const studentUserIds = await collegeDashboardService.resolveStudentUserIds(college);
+          if (studentUserIds.length > 0) {
+            const eventItems = processedItems.filter(item => item.type !== 'course');
+            const eventIds = eventItems.map(item => item.id);
+            if (eventIds.length > 0) {
+              const counts = await EventEnrollment.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
+                {
+                  $match: {
+                    eventId: { $in: eventIds.map(id => new mongoose.Types.ObjectId(id)) },
+                    userId: { $in: studentUserIds },
+                    status: { $in: ['pending', 'confirmed'] }
+                  }
+                },
+                {
+                  $group: {
+                    _id: '$eventId',
+                    count: { $sum: 1 }
+                  }
+                }
+              ]);
+              const countMap = new Map(counts.map(c => [String(c._id), c.count]));
+              processedItems.forEach(item => {
+                if (item.type !== 'course') {
+                  item.enrolledCount = countMap.get(item.id) || 0;
+                }
+              });
+            }
+          } else {
+            // No students in cohort, set all to 0
+            processedItems.forEach(item => {
+              if (item.type !== 'course') {
+                item.enrolledCount = 0;
+              }
+            });
+          }
+        }
+      } catch (err: any) {
+        logger.error('Error processing college event enrollment counts:', err);
+      }
     }
 
     // Separate course and event items

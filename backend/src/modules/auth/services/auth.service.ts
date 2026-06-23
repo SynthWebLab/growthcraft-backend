@@ -2,6 +2,7 @@ import { User, IUser } from '@/database/models/User.model';
 import { CollegeProfile } from '@/database/models/CollegeProfile.model';
 import { EmployerProfile } from '@/database/models/EmployerProfile.model';
 import { MentorProfile } from '@/database/models/MentorProfile.model';
+import { StudentProfile } from '@/database/models/StudentProfile.model';
 import { RegisterDto, RegisterResponseDto } from '../dto/register.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
 import { logger } from '@/common/utils/logger.util';
@@ -28,7 +29,64 @@ export class AuthService {
       // Check if user already exists
       const existingUser = await User.findOne({ email: registerDto.email });
       if (existingUser) {
-        throw new Error('User with this email already exists');
+        if (existingUser.role === 'student' && !existingUser.isEmailVerified) {
+          existingUser.fullName = registerDto.fullName;
+          existingUser.phone = registerDto.phone;
+          existingUser.password = registerDto.password;
+
+          const otp = generateOTP();
+          const hashedOTP = hashToken(otp);
+          existingUser.emailVerificationOTP = hashedOTP;
+          existingUser.emailVerificationOTPExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+          existingUser.emailVerificationOTPAttempts = 0;
+
+          await existingUser.save();
+
+          let studentProfile = await StudentProfile.findOne({ userId: existingUser._id });
+          if (!studentProfile) {
+            await StudentProfile.create({
+              userId: existingUser._id,
+              skills: [],
+              interests: [],
+            });
+          }
+
+          try {
+            await emailService.sendVerificationOTP(existingUser.email, otp, existingUser.fullName);
+          } catch (emailError) {
+            logger.error('Failed to send verification OTP:', emailError);
+          }
+
+          const tokens = tokenService.generateTokenPair({
+            userId: existingUser._id.toString(),
+            email: existingUser.email,
+            role: existingUser.role,
+          });
+
+          try {
+            if (redisTokenService.isAvailable()) {
+              await redisTokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
+            } else {
+              await tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
+            }
+          } catch (error) {
+            await tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
+          }
+
+          return {
+            user: {
+              id: existingUser._id.toString(),
+              fullName: existingUser.fullName,
+              email: existingUser.email,
+              phone: existingUser.phone,
+              role: existingUser.role,
+              isEmailVerified: existingUser.isEmailVerified,
+            },
+            tokens,
+          };
+        } else {
+          throw new Error('User with this email already exists');
+        }
       }
 
       // Generate OTP
@@ -69,6 +127,10 @@ export class AuthService {
             },
             website: registerDto.collegeData.website || undefined,
             isVerified: false,
+            // TESTING PHASE: auto-activate a Silver subscription on registration.
+            partnershipTier: 'Silver',
+            partnershipActive: true,
+            partnershipStartDate: new Date(),
           });
 
           await collegeProfile.save();
@@ -76,7 +138,10 @@ export class AuthService {
         } catch (profileError) {
           // If college profile creation fails, delete the user to maintain consistency
           await User.findByIdAndDelete(user._id);
-          logger.error('Failed to create college profile, rolling back user creation:', profileError);
+          logger.error(
+            'Failed to create college profile, rolling back user creation:',
+            profileError
+          );
           throw new Error('Failed to create college profile. Please try again.');
         }
       }
@@ -105,7 +170,10 @@ export class AuthService {
         } catch (profileError) {
           // If employer profile creation fails, delete the user to maintain consistency
           await User.findByIdAndDelete(user._id);
-          logger.error('Failed to create employer profile, rolling back user creation:', profileError);
+          logger.error(
+            'Failed to create employer profile, rolling back user creation:',
+            profileError
+          );
           throw new Error('Failed to create employer profile. Please try again.');
         }
       }
@@ -128,7 +196,10 @@ export class AuthService {
         } catch (profileError) {
           // If mentor profile creation fails, delete the user to maintain consistency
           await User.findByIdAndDelete(user._id);
-          logger.error('Failed to create mentor profile, rolling back user creation:', profileError);
+          logger.error(
+            'Failed to create mentor profile, rolling back user creation:',
+            profileError
+          );
           throw new Error('Failed to create mentor profile. Please try again.');
         }
       }
@@ -301,7 +372,7 @@ export class AuthService {
       if (redisTokenService.isAvailable()) {
         // Validate token from Redis
         const metadata = await redisTokenService.validateRefreshToken(refreshToken);
-        
+
         if (metadata?.userId === userId) {
           // Remove old token
           await redisTokenService.removeRefreshToken(userId, refreshToken);
@@ -316,7 +387,9 @@ export class AuthService {
           // Store new token in Redis
           await redisTokenService.storeRefreshToken(userId, tokens.refreshToken, deviceInfo);
         } else {
-          logger.warn(`Refresh token not found in Redis for user ${userId}; trying MongoDB fallback`);
+          logger.warn(
+            `Refresh token not found in Redis for user ${userId}; trying MongoDB fallback`
+          );
           tokens = await tokenService.rotateRefreshToken(
             userId,
             refreshToken,
@@ -520,7 +593,9 @@ export class AuthService {
 
   public async requestPasswordReset(email: string): Promise<void> {
     try {
-      const user = await User.findOne({ email }).select('+passwordResetToken +passwordResetExpires');
+      const user = await User.findOne({ email }).select(
+        '+passwordResetToken +passwordResetExpires'
+      );
 
       if (!user) {
         // Don't reveal if user exists or not for security
@@ -537,11 +612,7 @@ export class AuthService {
       await user.save();
 
       // Send password reset email
-      await emailService.sendPasswordResetEmail(
-        user.email,
-        resetToken,
-        user.fullName
-      );
+      await emailService.sendPasswordResetEmail(user.email, resetToken, user.fullName);
 
       logger.info(`Password reset email sent to: ${user.email}`);
     } catch (error: any) {

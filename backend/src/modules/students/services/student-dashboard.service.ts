@@ -1,4 +1,5 @@
 import { CourseEnrollment, ICourseEnrollment } from '@/database/models/CourseEnrollment.model';
+import { User } from '@/database/models/User.model';
 import { EventEnrollment, IEventEnrollment } from '@/database/models/EventEnrollment.model';
 import {
   TrainingProgramEnrollment,
@@ -77,11 +78,47 @@ export class StudentDashboardService {
   }
 
   /**
+   * Resolve user's email and dynamically link any existing unlinked enrollments.
+   */
+  private async linkEnrollmentsByEmail(userId: string): Promise<string | null> {
+    try {
+      const user = await User.findById(userId).select('email').lean().exec();
+      if (!user?.email) return null;
+
+      const email = user.email.toLowerCase().trim();
+
+      await Promise.all([
+        CourseEnrollment.updateMany(
+          { email, userId: { $exists: false } },
+          { $set: { userId } }
+        ),
+        EventEnrollment.updateMany(
+          { email, userId: { $exists: false } },
+          { $set: { userId } }
+        ),
+        TrainingProgramEnrollment.updateMany(
+          { email, userId: { $exists: false } },
+          { $set: { userId } }
+        ),
+      ]);
+      return email;
+    } catch (error) {
+      logger.error('Error linking student enrollments by email:', error);
+      return null;
+    }
+  }
+
+  /**
    * Get the student's enrolled courses
    */
   public async getCourses(userId: string): Promise<ICourseEnrollment[]> {
     try {
-      return await CourseEnrollment.find({ userId, status: { $in: ACTIVE_STATUSES } })
+      const email = await this.linkEnrollmentsByEmail(userId);
+      const filter = email
+        ? { $or: [{ userId }, { email }], status: { $in: ACTIVE_STATUSES } }
+        : { userId, status: { $in: ACTIVE_STATUSES } };
+
+      return await CourseEnrollment.find(filter)
         .populate('courseId')
         .sort({ createdAt: -1 })
         .exec();
@@ -96,7 +133,13 @@ export class StudentDashboardService {
    */
   public async getEvents(userId: string, eventType?: EventType): Promise<IEventEnrollment[]> {
     try {
-      const filter: Record<string, unknown> = { userId, status: { $in: ACTIVE_STATUSES } };
+      const email = await this.linkEnrollmentsByEmail(userId);
+      const filter: any = { status: { $in: ACTIVE_STATUSES } };
+      if (email) {
+        filter.$or = [{ userId }, { email }];
+      } else {
+        filter.userId = userId;
+      }
       if (eventType) {
         filter.eventType = eventType;
       }
@@ -116,7 +159,12 @@ export class StudentDashboardService {
    */
   public async getTrainingPrograms(userId: string): Promise<ITrainingProgramEnrollment[]> {
     try {
-      return await TrainingProgramEnrollment.find({ userId, status: { $in: ACTIVE_STATUSES } })
+      const email = await this.linkEnrollmentsByEmail(userId);
+      const filter = email
+        ? { $or: [{ userId }, { email }], status: { $in: ACTIVE_STATUSES } }
+        : { userId, status: { $in: ACTIVE_STATUSES } };
+
+      return await TrainingProgramEnrollment.find(filter)
         .populate('programId')
         .sort({ createdAt: -1 })
         .exec();
@@ -307,7 +355,10 @@ export class StudentDashboardService {
    */
   public async getDashboard(userId: string): Promise<StudentDashboardSummary> {
     try {
-      const baseFilter = { userId, status: { $in: ACTIVE_STATUSES } };
+      const email = await this.linkEnrollmentsByEmail(userId);
+      const baseFilter = email
+        ? { $or: [{ userId }, { email }], status: { $in: ACTIVE_STATUSES } }
+        : { userId, status: { $in: ACTIVE_STATUSES } };
 
       const [
         courses,
