@@ -55,7 +55,7 @@ jobs:
             cd /home/ubuntu/growthcraft-backend
 
             # Install dependencies
-            npm ci
+            npm ci --omit=dev
 
             # Restart the systemd service
             sudo systemctl daemon-reload
