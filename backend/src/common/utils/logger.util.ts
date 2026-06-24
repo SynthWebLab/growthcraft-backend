@@ -35,29 +35,8 @@ const transports = [
   new winston.transports.Console({
     format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
   }),
-
-  // File transport for errors
-  new winston.transports.File({
-    filename: 'logs/error.log',
-    level: 'error',
-    format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
-  }),
-
-  // File transport for all logs
-  new winston.transports.File({
-    filename: config.LOG_FILE,
-    format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
-  }),
 ];
 
-// Create logs directory if it doesn't exist
-import fs from 'fs';
-import path from 'path';
-
-const logsDir = path.dirname(config.LOG_FILE);
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-}
 
 // Create logger
 export const logger = winston.createLogger({

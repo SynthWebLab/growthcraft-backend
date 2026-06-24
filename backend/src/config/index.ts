@@ -47,7 +47,6 @@ export const config = {
 
   // Logging
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
-  LOG_FILE: process.env.LOG_FILE || 'logs/app.log',
 
   // Swagger
   SWAGGER_ENABLED: process.env.SWAGGER_ENABLED === 'true',
