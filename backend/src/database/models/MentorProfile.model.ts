@@ -9,8 +9,7 @@ export interface IMentorProfile extends Document {
   // Additional fields for later use
   hourlyRate?: number;
   availability: {
-    day?: string;
-    date?: Date;
+    day: string;
     slots: { startTime: string; endTime: string }[];
   }[];
   rating: number;
@@ -69,9 +68,6 @@ const mentorProfileSchema = new Schema<IMentorProfile>(
           day: {
             type: String,
             enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-          },
-          date: {
-            type: Date,
           },
           slots: [
             {
