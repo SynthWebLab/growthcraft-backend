@@ -38,12 +38,12 @@ export class RedisConfig {
           keepAlive: true, // Enable keepalive packets
           keepAliveInitialDelay: 30000, // Send keepalive packets after 30 seconds idle
           reconnectStrategy: (retries) => {
-            // Only try 3 times during initial connection
-            if (retries > 3) {
-              logger.warn('Redis reconnection stopped after 3 attempts. App will run without Redis.');
+            const maxRetries = config.REDIS_MAX_RETRIES;
+            if (retries > maxRetries) {
+              logger.warn(`Redis reconnection stopped after ${maxRetries} attempts. App will run without Redis.`);
               return false; // Stop reconnecting
             }
-            // Quick retries: 500ms, 1000ms, 1500ms
+            // Quick retries: 500ms, 1000ms, 1500ms, 2000ms, 2500ms...
             return retries * 500;
           },
         },

@@ -7,58 +7,86 @@ import { config } from '@/config';
 const QUEUE_NAME = 'enrollment-metrics';
 
 // Redis connection configuration for BullMQ (uses ioredis)
-// Parse REDIS_URL which can be in format: rediss://user:pass@host:port
-const getRedisConnection = (): ConnectionOptions => {
-  const redisUrl = config.REDIS_URL;
-  
-  if (!redisUrl) {
-    throw new Error('REDIS_URL is not configured');
-  }
+let isRedisAvailable = false;
+let redisConnection: ConnectionOptions | undefined;
 
-  // If it's a full URL (redis:// or rediss://), parse it properly for ioredis
-  if (redisUrl.startsWith('redis://') || redisUrl.startsWith('rediss://')) {
-    try {
+if (config.REDIS_URL) {
+  try {
+    const redisUrl = config.REDIS_URL;
+    if (redisUrl.startsWith('redis://') || redisUrl.startsWith('rediss://')) {
       const url = new URL(redisUrl);
-      return {
+      redisConnection = {
         host: url.hostname,
         port: parseInt(url.port || '6379', 10),
         password: url.password || config.REDIS_PASSWORD || undefined,
         tls: redisUrl.startsWith('rediss://') ? {} : undefined,
       };
-    } catch (error) {
-      logger.error('Failed to parse REDIS_URL:', error);
-      throw new Error('Invalid REDIS_URL format');
+    } else {
+      const [host, port] = redisUrl.split(':');
+      redisConnection = {
+        host: host || 'localhost',
+        port: parseInt(port || '6379', 10),
+        password: config.REDIS_PASSWORD || undefined,
+      };
     }
+    isRedisAvailable = true;
+  } catch (error) {
+    logger.error('Failed to parse REDIS_URL for BullMQ, running in fallback mode:', error);
   }
+} else {
+  logger.warn('REDIS_URL is not configured. BullMQ will run in fallback mode.');
+}
 
-  // Otherwise, parse as host:port
-  const [host, port] = redisUrl.split(':');
-  return {
-    host: host || 'localhost',
-    port: parseInt(port || '6379', 10),
-    password: config.REDIS_PASSWORD || undefined,
-  };
+// Helper to create graceful proxy for Queue or Worker
+const createGracefulProxy = <T extends object>(realInstance: T | null, name: string): T => {
+  return new Proxy(realInstance || {}, {
+    get(target, prop) {
+      if (!realInstance) {
+        if (prop === 'on') {
+          return () => {};
+        }
+        if (prop === 'close') {
+          return async () => {};
+        }
+        if (prop === 'add') {
+          return async (jobName: string, data: any) => {
+            logger.warn(`BullMQ: Skipped adding job "${jobName}" - Redis is not configured.`);
+            return null;
+          };
+        }
+        return async () => {
+          if (['getCompleted', 'getFailed', 'getActive', 'getWaiting', 'getDelayed', 'getRepeatableJobs'].includes(prop as string)) {
+            return [];
+          }
+          return null;
+        };
+      }
+      return (target as any)[prop];
+    }
+  }) as T;
 };
 
-const redisConnection = getRedisConnection();
+// Create raw or mock Queue
+const rawQueue = isRedisAvailable && redisConnection
+  ? new Queue(QUEUE_NAME, {
+      connection: redisConnection,
+      defaultJobOptions: {
+        attempts: 3, // Retry up to 3 times
+        backoff: {
+          type: 'exponential',
+          delay: 5000, // Start with 5 seconds delay
+        },
+        removeOnComplete: {
+          count: 100, // Keep last 100 completed jobs
+        },
+        removeOnFail: {
+          count: 50, // Keep last 50 failed jobs
+        },
+      },
+    })
+  : null;
 
-// Create Queue
-export const enrollmentMetricsQueue = new Queue(QUEUE_NAME, {
-  connection: redisConnection,
-  defaultJobOptions: {
-    attempts: 3, // Retry up to 3 times
-    backoff: {
-      type: 'exponential',
-      delay: 5000, // Start with 5 seconds delay
-    },
-    removeOnComplete: {
-      count: 100, // Keep last 100 completed jobs
-    },
-    removeOnFail: {
-      count: 50, // Keep last 50 failed jobs
-    },
-  },
-});
+export const enrollmentMetricsQueue = createGracefulProxy<Queue>(rawQueue, 'Queue');
 
 /**
  * Calculate attendance percentage for a student in a batch
@@ -195,17 +223,21 @@ async function processAllEnrollments(): Promise<void> {
 }
 
 // Create Worker to process jobs
-export const enrollmentMetricsWorker = new Worker(
-  QUEUE_NAME,
-  async (job) => {
-    logger.info(`Processing job ${job.id} - ${job.name}`);
-    await processAllEnrollments();
-  },
-  {
-    connection: redisConnection,
-    concurrency: 1, // Process one job at a time
-  }
-);
+const rawWorker = isRedisAvailable && redisConnection
+  ? new Worker(
+      QUEUE_NAME,
+      async (job) => {
+        logger.info(`Processing job ${job.id} - ${job.name}`);
+        await processAllEnrollments();
+      },
+      {
+        connection: redisConnection,
+        concurrency: 1, // Process one job at a time
+      }
+    )
+  : null;
+
+export const enrollmentMetricsWorker = createGracefulProxy<Worker>(rawWorker, 'Worker');
 
 // Worker event handlers
 enrollmentMetricsWorker.on('completed', (job) => {

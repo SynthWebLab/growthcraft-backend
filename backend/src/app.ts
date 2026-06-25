@@ -9,7 +9,7 @@ import { config } from './config';
 import { logger } from './common/utils/logger.util';
 import { NotFoundError } from './common/errors/NotFoundError';
 import { errorHandler } from './common/middleware/error-handler.middleware';
-// import { apiLimiter } from './common/middleware/rate-limiter.middleware';
+import { apiLimiter } from './common/middleware/rate-limiter.middleware';
 import routes from './routes/v1';
 import { swaggerSpec } from './config/swagger.config';
 import swaggerOutputAuto from './config/swagger-output.json';
@@ -27,8 +27,7 @@ app.use(
 );
 
 // Rate limiting middleware
-// Disabled for now. Uncomment the import above and this line to re-enable.
-// app.use('/api/', apiLimiter);
+app.use('/api/', apiLimiter);
 
 // Body parsing middleware
 app.use(express.json());

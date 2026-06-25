@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authController } from '../controllers/auth.controller';
 import { AuthValidator } from '../validators/auth.validator';
-import { authenticate } from '@/common/middleware/authenticate.middleware';
+import { authenticate, authLimiter, passwordResetLimiter } from '@/common/middleware';
 
 const router = Router();
 
@@ -77,6 +77,7 @@ const router = Router();
  */
 router.post(
   '/register',
+  authLimiter,
   AuthValidator.register(),
   (req: Request, res: Response, next: NextFunction) => {
     void authController.register(req, res, next);
@@ -138,7 +139,7 @@ router.post(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/login', AuthValidator.login(), (req: Request, res: Response, next: NextFunction) => {
+router.post('/login', authLimiter, AuthValidator.login(), (req: Request, res: Response, next: NextFunction) => {
   void authController.login(req, res, next);
 });
 
@@ -345,6 +346,7 @@ router.post('/logout-all', authenticate, (req: Request, res: Response, next: Nex
  */
 router.post(
   '/verify-email',
+  authLimiter,
   AuthValidator.verifyEmail(),
   (req: Request, res: Response, next: NextFunction) => {
     void authController.verifyEmail(req, res, next);
@@ -399,6 +401,7 @@ router.post(
  */
 router.post(
   '/resend-verification',
+  authLimiter,
   AuthValidator.resendVerificationOTP(),
   (req: Request, res: Response, next: NextFunction) => {
     void authController.resendVerificationEmail(req, res, next);
@@ -441,6 +444,7 @@ router.post(
  */
 router.post(
   '/forgot-password',
+  passwordResetLimiter,
   AuthValidator.forgotPassword(),
   (req: Request, res: Response, next: NextFunction) => {
     void authController.requestPasswordReset(req, res, next);
@@ -494,6 +498,7 @@ router.post(
  */
 router.post(
   '/reset-password',
+  passwordResetLimiter,
   AuthValidator.resetPassword(),
   (req: Request, res: Response, next: NextFunction) => {
     void authController.resetPassword(req, res, next);

@@ -5,23 +5,23 @@ import { config } from '../../config';
  * General API rate limiter
  * Limits requests per IP address
  */
-// export const apiLimiter = rateLimit({
-//   windowMs: 15 * 60 * 1000, // 15 minutes
-//   max: 100, // Limit each IP to 100 requests per windowMs
-//   message: {
-//     success: false,
-//     error: {
-//       message: 'Too many requests from this IP, please try again later',
-//       code: 'RATE_LIMIT_EXCEEDED',
-//     },
-//   },
-//   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-//   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-//   skip: (req) => {
-//     // Skip rate limiting in test environment
-//     return config.NODE_ENV === 'test';
-//   },
-// });
+export const apiLimiter = rateLimit({
+  windowMs: config.RATE_LIMIT_WINDOW_MS,
+  max: config.RATE_LIMIT_MAX_REQUESTS,
+  message: {
+    success: false,
+    error: {
+      message: 'Too many requests from this IP, please try again later',
+      code: 'RATE_LIMIT_EXCEEDED',
+    },
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skip: (req) => {
+    // Skip rate limiting in test environment
+    return config.NODE_ENV === 'test';
+  },
+});
 
 /**
  * Strict rate limiter for authentication endpoints

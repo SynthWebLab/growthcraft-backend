@@ -27,6 +27,7 @@ export const config = {
   // Redis
   REDIS_URL: process.env.REDIS_URL,
   REDIS_PASSWORD: process.env.REDIS_PASSWORD,
+  REDIS_MAX_RETRIES: parseInt(process.env.REDIS_MAX_RETRIES || '5', 10),
 
   // Email
   SMTP_HOST: process.env.SMTP_HOST,

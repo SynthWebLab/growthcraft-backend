@@ -34,6 +34,7 @@
     "type-check": "tsc --noEmit",
     "verify-setup": "node scripts/verify-setup.js",
     "verify-jwt": "node scripts/verify-jwt-config.js",
+    "check:redis": "node scripts/check-redis-limits.js",
     "swagger:generate": "node scripts/generate-swagger-template.js",
     "swagger:auto": "node scripts/swagger-autogen.js"
   },
