@@ -5,6 +5,7 @@ import { User } from '@/database/models/User.model';
 import { Batch } from '@/database/models/Batch.model';
 import { Enrollment } from '@/database/models/Enrollment.model';
 import { Course } from '@/database/models/Course.model';
+import { SupportTicket, ISupportTicket } from '@/database/models/SupportTicket.model';
 import { logger } from '@/common/utils/logger.util';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ValidationError } from '@/common/errors/ValidationError';
@@ -635,6 +636,92 @@ export class MentorDashboardService {
       };
     } catch (error: any) {
       logger.error('Update mentor profile service error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a support ticket for the mentor
+   */
+  public async createSupportTicket(
+    userId: string,
+    data: { subject: string; message: string }
+  ): Promise<ISupportTicket> {
+    try {
+      const ticket = await SupportTicket.create({
+        userId,
+        subject: data.subject,
+        message: data.message,
+        status: 'open',
+      });
+      logger.info(`Support ticket ${ticket._id} created by mentor ${userId}`);
+      return ticket;
+    } catch (error: any) {
+      logger.error('Create mentor support ticket error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the mentor's support tickets (most recent first)
+   */
+  public async getSupportTickets(userId: string): Promise<ISupportTicket[]> {
+    try {
+      return await SupportTicket.find({ userId }).sort({ createdAt: -1 }).exec();
+    } catch (error: any) {
+      logger.error('Get mentor support tickets error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update mentor settings account details
+   */
+  public async updateSettingsAccount(
+    userId: string,
+    data: { fullName?: string; phone?: string }
+  ): Promise<any> {
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+      if (data.fullName !== undefined) {
+        user.fullName = data.fullName;
+      }
+      if (data.phone !== undefined) {
+        user.phone = data.phone;
+      }
+      await user.save();
+      return user;
+    } catch (error: any) {
+      logger.error('Update settings account error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Change mentor password
+   */
+  public async changePassword(
+    userId: string,
+    data: { currentPassword?: string; newPassword?: string }
+  ): Promise<void> {
+    try {
+      const user = await User.findById(userId).select('+password');
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+
+      const isMatch = await user.comparePassword(data.currentPassword!);
+      if (!isMatch) {
+        throw new ValidationError('Invalid current password');
+      }
+
+      user.password = data.newPassword!;
+      await user.save();
+    } catch (error: any) {
+      logger.error('Change password error:', error);
       throw error;
     }
   }

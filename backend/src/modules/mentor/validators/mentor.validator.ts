@@ -110,4 +110,67 @@ export class MentorValidator {
         .withMessage('Status must be scheduled, completed, or cancelled'),
     ];
   }
+
+  /**
+   * Validate support ticket submission.
+   */
+  public static createSupportTicket(): ValidationChain[] {
+    return [
+      body('subject')
+        .trim()
+        .notEmpty()
+        .withMessage('Subject is required')
+        .isLength({ max: 150 })
+        .withMessage('Subject cannot exceed 150 characters'),
+
+      body('message')
+        .trim()
+        .notEmpty()
+        .withMessage('Message is required')
+        .isLength({ min: 10, max: 2000 })
+        .withMessage('Message must be between 10 and 2000 characters'),
+    ];
+  }
+
+  /**
+   * Validate account settings update.
+   */
+  public static updateSettingsAccount(): ValidationChain[] {
+    return [
+      body('fullName')
+        .optional()
+        .trim()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Full name must be between 2 and 100 characters'),
+
+      body('phone')
+        .optional()
+        .trim()
+        .matches(/^\+?[\d\s-()]+$/)
+        .withMessage('Please provide a valid phone number'),
+    ];
+  }
+
+  /**
+   * Validate change password.
+   */
+  public static changePassword(): ValidationChain[] {
+    return [
+      body('currentPassword')
+        .notEmpty()
+        .withMessage('Current password is required'),
+
+      body('newPassword')
+        .isLength({ min: 8 })
+        .withMessage('New password must be at least 8 characters'),
+
+      body('confirmPassword')
+        .custom((value, { req }) => {
+          if (value !== req.body.newPassword) {
+            throw new Error('Passwords do not match');
+          }
+          return true;
+        }),
+    ];
+  }
 }

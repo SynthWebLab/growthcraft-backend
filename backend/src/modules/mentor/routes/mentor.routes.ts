@@ -103,4 +103,48 @@ router.put(
   }
 );
 
+/**
+ * POST /api/v1/mentor/support
+ * Submit a support query ticket
+ */
+router.post(
+  '/support',
+  MentorValidator.createSupportTicket(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void mentorDashboardController.createSupportTicket(req, res, next);
+  }
+);
+
+/**
+ * GET /api/v1/mentor/support
+ * Get support query tickets submitted by the mentor
+ */
+router.get('/support', (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.getSupportTickets(req, res, next);
+});
+
+/**
+ * PUT /api/v1/mentor/settings/account
+ * Update mentor account info settings (fullName, phone)
+ */
+router.put(
+  '/settings/account',
+  MentorValidator.updateSettingsAccount(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void mentorDashboardController.updateSettingsAccount(req, res, next);
+  }
+);
+
+/**
+ * POST /api/v1/mentor/settings/password
+ * Change mentor password
+ */
+router.post(
+  '/settings/password',
+  MentorValidator.changePassword(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void mentorDashboardController.changePassword(req, res, next);
+  }
+);
+
 export default router;

@@ -5,7 +5,7 @@ import path from 'path';
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-const BASE_URL = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5002}`;
+const BASE_URL = process.env.BASE_URL || `http://127.0.0.1:${process.env.PORT || 5002}`;
 
 interface TestResult {
   name: string;
@@ -46,6 +46,8 @@ async function testMentorAPIs() {
     const loginResponse = await axios.post(`${BASE_URL}/api/v1/auth/login`, {
       email: 'mentor@growthcraft.com',
       password: 'Mentor@123456'
+    }, {
+      proxy: false
     });
 
     const cookies = loginResponse.headers['set-cookie'];
@@ -74,7 +76,8 @@ async function testMentorAPIs() {
     baseURL: `${BASE_URL}/api/v1`,
     headers: {
       Cookie: cookieHeader
-    }
+    },
+    proxy: false
   });
 
   // Step 2: Get Mentor Dashboard Details
@@ -247,6 +250,115 @@ async function testMentorAPIs() {
       name: 'Get Mentor Sessions',
       success: false,
       message: 'Failed to retrieve sessions list',
+      error
+    });
+  }
+
+  // Step 10: Submit Support Ticket
+  try {
+    console.log('\n✉️ Step 10: Submitting support ticket...');
+    const res = await client.post('/mentor/support', {
+      subject: 'Unable to update availability slots',
+      message: 'I am trying to add slots for Friday evening but the UI freezes.'
+    });
+    logResult({
+      name: 'Submit Support Ticket',
+      success: true,
+      message: 'Successfully created support ticket',
+      response: { status: res.status, data: res.data }
+    });
+  } catch (error: any) {
+    logResult({
+      name: 'Submit Support Ticket',
+      success: false,
+      message: 'Failed to submit support ticket',
+      error
+    });
+  }
+
+  // Step 11: Get Support Tickets
+  try {
+    console.log('\n📬 Step 11: Fetching support tickets list...');
+    const res = await client.get('/mentor/support');
+    logResult({
+      name: 'Get Support Tickets',
+      success: true,
+      message: 'Successfully retrieved mentor support tickets list',
+      response: { status: res.status, data: res.data }
+    });
+  } catch (error: any) {
+    logResult({
+      name: 'Get Support Tickets',
+      success: false,
+      message: 'Failed to retrieve support tickets list',
+      error
+    });
+  }
+
+  // Step 12: Update Settings Account Details
+  try {
+    console.log('\n⚙️ Step 12: Updating account details via settings...');
+    const res = await client.put('/mentor/settings/account', {
+      fullName: 'Test Mentor Updated',
+      phone: '+919999988888'
+    });
+    logResult({
+      name: 'Update Account Settings',
+      success: true,
+      message: 'Successfully updated account settings details',
+      response: { status: res.status, data: res.data }
+    });
+  } catch (error: any) {
+    logResult({
+      name: 'Update Account Settings',
+      success: false,
+      message: 'Failed to update account settings details',
+      error
+    });
+  }
+
+  // Step 13: Change Password
+  try {
+    console.log('\n🔒 Step 13: Changing password...');
+    const res = await client.post('/mentor/settings/password', {
+      currentPassword: 'Mentor@123456',
+      newPassword: 'NewMentorPass@123',
+      confirmPassword: 'NewMentorPass@123'
+    });
+    logResult({
+      name: 'Change Password',
+      success: true,
+      message: 'Successfully changed password to new value',
+      response: { status: res.status, data: res.data }
+    });
+  } catch (error: any) {
+    logResult({
+      name: 'Change Password',
+      success: false,
+      message: 'Failed to change password',
+      error
+    });
+  }
+
+  // Step 14: Change Password Back (for test repeatability)
+  try {
+    console.log('\n🔄 Step 14: Restoring original password for repeatability...');
+    const res = await client.post('/mentor/settings/password', {
+      currentPassword: 'NewMentorPass@123',
+      newPassword: 'Mentor@123456',
+      confirmPassword: 'Mentor@123456'
+    });
+    logResult({
+      name: 'Restore Password',
+      success: true,
+      message: 'Successfully restored original password',
+      response: { status: res.status, data: res.data }
+    });
+  } catch (error: any) {
+    logResult({
+      name: 'Restore Password',
+      success: false,
+      message: 'Failed to restore original password',
       error
     });
   }

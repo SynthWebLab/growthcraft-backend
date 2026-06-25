@@ -194,6 +194,71 @@ export class MentorDashboardController {
       next(error);
     }
   }
+
+  /**
+   * Submit support ticket
+   * POST /api/v1/mentor/support
+   */
+  public async createSupportTicket(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      this.handleValidationErrors(req);
+      const userId = this.getUserId(req);
+      const { subject, message } = req.body;
+      const ticket = await mentorDashboardService.createSupportTicket(userId, { subject, message });
+      SuccessResponseHelper.created(res, { ticket }, 'Support ticket created successfully');
+    } catch (error: any) {
+      logger.error('Create mentor support ticket controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get support tickets
+   * GET /api/v1/mentor/support
+   */
+  public async getSupportTickets(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const tickets = await mentorDashboardService.getSupportTickets(userId);
+      SuccessResponseHelper.ok(res, { tickets }, 'Support tickets retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get mentor support tickets controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Update settings account info
+   * PUT /api/v1/mentor/settings/account
+   */
+  public async updateSettingsAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      this.handleValidationErrors(req);
+      const userId = this.getUserId(req);
+      const user = await mentorDashboardService.updateSettingsAccount(userId, req.body);
+      SuccessResponseHelper.ok(res, { user }, 'Account settings updated successfully');
+    } catch (error: any) {
+      logger.error('Update settings account controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Change password
+   * POST /api/v1/mentor/settings/password
+   */
+  public async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      this.handleValidationErrors(req);
+      const userId = this.getUserId(req);
+      const { currentPassword, newPassword } = req.body;
+      await mentorDashboardService.changePassword(userId, { currentPassword, newPassword });
+      SuccessResponseHelper.ok(res, null, 'Password updated successfully');
+    } catch (error: any) {
+      logger.error('Change password controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const mentorDashboardController = MentorDashboardController.getInstance();
