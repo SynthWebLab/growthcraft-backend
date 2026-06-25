@@ -366,7 +366,7 @@ async function testMentorAPIs() {
   console.log('\n' + '='.repeat(60));
   const failed = results.filter(r => !r.success).length;
   console.log(`\n🏁 Test finished. Total: ${results.length}, Failed: ${failed}`);
-  
+
   if (failed > 0) {
     process.exit(1);
   } else {
