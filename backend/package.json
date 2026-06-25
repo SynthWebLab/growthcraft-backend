@@ -13,6 +13,7 @@
     "test:email": "ts-node scripts/test-email.ts",
     "test:search": "ts-node scripts/test-search.ts",
     "test:enrollment": "ts-node scripts/test-enrollment-api.ts",
+    "test:mentor": "ts-node scripts/test-mentor-api.ts",
     "seed:catalogue": "ts-node scripts/seed-catalogue.ts",
     "seed:courses": "ts-node scripts/seed-courses.ts",
     "seed:bootcamps": "ts-node scripts/seed-bootcamps.ts",

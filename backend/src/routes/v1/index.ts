@@ -12,6 +12,7 @@ import trainingProgramRoutes from '@/modules/training-programs/routes/training-p
 import studentRoutes from '@/modules/students/routes/student.routes';
 import collegeRoutes from '@/modules/colleges/routes/college.routes';
 import leadRoutes from '@/modules/leads/routes/lead.routes';
+import mentorRoutes from '@/modules/mentor/routes/mentor.routes';
 
 const router = Router();
 
@@ -27,6 +28,7 @@ router.use('/students', studentRoutes);
 router.use('/colleges', collegeRoutes);
 router.use('/admin', adminRoutes);
 router.use('/leads', leadRoutes);
+router.use('/mentor', mentorRoutes);
 
 
 // Public routes (no auth required)
