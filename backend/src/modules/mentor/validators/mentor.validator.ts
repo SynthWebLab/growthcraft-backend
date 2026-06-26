@@ -7,18 +7,18 @@ export class MentorValidator {
   public static updateProfile(): ValidationChain[] {
     return [
       body('bio')
-        .optional()
+        .optional({ nullable: true, checkFalsy: true })
         .trim()
         .isLength({ max: 1000 })
         .withMessage('Bio cannot exceed 1000 characters'),
 
       body('experienceYears')
-        .optional()
+        .optional({ nullable: true })
         .isInt({ min: 0 })
         .withMessage('Experience years must be a non-negative integer'),
 
       body('areaOfExpertise')
-        .optional()
+        .optional({ nullable: true, checkFalsy: true })
         .trim()
         .isIn([
           'Web Development',
@@ -32,25 +32,25 @@ export class MentorValidator {
         .withMessage('Invalid area of expertise'),
 
       body('currentOrganization')
-        .optional()
+        .optional({ nullable: true, checkFalsy: true })
         .trim()
         .notEmpty()
         .withMessage('Current organization cannot be empty'),
 
       body('linkedIn')
-        .optional()
+        .optional({ nullable: true, checkFalsy: true })
         .trim()
         .isURL()
         .withMessage('LinkedIn must be a valid URL'),
 
       body('website')
-        .optional()
+        .optional({ nullable: true, checkFalsy: true })
         .trim()
         .isURL()
         .withMessage('Website must be a valid URL'),
 
       body('hourlyRate')
-        .optional()
+        .optional({ nullable: true })
         .isFloat({ min: 0 })
         .withMessage('Hourly rate must be a non-negative number'),
     ];
