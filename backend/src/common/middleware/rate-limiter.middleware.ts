@@ -18,8 +18,8 @@ export const apiLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   skip: (req) => {
-    // Skip rate limiting in test environment
-    return config.NODE_ENV === 'test';
+    // Skip rate limiting in development and test environments
+    return config.NODE_ENV === 'development' || config.NODE_ENV === 'test';
   },
 });
 
@@ -41,7 +41,7 @@ export const authLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests
   skip: (req) => {
-    return config.NODE_ENV === 'test';
+    return config.NODE_ENV === 'development' || config.NODE_ENV === 'test';
   },
 });
 
@@ -61,6 +61,6 @@ export const passwordResetLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    return config.NODE_ENV === 'test';
+    return config.NODE_ENV === 'development' || config.NODE_ENV === 'test';
   },
 });
