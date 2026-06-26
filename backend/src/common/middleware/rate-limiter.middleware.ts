@@ -2,6 +2,18 @@ import rateLimit from 'express-rate-limit';
 import { config } from '../../config';
 
 /**
+ * Custom IP extraction helper to get correct client IP behind reverse proxies
+ */
+const getClientIp = (req: any): string => {
+  const xForwardedFor = req.headers['x-forwarded-for'];
+  if (xForwardedFor) {
+    const ip = typeof xForwardedFor === 'string' ? xForwardedFor.split(',')[0].trim() : xForwardedFor[0].trim();
+    if (ip) return ip;
+  }
+  return req.ip || req.socket.remoteAddress || '';
+};
+
+/**
  * General API rate limiter
  * Limits requests per IP address
  */
@@ -17,6 +29,7 @@ export const apiLimiter = rateLimit({
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  keyGenerator: getClientIp,
   skip: (req) => {
     // Skip rate limiting in development and test environments
     return config.NODE_ENV === 'development' || config.NODE_ENV === 'test';
@@ -40,6 +53,7 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests
+  keyGenerator: getClientIp,
   skip: (req) => {
     return config.NODE_ENV === 'development' || config.NODE_ENV === 'test';
   },
@@ -60,6 +74,7 @@ export const passwordResetLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: getClientIp,
   skip: (req) => {
     return config.NODE_ENV === 'development' || config.NODE_ENV === 'test';
   },
