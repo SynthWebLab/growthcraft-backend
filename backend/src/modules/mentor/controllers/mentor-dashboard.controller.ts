@@ -44,7 +44,8 @@ export class MentorDashboardController {
   public async getDashboard(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = this.getUserId(req);
-      const dashboard = await mentorDashboardService.getDashboard(userId);
+      const period = (req.query.period as string) || 'monthly';
+      const dashboard = await mentorDashboardService.getDashboard(userId, period);
       SuccessResponseHelper.ok(res, dashboard, 'Dashboard details retrieved successfully');
     } catch (error: any) {
       logger.error('Get mentor dashboard controller error:', error);

@@ -56,7 +56,7 @@ export class MentorDashboardService {
   /**
    * Get mentor dashboard summary
    */
-  public async getDashboard(userId: string): Promise<MentorDashboardSummary> {
+  public async getDashboard(userId: string, period: string = 'monthly'): Promise<MentorDashboardSummary> {
     try {
       const mentorUserId = new mongoose.Types.ObjectId(userId);
       const mentorProfile = await MentorProfile.findOne({ userId: mentorUserId });
@@ -73,7 +73,8 @@ export class MentorDashboardService {
       });
 
       // 2. Total earnings
-      const totalEarnings = sessionsDelivered * hourlyRate;
+      const earningsData = await this.getEarnings(userId);
+      const totalEarnings = earningsData.summary.lifetime;
 
       // 3. Today's sessions count and list
       const startOfToday = new Date();
@@ -99,26 +100,76 @@ export class MentorDashboardService {
         meetingLink: s.meetingLink,
       }));
 
-      // 4. Earnings trend (last 6 months)
+      // 4. Earnings trend (Weekly, Monthly, Yearly)
       const earningsTrend: { month: string; amount: number }[] = [];
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const now = new Date();
 
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-        const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+      if (period === 'weekly') {
+        // Last 6 weeks
+        const currentDay = now.getDay();
+        const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
+        const mondayOfThisWeek = new Date(now);
+        mondayOfThisWeek.setDate(now.getDate() - distanceToMonday);
+        mondayOfThisWeek.setHours(0, 0, 0, 0);
 
-        const count = await MentorSession.countDocuments({
-          mentorUserId,
-          status: 'completed',
-          scheduledDate: { $gte: startOfMonth, $lte: endOfMonth },
-        });
+        for (let i = 5; i >= 0; i--) {
+          const startOfWeek = new Date(mondayOfThisWeek);
+          startOfWeek.setDate(mondayOfThisWeek.getDate() - i * 7);
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
+          endOfWeek.setHours(23, 59, 59, 999);
 
-        earningsTrend.push({
-          month: months[d.getMonth()],
-          amount: count * hourlyRate,
-        });
+          const count = await MentorSession.countDocuments({
+            mentorUserId,
+            status: 'completed',
+            scheduledDate: { $gte: startOfWeek, $lte: endOfWeek },
+          });
+
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const label = `${monthNames[startOfWeek.getMonth()]} ${startOfWeek.getDate().toString().padStart(2, '0')}`;
+          
+          earningsTrend.push({
+            month: label,
+            amount: count * hourlyRate,
+          });
+        }
+      } else if (period === 'yearly') {
+        // Last 3 years
+        for (let i = 2; i >= 0; i--) {
+          const year = now.getFullYear() - i;
+          const startOfYear = new Date(year, 0, 1, 0, 0, 0, 0);
+          const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
+
+          const count = await MentorSession.countDocuments({
+            mentorUserId,
+            status: 'completed',
+            scheduledDate: { $gte: startOfYear, $lte: endOfYear },
+          });
+
+          earningsTrend.push({
+            month: year.toString(),
+            amount: count * hourlyRate,
+          });
+        }
+      } else {
+        // monthly (default)
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+          const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+
+          const count = await MentorSession.countDocuments({
+            mentorUserId,
+            status: 'completed',
+            scheduledDate: { $gte: startOfMonth, $lte: endOfMonth },
+          });
+
+          earningsTrend.push({
+            month: months[d.getMonth()],
+            amount: count * hourlyRate,
+          });
+        }
       }
 
       // 5. Recent reviews (simulated using student names from actual mentor sessions/enrollments)
@@ -436,12 +487,7 @@ export class MentorDashboardService {
 
       const hourlyRate = profile.hourlyRate || 1500;
 
-      // Calculate lifetime earnings
-      const totalCompletedSessions = await MentorSession.countDocuments({
-        mentorUserId,
-        status: 'completed',
-      });
-      const lifetimeEarnings = totalCompletedSessions * hourlyRate;
+      // Calculate lifetime earnings will be done after payouts are populated
 
       // Calculate this month's earnings
       const now = new Date();
@@ -519,13 +565,21 @@ export class MentorDashboardService {
         }
       }
 
-      // Add a fallback payout if payout history is empty to match premium aesthetics
-      if (payouts.length === 0) {
+      // Add a fallback payout if payout history is empty and user has no completed sessions to match premium aesthetics
+      const totalCompletedSessions = await MentorSession.countDocuments({
+        mentorUserId,
+        status: 'completed',
+      });
+
+      if (payouts.length === 0 && totalCompletedSessions === 0) {
         payouts.push(
           { date: 'May 1, 2026', amount: 30000, status: 'completed', txnId: 'TXN-2026-0501' },
           { date: 'Apr 1, 2026', amount: 28500, status: 'completed', txnId: 'TXN-2026-0401' }
         );
       }
+
+      // Calculate lifetime earnings from actual completed sessions to avoid false data from fallbacks
+      const lifetimeEarnings = totalCompletedSessions * hourlyRate;
 
       return {
         summary: {

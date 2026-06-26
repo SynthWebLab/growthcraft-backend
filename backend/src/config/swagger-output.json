@@ -2417,6 +2417,15 @@
     "/api/v1/mentor/dashboard": {
       "get": {
         "description": "",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "401": {
             "description": "Unauthorized"
