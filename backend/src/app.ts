@@ -17,6 +17,9 @@ import swaggerOutputAuto from './config/swagger-output.json';
 // Create Express app
 const app: Application = express();
 
+// Trust proxy for correct IP identification behind reverse proxies (Vercel, Railway, Nginx, etc.)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(
