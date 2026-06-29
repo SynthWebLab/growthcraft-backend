@@ -1855,32 +1855,9 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "mentorUserId": {
-                    "example": "any"
-                  },
-                  "topic": {
-                    "example": "any"
-                  },
-                  "scheduledDate": {
-                    "example": "any"
-                  },
-                  "timeSlot": {
-                    "example": "any"
-                  },
-                  "sessionType": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
+          },
+          "403": {
+            "description": "Forbidden"
           }
         }
       },
@@ -1889,6 +1866,54 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/students/ambassador/dashboard": {
+      "get": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/students/ambassador/referrals": {
+      "get": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "referredEmail": {
+                    "example": "any"
+                  },
+                  "referredItemType": {
+                    "example": "any"
+                  },
+                  "referredItemId": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2214,6 +2239,40 @@
         }
       }
     },
+    "/api/v1/colleges/students/{studentId}/ambassador": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isAmbassador": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/batches": {
       "post": {
         "description": "",
@@ -2271,6 +2330,26 @@
       }
     },
     "/api/v1/admin/batches/{id}/mentor": {
+      "patch": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/batches/{id}/mentors": {
       "patch": {
         "description": "",
         "parameters": [
@@ -2417,15 +2496,6 @@
     "/api/v1/mentor/dashboard": {
       "get": {
         "description": "",
-        "parameters": [
-          {
-            "name": "period",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "401": {
             "description": "Unauthorized"
@@ -2433,7 +2503,7 @@
         }
       }
     },
-    "/api/v1/mentor/sessions": {
+    "/api/v1/mentor/batches": {
       "get": {
         "description": "",
         "parameters": [
@@ -2443,6 +2513,27 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "batchType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2452,12 +2543,12 @@
         }
       }
     },
-    "/api/v1/mentor/sessions/{id}/status": {
-      "patch": {
+    "/api/v1/mentor/batches/{batchId}": {
+      "get": {
         "description": "",
         "parameters": [
           {
-            "name": "id",
+            "name": "batchId",
             "in": "path",
             "required": true,
             "schema": {
@@ -2469,6 +2560,16 @@
           "401": {
             "description": "Unauthorized"
           }
+        }
+      }
+    },
+    "/api/v1/mentor/check-in": {
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
         },
         "requestBody": {
           "content": {
@@ -2476,12 +2577,171 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "status": {
+                  "batchId": {
                     "example": "any"
                   }
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/mentor/check-out": {
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "batchId": {
+                    "example": "any"
+                  },
+                  "notes": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mentor/check-in/status": {
+      "get": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/mentor/check-ins": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "batchId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/mentor/attendance": {
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "batchId": {
+                    "example": "any"
+                  },
+                  "date": {
+                    "example": "any"
+                  },
+                  "records": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mentor/progress-notes": {
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "studentUserId": {
+                    "example": "any"
+                  },
+                  "batchId": {
+                    "example": "any"
+                  },
+                  "rubricScore": {
+                    "example": "any"
+                  },
+                  "feedback": {
+                    "example": "any"
+                  },
+                  "strengths": {
+                    "example": "any"
+                  },
+                  "areasForImprovement": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mentor/earnings": {
+      "get": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/mentor/earnings/withdraw": {
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
           }
         }
       }
@@ -2508,7 +2768,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "availability": {
+                  "availabilityCalendar": {
                     "example": "any"
                   },
                   "hourlyRate": {
@@ -2523,26 +2783,6 @@
     },
     "/api/v1/mentor/students": {
       "get": {
-        "description": "",
-        "responses": {
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
-    },
-    "/api/v1/mentor/earnings": {
-      "get": {
-        "description": "",
-        "responses": {
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
-    },
-    "/api/v1/mentor/earnings/withdraw": {
-      "post": {
         "description": "",
         "responses": {
           "401": {

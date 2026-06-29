@@ -1,25 +1,24 @@
 import mongoose from 'mongoose';
-import { MentorProfile } from '@/database/models/MentorProfile.model';
-import { MentorSession, IMentorSession } from '@/database/models/MentorSession.model';
+import { MentorProfile, IMentorProfile } from '@/database/models/MentorProfile.model';
 import { User } from '@/database/models/User.model';
-import { Batch } from '@/database/models/Batch.model';
+import { Batch, IBatch, BatchStatus } from '@/database/models/Batch.model';
 import { Enrollment } from '@/database/models/Enrollment.model';
-import { Course } from '@/database/models/Course.model';
+import { MentorCheckIn, IMentorCheckIn } from '@/database/models/MentorCheckIn.model';
+import { Attendance } from '@/database/models/Attendance.model';
+import { ProgressNote, IProgressNote } from '@/database/models/ProgressNote.model';
 import { SupportTicket, ISupportTicket } from '@/database/models/SupportTicket.model';
 import { logger } from '@/common/utils/logger.util';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ValidationError } from '@/common/errors/ValidationError';
+import bcrypt from 'bcryptjs';
 
 export interface MentorDashboardSummary {
-  counts: {
-    sessionsDelivered: number;
-    totalEarnings: number;
-    avgRating: number;
-    todaySessionsCount: number;
-  };
-  todaySessions: any[];
-  earningsTrend: { month: string; amount: number }[];
-  recentReviews: any[];
+  assignedBatches: number;
+  completedBatches: number;
+  totalHoursMentored: number;
+  pendingPayout: number;
+  upcomingBatches: any[];
+  recentCheckIns: any[];
 }
 
 export class MentorDashboardService {
@@ -35,672 +34,670 @@ export class MentorDashboardService {
   }
 
   /**
-   * Helper to get relative date string
+   * Helper to verify if mentor is assigned to a batch
    */
-  private getRelativeDateString(date: Date): string {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
-    if (diffDays <= 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) {
-      const weeks = Math.floor(diffDays / 7);
-      return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+  private async verifyMentorAssignment(mentorProfileId: string, batchId: string): Promise<IBatch> {
+    const batch = await Batch.findById(batchId).exec();
+    if (!batch) {
+      throw new NotFoundError('Batch not found');
     }
-    const months = Math.floor(diffDays / 30);
-    return `${months} ${months === 1 ? 'month' : 'months'} ago`;
+
+    const assigned =
+      batch.assignedMentorId?.toString() === mentorProfileId ||
+      batch.assignedMentorIds?.some((id) => id.toString() === mentorProfileId);
+
+    if (!assigned) {
+      throw new ValidationError('Mentor is not assigned to this batch');
+    }
+
+    return batch;
   }
 
   /**
    * Get mentor dashboard summary
    */
-  public async getDashboard(userId: string, period: string = 'monthly'): Promise<MentorDashboardSummary> {
+  public async getDashboard(userId: string): Promise<MentorDashboardSummary> {
     try {
-      const mentorUserId = new mongoose.Types.ObjectId(userId);
-      const mentorProfile = await MentorProfile.findOne({ userId: mentorUserId });
+      const mentorProfile = await MentorProfile.findOne({ userId });
+      if (!mentorProfile) {
+        throw new NotFoundError('Mentor profile not found');
+      }
+
+      const mentorProfileId = mentorProfile._id as mongoose.Types.ObjectId;
+
+      const [assignedBatches, completedBatches, checkInsResult] = await Promise.all([
+        Batch.countDocuments({
+          status: { $in: [BatchStatus.OPEN, BatchStatus.IN_PROGRESS] },
+          $or: [
+            { assignedMentorId: mentorProfileId },
+            { assignedMentorIds: mentorProfileId },
+          ],
+        }),
+        Batch.countDocuments({
+          status: BatchStatus.COMPLETED,
+          $or: [
+            { assignedMentorId: mentorProfileId },
+            { assignedMentorIds: mentorProfileId },
+          ],
+        }),
+        MentorCheckIn.aggregate([
+          { $match: { mentorId: userId, status: 'checked-out' } },
+          { $group: { _id: null, totalHours: { $sum: '$hoursWorked' } } },
+        ]).exec(),
+      ]);
+
+      const totalHoursMentored = checkInsResult[0]?.totalHours || 0;
+
+      // Get next 5 upcoming batches
+      const upcomingBatchesRaw = await Batch.find({
+        status: { $in: [BatchStatus.DRAFT, BatchStatus.OPEN, BatchStatus.IN_PROGRESS] },
+        startDate: { $gte: new Date() },
+        $or: [
+          { assignedMentorId: mentorProfileId },
+          { assignedMentorIds: mentorProfileId },
+        ],
+      })
+        .populate('courseId', 'title')
+        .populate('bootcampId', 'title')
+        .populate('trainingProgramId', 'title')
+        .sort({ startDate: 1 })
+        .limit(5)
+        .exec();
+
+      const upcomingBatches = upcomingBatchesRaw.map((b) => ({
+        id: b._id.toString(),
+        code: b.code,
+        title: (b.courseId as any)?.title || (b.bootcampId as any)?.title || (b.trainingProgramId as any)?.title || 'Program',
+        startDate: b.startDate,
+        status: b.status,
+      }));
+
+      // Get last 5 check-ins
+      const recentCheckInsRaw = await MentorCheckIn.find({ mentorId: userId })
+        .populate('batchId', 'code')
+        .sort({ checkInTime: -1 })
+        .limit(5)
+        .exec();
+
+      const recentCheckIns = recentCheckInsRaw.map((c) => ({
+        id: c._id.toString(),
+        batchCode: (c.batchId as any)?.code || 'Unknown',
+        checkInTime: c.checkInTime,
+        checkOutTime: c.checkOutTime,
+        hoursWorked: c.hoursWorked,
+        status: c.status,
+      }));
+
+      return {
+        assignedBatches,
+        completedBatches,
+        totalHoursMentored,
+        pendingPayout: mentorProfile.pendingPayout || 0,
+        upcomingBatches,
+        recentCheckIns,
+      };
+    } catch (error: any) {
+      logger.error('Get mentor dashboard error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get batches assigned to this mentor
+   */
+  public async getBatches(
+    userId: string,
+    query: { status?: string; batchType?: string; page?: number; limit?: number }
+  ): Promise<any> {
+    try {
+      const mentorProfile = await MentorProfile.findOne({ userId });
+      if (!mentorProfile) {
+        throw new NotFoundError('Mentor profile not found');
+      }
+
+      const mentorProfileId = mentorProfile._id;
+      const filter: Record<string, any> = {
+        $or: [
+          { assignedMentorId: mentorProfileId },
+          { assignedMentorIds: mentorProfileId },
+        ],
+      };
+
+      if (query.status) {
+        filter.status = query.status;
+      }
+      if (query.batchType) {
+        filter.batchType = query.batchType;
+      }
+
+      const page = query.page || 1;
+      const limit = query.limit || 10;
+      const skip = (page - 1) * limit;
+
+      const [batchesRaw, total] = await Promise.all([
+        Batch.find(filter)
+          .populate('courseId', 'title description')
+          .populate('bootcampId', 'title description')
+          .populate('trainingProgramId', 'title description')
+          .sort({ startDate: -1 })
+          .skip(skip)
+          .limit(limit)
+          .exec(),
+        Batch.countDocuments(filter),
+      ]);
+
+      const batches = [];
+      for (const b of batchesRaw) {
+        const studentCount = await Enrollment.countDocuments({ batchId: b._id });
+        batches.push({
+          id: b._id.toString(),
+          code: b.code,
+          batchType: b.batchType,
+          mode: b.mode,
+          startDate: b.startDate,
+          endDate: b.endDate,
+          status: b.status,
+          title: (b.courseId as any)?.title || (b.bootcampId as any)?.title || (b.trainingProgramId as any)?.title || 'Program',
+          description: (b.courseId as any)?.description || (b.bootcampId as any)?.description || (b.trainingProgramId as any)?.description || '',
+          studentCount,
+        });
+      }
+
+      return {
+        batches,
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+        },
+      };
+    } catch (error: any) {
+      logger.error('Get mentor batches error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get single batch details for mentor
+   */
+  public async getBatchById(userId: string, batchId: string): Promise<any> {
+    try {
+      const mentorProfile = await MentorProfile.findOne({ userId });
+      if (!mentorProfile) {
+        throw new NotFoundError('Mentor profile not found');
+      }
+
+      const batch = await this.verifyMentorAssignment(mentorProfile._id.toString(), batchId);
+
+      // Populate batch info
+      await batch.populate([
+        { path: 'courseId', select: 'title' },
+        { path: 'bootcampId', select: 'title' },
+        { path: 'trainingProgramId', select: 'title' },
+      ]);
+
+      // Get enrolled students
+      const enrollments = await Enrollment.find({ batchId })
+        .populate({ path: 'studentUserId', select: 'fullName email phone' })
+        .exec();
+
+      const students = enrollments.map((e: any) => ({
+        id: e.studentUserId?._id?.toString() || '',
+        name: e.studentUserId?.fullName || 'Student',
+        email: e.studentUserId?.email || '',
+        phone: e.studentUserId?.phone || '',
+        status: e.status,
+        attendancePercent: e.attendancePercent,
+        avgRubricScore: e.avgRubricScore,
+      }));
+
+      // Get attendance logs
+      const attendance = await Attendance.find({ batchId })
+        .populate('studentUserId', 'fullName')
+        .sort({ attendanceDate: -1 })
+        .exec();
+
+      // Get progress notes
+      const progressNotes = await ProgressNote.find({ batchId, mentorId: userId })
+        .populate('studentUserId', 'fullName')
+        .sort({ noteDate: -1 })
+        .exec();
+
+      return {
+        batch: {
+          id: batch._id.toString(),
+          code: batch.code,
+          batchType: batch.batchType,
+          startDate: batch.startDate,
+          endDate: batch.endDate,
+          status: batch.status,
+          title: (batch.courseId as any)?.title || (batch.bootcampId as any)?.title || (batch.trainingProgramId as any)?.title || 'Program',
+        },
+        students,
+        attendance,
+        progressNotes,
+      };
+    } catch (error: any) {
+      logger.error('Get mentor batch by ID error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check in mentor for batch session
+   */
+  public async checkIn(userId: string, batchId: string): Promise<IMentorCheckIn> {
+    try {
+      const mentorProfile = await MentorProfile.findOne({ userId });
+      if (!mentorProfile) {
+        throw new NotFoundError('Mentor profile not found');
+      }
+
+      const batch = await this.verifyMentorAssignment(mentorProfile._id.toString(), batchId);
+      if (batch.status === BatchStatus.COMPLETED || batch.status === BatchStatus.CANCELLED) {
+        throw new ValidationError('Cannot check in to a completed or cancelled batch');
+      }
+
+      // Check if there is an active check-in (unclosed check-out)
+      const active = await MentorCheckIn.findOne({
+        mentorId: userId,
+        status: 'checked-in',
+      }).exec();
+
+      if (active) {
+        throw new ValidationError('You are already checked in to another batch/session. Check out first.');
+      }
+
+      const now = new Date();
+      return await MentorCheckIn.create({
+        mentorId: userId,
+        batchId,
+        sessionDate: now,
+        checkInTime: now,
+        checkOutTime: null,
+        hoursWorked: 0,
+        status: 'checked-in',
+      });
+    } catch (error: any) {
+      logger.error('Check in error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check out mentor
+   */
+  public async checkOut(userId: string, batchId: string, notes?: string): Promise<IMentorCheckIn> {
+    try {
+      const mentorProfile = await MentorProfile.findOne({ userId });
+      if (!mentorProfile) {
+        throw new NotFoundError('Mentor profile not found');
+      }
+
+      const active = await MentorCheckIn.findOne({
+        mentorId: userId,
+        batchId,
+        status: 'checked-in',
+      }).exec();
+
+      if (!active) {
+        throw new ValidationError('No active check-in session found for this batch');
+      }
+
+      const checkOutTime = new Date();
+      const diffMs = checkOutTime.getTime() - active.checkInTime.getTime();
+      const rawHours = diffMs / (1000 * 60 * 60);
+      // Round to nearest 0.5 hours
+      const hoursWorked = Math.max(0.5, Math.round(rawHours * 2) / 2);
+
+      active.checkOutTime = checkOutTime;
+      active.hoursWorked = hoursWorked;
+      active.status = 'checked-out';
+      active.notes = notes;
+      await active.save();
+
+      // Accumulate pending payout based on hourly rate
+      const rate = mentorProfile.hourlyRate || 1500;
+      const earnings = hoursWorked * rate;
+      await MentorProfile.updateOne(
+        { userId },
+        {
+          $inc: {
+            totalHoursMentored: hoursWorked,
+            pendingPayout: earnings,
+          },
+        }
+      );
+
+      logger.info(`Mentor ${userId} checked out batch ${batchId}. Hours worked: ${hoursWorked}`);
+      return active;
+    } catch (error: any) {
+      logger.error('Check out error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get active check-in status
+   */
+  public async getCheckInStatus(userId: string): Promise<IMentorCheckIn | null> {
+    try {
+      return await MentorCheckIn.findOne({
+        mentorId: userId,
+        status: 'checked-in',
+      }).populate('batchId', 'code').exec();
+    } catch (error: any) {
+      logger.error('Get check-in status error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get check-ins history
+   */
+  public async getCheckIns(
+    userId: string,
+    query: { batchId?: string; page?: number; limit?: number }
+  ): Promise<any> {
+    try {
+      const filter: Record<string, any> = { mentorId: userId };
+      if (query.batchId) {
+        filter.batchId = query.batchId;
+      }
+
+      const page = query.page || 1;
+      const limit = query.limit || 15;
+      const skip = (page - 1) * limit;
+
+      const [checkIns, total] = await Promise.all([
+        MentorCheckIn.find(filter)
+          .populate('batchId', 'code')
+          .sort({ checkInTime: -1 })
+          .skip(skip)
+          .limit(limit)
+          .exec(),
+        MentorCheckIn.countDocuments(filter),
+      ]);
+
+      return {
+        checkIns,
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+        },
+      };
+    } catch (error: any) {
+      logger.error('Get check-ins history error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark student attendance for a batch session
+   */
+  public async markAttendance(
+    userId: string,
+    batchId: string,
+    data: {
+      date: string | Date;
+      records: { studentUserId: string; status: 'Present' | 'Absent' | 'Late' | 'Excused'; remarks?: string }[];
+    }
+  ): Promise<any[]> {
+    try {
+      const mentorProfile = await MentorProfile.findOne({ userId });
+      if (!mentorProfile) {
+        throw new NotFoundError('Mentor profile not found');
+      }
+
+      await this.verifyMentorAssignment(mentorProfile._id.toString(), batchId);
+
+      const attendanceDate = new Date(data.date);
+      attendanceDate.setHours(0, 0, 0, 0);
+
+      const savedRecords = [];
+      for (const record of data.records) {
+        const query = {
+          studentUserId: record.studentUserId,
+          batchId,
+          attendanceDate,
+        };
+        const update = {
+          status: record.status,
+          remarks: record.remarks,
+          markedBy: userId,
+        };
+
+        const doc = await Attendance.findOneAndUpdate(query, update, {
+          new: true,
+          upsert: true,
+          runValidators: true,
+        }).exec();
+        savedRecords.push(doc);
+
+        // Recalculate attendance percent for the student enrollment
+        const totalSessions = await Attendance.countDocuments({ studentUserId: record.studentUserId, batchId });
+        const presentSessions = await Attendance.countDocuments({
+          studentUserId: record.studentUserId,
+          batchId,
+          status: { $in: ['Present', 'Late'] },
+        });
+
+        const attendancePercent = totalSessions > 0 ? Math.round((presentSessions / totalSessions) * 100) : 0;
+        await Enrollment.updateOne({ studentUserId: record.studentUserId, batchId }, { attendancePercent });
+      }
+
+      logger.info(`Attendance marked for batch ${batchId} on date ${attendanceDate}`);
+      return savedRecords;
+    } catch (error: any) {
+      logger.error('Mark student attendance error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create or update student progress note
+   */
+  public async createProgressNote(
+    userId: string,
+    data: {
+      studentUserId: string;
+      batchId: string;
+      rubricScore: number;
+      feedback: string;
+      strengths?: string;
+      areasForImprovement?: string;
+    }
+  ): Promise<IProgressNote> {
+    try {
+      const mentorProfile = await MentorProfile.findOne({ userId });
+      if (!mentorProfile) {
+        throw new NotFoundError('Mentor profile not found');
+      }
+
+      await this.verifyMentorAssignment(mentorProfile._id.toString(), data.batchId);
+
+      // Verify student is enrolled in this batch
+      const enrolled = await Enrollment.findOne({
+        studentUserId: data.studentUserId,
+        batchId: data.batchId,
+      }).exec();
+
+      if (!enrolled) {
+        throw new ValidationError('Student is not enrolled in this batch');
+      }
+
+      const note = await ProgressNote.create({
+        studentUserId: data.studentUserId,
+        batchId: data.batchId,
+        mentorId: userId,
+        noteDate: new Date(),
+        rubricScore: data.rubricScore,
+        feedback: data.feedback,
+        strengths: data.strengths,
+        areasForImprovement: data.areasForImprovement,
+      });
+
+      // Recalculate average rubric score
+      const allNotes = await ProgressNote.find({ studentUserId: data.studentUserId, batchId: data.batchId }).exec();
+      const avgRubricScore =
+        allNotes.length > 0 ? Math.round(allNotes.reduce((sum, n) => sum + n.rubricScore, 0) / allNotes.length) : 0;
+
+      await Enrollment.updateOne({ studentUserId: data.studentUserId, batchId: data.batchId }, { avgRubricScore });
+
+      logger.info(`Progress note created by mentor ${userId} for student ${data.studentUserId}`);
+      return note;
+    } catch (error: any) {
+      logger.error('Create progress note error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get earnings info
+   */
+  public async getEarnings(userId: string): Promise<any> {
+    try {
+      const mentorProfile = await MentorProfile.findOne({ userId });
       if (!mentorProfile) {
         throw new NotFoundError('Mentor profile not found');
       }
 
       const hourlyRate = mentorProfile.hourlyRate || 1500;
 
-      // 1. Sessions delivered count
-      const sessionsDelivered = await MentorSession.countDocuments({
-        mentorUserId,
-        status: 'completed',
-      });
+      // Group monthly earnings
+      const monthlyData = await MentorCheckIn.aggregate([
+        { $match: { mentorId: new mongoose.Types.ObjectId(userId), status: 'checked-out' } },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$checkInTime' },
+              month: { $month: '$checkInTime' },
+            },
+            hours: { $sum: '$hoursWorked' },
+          },
+        },
+        { $sort: { '_id.year': -1, '_id.month': -1 } },
+      ]).exec();
 
-      // 2. Total earnings
-      const earningsData = await this.getEarnings(userId);
-      const totalEarnings = earningsData.summary.lifetime;
-
-      // 3. Today's sessions count and list
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      const endOfToday = new Date();
-      endOfToday.setHours(23, 59, 59, 999);
-
-      const todaySessionsRaw = await MentorSession.find({
-        mentorUserId,
-        scheduledDate: { $gte: startOfToday, $lte: endOfToday },
-        status: 'scheduled',
-      })
-        .populate({ path: 'studentUserId', select: 'fullName email' })
-        .sort({ timeSlot: 1 })
-        .exec();
-
-      const todaySessions = todaySessionsRaw.map((s: any) => ({
-        id: s._id.toString(),
-        student: s.studentUserId?.fullName || 'Student',
-        time: s.timeSlot,
-        course: s.topic,
-        duration: `${s.durationMinutes} min`,
-        meetingLink: s.meetingLink,
-      }));
-
-      // 4. Earnings trend (Weekly, Monthly, Yearly)
-      const earningsTrend: { month: string; amount: number }[] = [];
-      const now = new Date();
-
-      if (period === 'weekly') {
-        // Last 6 weeks
-        const currentDay = now.getDay();
-        const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
-        const mondayOfThisWeek = new Date(now);
-        mondayOfThisWeek.setDate(now.getDate() - distanceToMonday);
-        mondayOfThisWeek.setHours(0, 0, 0, 0);
-
-        for (let i = 5; i >= 0; i--) {
-          const startOfWeek = new Date(mondayOfThisWeek);
-          startOfWeek.setDate(mondayOfThisWeek.getDate() - i * 7);
-          const endOfWeek = new Date(startOfWeek);
-          endOfWeek.setDate(startOfWeek.getDate() + 6);
-          endOfWeek.setHours(23, 59, 59, 999);
-
-          const count = await MentorSession.countDocuments({
-            mentorUserId,
-            status: 'completed',
-            scheduledDate: { $gte: startOfWeek, $lte: endOfWeek },
-          });
-
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          const label = `${monthNames[startOfWeek.getMonth()]} ${startOfWeek.getDate().toString().padStart(2, '0')}`;
-          
-          earningsTrend.push({
-            month: label,
-            amount: count * hourlyRate,
-          });
-        }
-      } else if (period === 'yearly') {
-        // Last 3 years
-        for (let i = 2; i >= 0; i--) {
-          const year = now.getFullYear() - i;
-          const startOfYear = new Date(year, 0, 1, 0, 0, 0, 0);
-          const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
-
-          const count = await MentorSession.countDocuments({
-            mentorUserId,
-            status: 'completed',
-            scheduledDate: { $gte: startOfYear, $lte: endOfYear },
-          });
-
-          earningsTrend.push({
-            month: year.toString(),
-            amount: count * hourlyRate,
-          });
-        }
-      } else {
-        // monthly (default)
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        for (let i = 5; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-          const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
-
-          const count = await MentorSession.countDocuments({
-            mentorUserId,
-            status: 'completed',
-            scheduledDate: { $gte: startOfMonth, $lte: endOfMonth },
-          });
-
-          earningsTrend.push({
-            month: months[d.getMonth()],
-            amount: count * hourlyRate,
-          });
-        }
-      }
-
-      // 5. Recent reviews (simulated using student names from actual mentor sessions/enrollments)
-      const finishedSessions = await MentorSession.find({
-        mentorUserId,
-        status: 'completed',
-      })
-        .populate({ path: 'studentUserId', select: 'fullName' })
-        .sort({ scheduledDate: -1 })
-        .limit(5)
-        .exec();
-
-      const reviewTemplates = [
-        'Amazing session! Very clear explanations.',
-        'Helped me understand concepts deeply.',
-        'Good pace, would love more examples.',
-        'Best mentor on the platform!',
-        'Very patient and knowledgeable.',
-      ];
-
-      const recentReviews = finishedSessions.map((s: any, idx) => {
-        const studentName = s.studentUserId?.fullName || 'Rahul S.';
-        // Seed rating based on mentor rating or standard 4-5 stars
-        const rating = Math.random() > 0.3 ? 5 : 4;
+      const earningsByMonth = monthlyData.map((d) => {
+        const monthNames = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+        ];
         return {
-          student: studentName,
-          rating,
-          text: reviewTemplates[idx % reviewTemplates.length],
-          date: this.getRelativeDateString(s.scheduledDate),
+          month: `${monthNames[d._id.month - 1]} ${d._id.year}`,
+          hours: d.hours,
+          amount: d.hours * hourlyRate,
         };
       });
-
-      // If no actual reviews, return a couple of static ones for visual elegance
-      if (recentReviews.length === 0) {
-        recentReviews.push(
-          { student: 'Rahul S.', rating: 5, text: 'Amazing session! Very clear explanations.', date: '2 days ago' },
-          { student: 'Priya D.', rating: 5, text: 'Helped me understand hooks deeply.', date: '3 days ago' }
-        );
-      }
 
       return {
-        counts: {
-          sessionsDelivered,
-          totalEarnings,
-          avgRating: mentorProfile.rating || 4.8,
-          todaySessionsCount: todaySessions.length,
-        },
-        todaySessions,
-        earningsTrend,
-        recentReviews,
+        hourlyRate,
+        totalHoursMentored: mentorProfile.totalHoursMentored || 0,
+        totalPayouts: mentorProfile.totalPayouts || 0,
+        pendingPayout: mentorProfile.pendingPayout || 0,
+        earningsByMonth,
       };
     } catch (error: any) {
-      logger.error('Get mentor dashboard service error:', error);
+      logger.error('Get earnings info error:', error);
       throw error;
     }
   }
 
   /**
-   * Get list of sessions (filtered by status)
-   */
-  public async getSessions(userId: string, status?: 'upcoming' | 'past' | 'cancelled'): Promise<any[]> {
-    try {
-      const mentorUserId = new mongoose.Types.ObjectId(userId);
-      const query: Record<string, any> = { mentorUserId };
-
-      if (status === 'upcoming') {
-        query.status = 'scheduled';
-      } else if (status === 'past') {
-        query.status = 'completed';
-      } else if (status === 'cancelled') {
-        query.status = 'cancelled';
-      }
-
-      const sessions = await MentorSession.find(query)
-        .populate({ path: 'studentUserId', select: 'fullName email' })
-        .sort({ scheduledDate: -1 })
-        .exec();
-
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-      return sessions.map((s: any) => {
-        const dateObj = new Date(s.scheduledDate);
-        const formattedDate = `${months[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
-        
-        let displayStatus: 'upcoming' | 'completed' | 'cancelled' = 'upcoming';
-        if (s.status === 'completed') displayStatus = 'completed';
-        else if (s.status === 'cancelled') displayStatus = 'cancelled';
-
-        return {
-          id: s._id.toString(),
-          student: s.studentUserId?.fullName || 'Student',
-          course: s.topic,
-          date: formattedDate,
-          time: s.timeSlot,
-          duration: `${s.durationMinutes} min`,
-          status: displayStatus,
-          meetingLink: s.meetingLink,
-        };
-      });
-    } catch (error: any) {
-      logger.error('Get mentor sessions service error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update a session status
-   */
-  public async updateSessionStatus(
-    userId: string,
-    sessionId: string,
-    status: 'scheduled' | 'completed' | 'cancelled'
-  ): Promise<IMentorSession> {
-    try {
-      const mentorUserId = new mongoose.Types.ObjectId(userId);
-      const session = await MentorSession.findOne({ _id: sessionId, mentorUserId });
-      if (!session) {
-        throw new NotFoundError('Mentor session not found');
-      }
-
-      const prevStatus = session.status;
-      session.status = status;
-      await session.save();
-
-      // If status changed to completed, increment totalSessions
-      if (status === 'completed' && prevStatus !== 'completed') {
-        await MentorProfile.updateOne({ userId: mentorUserId }, { $inc: { totalSessions: 1 } });
-      } else if (prevStatus === 'completed' && status !== 'completed') {
-        await MentorProfile.updateOne({ userId: mentorUserId }, { $inc: { totalSessions: -1 } });
-      }
-
-      return session;
-    } catch (error: any) {
-      logger.error('Update mentor session status service error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get availability and hourly rate
+   * Get availability schedule
    */
   public async getAvailability(userId: string): Promise<any> {
     try {
-      const mentorUserId = new mongoose.Types.ObjectId(userId);
-      const profile = await MentorProfile.findOne({ userId: mentorUserId });
+      const profile = await MentorProfile.findOne({ userId });
       if (!profile) {
         throw new NotFoundError('Mentor profile not found');
       }
-
       return {
-        availability: profile.availability || [],
+        availabilityCalendar: profile.availabilityCalendar || [],
         hourlyRate: profile.hourlyRate || 1500,
       };
     } catch (error: any) {
-      logger.error('Get mentor availability service error:', error);
+      logger.error('Get availability calendar error:', error);
       throw error;
     }
   }
 
   /**
-   * Save availability and rate
+   * Update availability calendar and rate
    */
   public async updateAvailability(
     userId: string,
-    data: { availability?: any[]; hourlyRate?: number }
+    data: { availabilityCalendar?: any[]; hourlyRate?: number }
   ): Promise<any> {
     try {
-      const mentorUserId = new mongoose.Types.ObjectId(userId);
-      const profile = await MentorProfile.findOne({ userId: mentorUserId });
+      const profile = await MentorProfile.findOne({ userId });
       if (!profile) {
         throw new NotFoundError('Mentor profile not found');
       }
 
-      if (data.availability !== undefined) {
-        profile.availability = data.availability;
+      if (data.availabilityCalendar !== undefined) {
+        profile.availabilityCalendar = data.availabilityCalendar;
       }
       if (data.hourlyRate !== undefined) {
         profile.hourlyRate = data.hourlyRate;
       }
 
       await profile.save();
-
       return {
-        availability: profile.availability,
+        availabilityCalendar: profile.availabilityCalendar,
         hourlyRate: profile.hourlyRate,
       };
     } catch (error: any) {
-      logger.error('Update mentor availability service error:', error);
+      logger.error('Update availability calendar error:', error);
       throw error;
     }
   }
 
   /**
-   * Get list of unique students mentored by this mentor
+   * Get mentor profile
    */
-  public async getStudents(userId: string): Promise<any[]> {
+  public async getProfile(userId: string): Promise<IMentorProfile | null> {
     try {
-      const mentorUserId = new mongoose.Types.ObjectId(userId);
-      const profile = await MentorProfile.findOne({ userId: mentorUserId });
-      if (!profile) {
-        throw new NotFoundError('Mentor profile not found');
-      }
-
-      // Collect all student user IDs that have ever had a session with this mentor
-      const studentIdsFromSessions = await MentorSession.distinct('studentUserId', { mentorUserId });
-
-      // Collect all student user IDs that are enrolled in batches assigned to this mentor
-      let studentIdsFromBatches: any[] = [];
-      const batches = await Batch.find({ assignedMentorId: profile._id });
-      if (batches.length > 0) {
-        const batchIds = batches.map((b) => b._id);
-        studentIdsFromBatches = await Enrollment.distinct('studentUserId', {
-          batchId: { $in: batchIds },
-        });
-      }
-
-      // Merge and make unique
-      const allStudentIds = Array.from(
-        new Set([
-          ...studentIdsFromSessions.map((id) => id.toString()),
-          ...studentIdsFromBatches.map((id) => id.toString()),
-        ])
-      ).map((id) => new mongoose.Types.ObjectId(id));
-
-      if (allStudentIds.length === 0) {
-        return [];
-      }
-
-      // Fetch student details
-      const students = await User.find({ _id: { $in: allStudentIds } }).exec();
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-      const result = await Promise.all(
-        students.map(async (student) => {
-          const completedCount = await MentorSession.countDocuments({
-            mentorUserId,
-            studentUserId: student._id,
-            status: 'completed',
-          });
-
-          const lastCompleted = await MentorSession.findOne({
-            mentorUserId,
-            studentUserId: student._id,
-            status: 'completed',
-          })
-            .sort({ scheduledDate: -1 })
-            .exec();
-
-          const nextScheduled = await MentorSession.findOne({
-            mentorUserId,
-            studentUserId: student._id,
-            status: 'scheduled',
-            scheduledDate: { $gte: new Date() },
-          })
-            .sort({ scheduledDate: 1 })
-            .exec();
-
-          // Try to find course name they are enrolled in under this mentor's batches
-          let courseName = 'Mentorship';
-          if (batches.length > 0) {
-            const batchIds = batches.map((b) => b._id);
-            const enrollment = await Enrollment.findOne({
-              studentUserId: student._id,
-              batchId: { $in: batchIds },
-            }).exec();
-
-            if (enrollment) {
-              const batch = batches.find((b) => b._id.toString() === enrollment.batchId.toString());
-              if (batch) {
-                if (batch.courseId) {
-                  const course = await Course.findById(batch.courseId).select('title').exec();
-                  if (course) {
-                    courseName = course.title;
-                  }
-                } else if (batch.batchType) {
-                  courseName = `${batch.batchType} Batch`;
-                }
-              }
-            }
-          }
-
-          const formatSessionDate = (session: any) => {
-            if (!session) return '—';
-            const d = new Date(session.scheduledDate);
-            return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-          };
-
-          return {
-            name: student.fullName,
-            course: courseName,
-            sessionsCompleted: completedCount,
-            lastSession: formatSessionDate(lastCompleted),
-            nextSession: formatSessionDate(nextScheduled),
-          };
-        })
-      );
-
-      return result;
+      return await MentorProfile.findOne({ userId }).populate('userId', 'fullName email phone').exec();
     } catch (error: any) {
-      logger.error('Get mentor students service error:', error);
+      logger.error('Get profile error:', error);
       throw error;
     }
   }
 
   /**
-   * Get earnings detail
+   * Update mentor profile
    */
-  public async getEarnings(userId: string): Promise<any> {
+  public async updateProfile(userId: string, data: any): Promise<IMentorProfile> {
     try {
-      const mentorUserId = new mongoose.Types.ObjectId(userId);
-      const profile = await MentorProfile.findOne({ userId: mentorUserId });
+      const profile = await MentorProfile.findOne({ userId });
       if (!profile) {
         throw new NotFoundError('Mentor profile not found');
       }
 
-      const hourlyRate = profile.hourlyRate || 1500;
-
-      // Calculate lifetime earnings will be done after payouts are populated
-
-      // Calculate this month's earnings
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-      const thisMonthSessions = await MentorSession.countDocuments({
-        mentorUserId,
-        status: 'completed',
-        scheduledDate: { $gte: startOfMonth, $lte: endOfMonth },
-      });
-      const thisMonthEarnings = thisMonthSessions * hourlyRate;
-
-      // Pending payout is current month's earnings (since they get paid monthly)
-      const pendingPayout = thisMonthEarnings;
-
-      // Monthly breakdown
-      const monthlyData: any[] = [];
-      const months = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ];
-
-      // Get last 6 months breakdown
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const start = new Date(d.getFullYear(), d.getMonth(), 1);
-        const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
-
-        const count = await MentorSession.countDocuments({
-          mentorUserId,
-          status: 'completed',
-          scheduledDate: { $gte: start, $lte: end },
-        });
-
-        if (count > 0 || i === 0) { // Always show current month
-          const base = count * hourlyRate;
-          // Add a small dynamic simulated bonus for aesthetics if there is some activity
-          const bonus = count > 10 ? 2000 : (count > 5 ? 1000 : 0);
-          monthlyData.push({
-            month: `${months[d.getMonth()]} ${d.getFullYear()}`,
-            sessions: count,
-            amount: base,
-            bonus,
-            total: base + bonus,
-          });
-        }
-      }
-
-      // Payout history (months prior to current month with status completed)
-      const payouts: any[] = [];
-      for (let i = 4; i >= 1; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const start = new Date(d.getFullYear(), d.getMonth(), 1);
-        const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
-
-        const count = await MentorSession.countDocuments({
-          mentorUserId,
-          status: 'completed',
-          scheduledDate: { $gte: start, $lte: end },
-        });
-
-        if (count > 0) {
-          const base = count * hourlyRate;
-          const bonus = count > 10 ? 2000 : (count > 5 ? 1000 : 0);
-          const total = base + bonus;
-          
-          const monthStr = (d.getMonth() + 1).toString().padStart(2, '0');
-          payouts.push({
-            date: `${months[d.getMonth()].slice(0, 3)} 1, ${d.getFullYear()}`,
-            amount: total,
-            status: 'completed',
-            txnId: `TXN-${d.getFullYear()}-${monthStr}01`,
-          });
-        }
-      }
-
-      // Add a fallback payout if payout history is empty and user has no completed sessions to match premium aesthetics
-      const totalCompletedSessions = await MentorSession.countDocuments({
-        mentorUserId,
-        status: 'completed',
-      });
-
-      if (payouts.length === 0 && totalCompletedSessions === 0) {
-        payouts.push(
-          { date: 'May 1, 2026', amount: 30000, status: 'completed', txnId: 'TXN-2026-0501' },
-          { date: 'Apr 1, 2026', amount: 28500, status: 'completed', txnId: 'TXN-2026-0401' }
-        );
-      }
-
-      // Calculate lifetime earnings from actual completed sessions to avoid false data from fallbacks
-      const lifetimeEarnings = totalCompletedSessions * hourlyRate;
-
-      return {
-        summary: {
-          thisMonth: thisMonthEarnings,
-          pendingPayout,
-          lifetime: lifetimeEarnings,
-        },
-        monthlyData,
-        payouts,
-      };
-    } catch (error: any) {
-      logger.error('Get mentor earnings service error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get profile details
-   */
-  public async getProfile(userId: string): Promise<any> {
-    try {
-      const mentorUserId = new mongoose.Types.ObjectId(userId);
-      const user = await User.findById(mentorUserId).exec();
-      if (!user) {
-        throw new NotFoundError('User not found');
-      }
-
-      const profile = await MentorProfile.findOne({ userId: mentorUserId }).exec();
-      if (!profile) {
-        throw new NotFoundError('Mentor profile not found');
-      }
-
-      return {
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-        bio: profile.bio || '',
-        experienceYears: profile.experienceYears || 0,
-        areaOfExpertise: profile.areaOfExpertise || 'Other',
-        currentOrganization: profile.currentOrganization || '',
-        linkedIn: profile.linkedIn || '',
-        website: profile.website || '',
-        hourlyRate: profile.hourlyRate || 1500,
-        isVerified: profile.isVerified,
-      };
-    } catch (error: any) {
-      logger.error('Get mentor profile service error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update profile details
-   */
-  public async updateProfile(userId: string, data: any): Promise<any> {
-    try {
-      const mentorUserId = new mongoose.Types.ObjectId(userId);
-      const user = await User.findById(mentorUserId).exec();
-      if (!user) {
-        throw new NotFoundError('User not found');
-      }
-
-      const profile = await MentorProfile.findOne({ userId: mentorUserId }).exec();
-      if (!profile) {
-        throw new NotFoundError('Mentor profile not found');
-      }
-
-      // Update User fields
-      if (data.fullName !== undefined) {
-        user.fullName = data.fullName;
-      }
-      if (data.phone !== undefined) {
-        user.phone = data.phone;
-      }
-      await user.save();
-
-      // Update Profile fields
-      const profileFields = [
-        'bio',
-        'experienceYears',
-        'areaOfExpertise',
-        'currentOrganization',
-        'linkedIn',
-        'website',
-        'hourlyRate',
-      ];
-
-      for (const field of profileFields) {
+      const fields = ['bio', 'experienceYears', 'areaOfExpertise', 'currentOrganization', 'linkedIn', 'website', 'specializations', 'linkedinUrl', 'portfolioUrl'];
+      for (const field of fields) {
         if (data[field] !== undefined) {
           (profile as any)[field] = data[field];
         }
       }
 
       await profile.save();
-
-      return {
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-        bio: profile.bio,
-        experienceYears: profile.experienceYears,
-        areaOfExpertise: profile.areaOfExpertise,
-        currentOrganization: profile.currentOrganization,
-        linkedIn: profile.linkedIn,
-        website: profile.website,
-        hourlyRate: profile.hourlyRate,
-        isVerified: profile.isVerified,
-      };
+      return profile;
     } catch (error: any) {
-      logger.error('Update mentor profile service error:', error);
+      logger.error('Update profile error:', error);
       throw error;
     }
   }
 
   /**
-   * Create a support ticket for the mentor
+   * Submit support query ticket
    */
-  public async createSupportTicket(
-    userId: string,
-    data: { subject: string; message: string }
-  ): Promise<ISupportTicket> {
+  public async createSupportTicket(userId: string, data: { subject: string; message: string }): Promise<ISupportTicket> {
     try {
       const ticket = await SupportTicket.create({
         userId,
@@ -711,71 +708,112 @@ export class MentorDashboardService {
       logger.info(`Support ticket ${ticket._id} created by mentor ${userId}`);
       return ticket;
     } catch (error: any) {
-      logger.error('Create mentor support ticket error:', error);
+      logger.error('Create support ticket error:', error);
       throw error;
     }
   }
 
   /**
-   * Get the mentor's support tickets (most recent first)
+   * Get support query tickets submitted by mentor
    */
   public async getSupportTickets(userId: string): Promise<ISupportTicket[]> {
     try {
       return await SupportTicket.find({ userId }).sort({ createdAt: -1 }).exec();
     } catch (error: any) {
-      logger.error('Get mentor support tickets error:', error);
+      logger.error('Get support tickets error:', error);
       throw error;
     }
   }
 
   /**
-   * Update mentor settings account details
+   * Update settings account
    */
-  public async updateSettingsAccount(
-    userId: string,
-    data: { fullName?: string; phone?: string }
-  ): Promise<any> {
+  public async updateSettingsAccount(userId: string, data: { fullName?: string; phone?: string }): Promise<any> {
     try {
-      const user = await User.findById(userId);
+      const user = await User.findById(userId).exec();
       if (!user) {
         throw new NotFoundError('User not found');
       }
-      if (data.fullName !== undefined) {
-        user.fullName = data.fullName;
-      }
-      if (data.phone !== undefined) {
-        user.phone = data.phone;
-      }
+
+      if (data.fullName) user.fullName = data.fullName;
+      if (data.phone) user.phone = data.phone;
+
       await user.save();
-      return user;
+      return {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+      };
     } catch (error: any) {
-      logger.error('Update settings account error:', error);
+      logger.error('Update account settings error:', error);
       throw error;
     }
   }
 
   /**
-   * Change mentor password
+   * Change password
    */
-  public async changePassword(
-    userId: string,
-    data: { currentPassword?: string; newPassword?: string }
-  ): Promise<void> {
+  public async changePassword(userId: string, data: any): Promise<void> {
     try {
-      const user = await User.findById(userId).select('+password');
+      const user = await User.findById(userId).select('+password').exec();
       if (!user) {
         throw new NotFoundError('User not found');
       }
 
-      const isMatch = await user.comparePassword(data.currentPassword!);
-      if (!isMatch) {
-        throw new ValidationError('Invalid current password');
+      const isValid = await user.comparePassword(data.currentPassword);
+      if (!isValid) {
+        throw new ValidationError('Current password is incorrect');
       }
 
-      user.password = data.newPassword!;
+      user.password = data.newPassword;
       await user.save();
     } catch (error: any) {
       logger.error('Change password error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get students for mentor
+   */
+  public async getStudents(userId: string): Promise<any[]> {
+    try {
+      const mentorProfile = await MentorProfile.findOne({ userId });
+      if (!mentorProfile) {
+        throw new NotFoundError('Mentor profile not found');
+      }
+
+      const mentorProfileId = mentorProfile._id;
+      // Get all batches assigned to this mentor
+      const batches = await Batch.find({
+        $or: [
+          { assignedMentorId: mentorProfileId },
+          { assignedMentorIds: mentorProfileId },
+        ],
+      }).exec();
+
+      const batchIds = batches.map((b) => b._id);
+
+      // Get enrolled students across these batches
+      const enrollments = await Enrollment.find({ batchId: { $in: batchIds } })
+        .populate({ path: 'studentUserId', select: 'fullName email phone' })
+        .populate('batchId', 'code')
+        .exec();
+
+      return enrollments.map((e: any) => ({
+        id: e.studentUserId?._id?.toString() || '',
+        name: e.studentUserId?.fullName || 'Student',
+        email: e.studentUserId?.email || '',
+        phone: e.studentUserId?.phone || '',
+        batchCode: e.batchId?.code || 'Unknown',
+        attendancePercent: e.attendancePercent,
+        avgRubricScore: e.avgRubricScore,
+        status: e.status,
+      }));
+    } catch (error: any) {
+      logger.error('Get mentor students error:', error);
       throw error;
     }
   }

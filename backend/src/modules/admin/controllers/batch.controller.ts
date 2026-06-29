@@ -42,6 +42,12 @@ const assignMentorSchema = z.object({
     .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid mentorId format'),
 });
 
+const assignMentorsSchema = z.object({
+  mentorIds: z.array(
+    z.string().refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid mentorId format')
+  ),
+});
+
 const listBatchesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(50).optional(),
@@ -183,6 +189,28 @@ export class BatchController {
       SuccessResponseHelper.ok(res, { batch }, 'Mentor assigned successfully');
     } catch (error: any) {
       logger.error('Assign mentor controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Assign multiple mentors to batch
+   * PATCH /api/v1/admin/batches/:id/mentors
+   */
+  public async assignMentors(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const result = assignMentorsSchema.safeParse(req.body);
+
+      if (!result.success) {
+        throw ValidationError.fromZodError(result.error);
+      }
+
+      const batch = await batchService.assignMentors(id, result.data.mentorIds);
+
+      SuccessResponseHelper.ok(res, { batch }, 'Mentors assigned successfully');
+    } catch (error: any) {
+      logger.error('Assign mentors controller error:', error);
       next(error);
     }
   }

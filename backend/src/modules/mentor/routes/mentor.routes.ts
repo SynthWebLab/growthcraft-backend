@@ -13,31 +13,91 @@ router.use(authorize([UserRole.MENTOR]));
 
 /**
  * GET /api/v1/mentor/dashboard
- * Get aggregated mentor dashboard details (stats, today's calendar, reviews, earnings trend)
+ * Get aggregated mentor dashboard details
  */
 router.get('/dashboard', (req: Request, res: Response, next: NextFunction) => {
   void mentorDashboardController.getDashboard(req, res, next);
 });
 
 /**
- * GET /api/v1/mentor/sessions
- * Get sessions list (filtered by status)
+ * GET /api/v1/mentor/batches
+ * Get batches list (filtered by status)
  */
-router.get('/sessions', (req: Request, res: Response, next: NextFunction) => {
-  void mentorDashboardController.getSessions(req, res, next);
+router.get('/batches', (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.getBatches(req, res, next);
 });
 
 /**
- * PATCH /api/v1/mentor/sessions/:id/status
- * Update session status (completed/cancelled)
+ * GET /api/v1/mentor/batches/:batchId
+ * Get batch details, enrolled students, attendance logs, and progress notes
  */
-router.patch(
-  '/sessions/:id/status',
-  MentorValidator.updateSessionStatus(),
-  (req: Request, res: Response, next: NextFunction) => {
-    void mentorDashboardController.updateSessionStatus(req, res, next);
-  }
-);
+router.get('/batches/:batchId', (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.getBatchById(req, res, next);
+});
+
+/**
+ * POST /api/v1/mentor/check-in
+ * Start a cohort session check-in
+ */
+router.post('/check-in', (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.checkIn(req, res, next);
+});
+
+/**
+ * POST /api/v1/mentor/check-out
+ * Complete check-out, compute hours
+ */
+router.post('/check-out', (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.checkOut(req, res, next);
+});
+
+/**
+ * GET /api/v1/mentor/check-in/status
+ * Get current check-in status
+ */
+router.get('/check-in/status', (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.getCheckInStatus(req, res, next);
+});
+
+/**
+ * GET /api/v1/mentor/check-ins
+ * Own check-in history, paginated
+ */
+router.get('/check-ins', (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.getCheckIns(req, res, next);
+});
+
+/**
+ * POST /api/v1/mentor/attendance
+ * Mark student attendance for a batch session
+ */
+router.post('/attendance', (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.markAttendance(req, res, next);
+});
+
+/**
+ * POST /api/v1/mentor/progress-notes
+ * Create progress note for student
+ */
+router.post('/progress-notes', (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.createProgressNote(req, res, next);
+});
+
+/**
+ * GET /api/v1/mentor/earnings
+ * Get earnings analysis
+ */
+router.get('/earnings', (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.getEarnings(req, res, next);
+});
+
+/**
+ * POST /api/v1/mentor/earnings/withdraw
+ * Submit withdrawal request
+ */
+router.post('/earnings/withdraw', (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.withdrawEarnings(req, res, next);
+});
 
 /**
  * GET /api/v1/mentor/availability
@@ -61,26 +121,10 @@ router.put(
 
 /**
  * GET /api/v1/mentor/students
- * Get students list
+ * Get student details across all assigned batches
  */
 router.get('/students', (req: Request, res: Response, next: NextFunction) => {
   void mentorDashboardController.getStudents(req, res, next);
-});
-
-/**
- * GET /api/v1/mentor/earnings
- * Get earnings analysis, monthly breakdown, payout history
- */
-router.get('/earnings', (req: Request, res: Response, next: NextFunction) => {
-  void mentorDashboardController.getEarnings(req, res, next);
-});
-
-/**
- * POST /api/v1/mentor/earnings/withdraw
- * Submit withdrawal request
- */
-router.post('/earnings/withdraw', (req: Request, res: Response, next: NextFunction) => {
-  void mentorDashboardController.withdrawEarnings(req, res, next);
 });
 
 /**

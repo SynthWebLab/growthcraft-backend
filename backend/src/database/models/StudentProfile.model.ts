@@ -22,6 +22,7 @@ export interface IStudentProfile extends Document {
   portfolio?: string;
   linkedIn?: string;
   github?: string;
+  isAmbassador?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -98,6 +99,11 @@ const studentProfileSchema = new Schema<IStudentProfile>(
     },
     github: {
       type: String,
+    },
+    isAmbassador: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
   },
   {

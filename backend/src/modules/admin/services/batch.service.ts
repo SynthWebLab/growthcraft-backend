@@ -9,6 +9,8 @@ import {
   MentorProfile,
   Notification,
   TrainingProgram,
+  IBatch,
+  User,
 } from '@/database/models';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ValidationError } from '@/common/errors/ValidationError';
@@ -490,6 +492,7 @@ export class BatchService {
 
     // Assign mentor to batch
     batch.assignedMentorId = mentor._id as mongoose.Types.ObjectId;
+    batch.assignedMentorIds = [mentor._id as mongoose.Types.ObjectId];
     await batch.save();
 
     // Create notification for mentor
@@ -507,6 +510,56 @@ export class BatchService {
 
     logger.info(`Mentor ${mentorId} assigned to batch ${batch.code} (${batch._id})`);
 
+    return batch;
+  }
+
+  public async assignMentors(id: string, mentorIds: string[]): Promise<IBatch> {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw ValidationError.forField('batchId', 'Invalid batch ID format');
+    }
+
+    const batch = await Batch.findById(id).exec();
+    if (!batch) {
+      throw NotFoundError.resource('Batch');
+    }
+
+    const profiles = [];
+    for (const mentorId of mentorIds) {
+      if (!mongoose.Types.ObjectId.isValid(mentorId)) {
+        throw ValidationError.forField('mentorIds', `Invalid mentor ID format: ${mentorId}`);
+      }
+
+      const user = await User.findById(mentorId).exec();
+      if (!user || user.role !== 'mentor') {
+        throw ValidationError.forField('mentorIds', `User ${mentorId} is not a valid mentor`);
+      }
+
+      const mentor = await MentorProfile.findOne({ userId: mentorId }).exec();
+      if (!mentor) {
+        throw ValidationError.forField('mentorIds', `Mentor profile not found for user ${mentorId}`);
+      }
+      profiles.push(mentor);
+    }
+
+    batch.assignedMentorIds = profiles.map((p) => p._id as mongoose.Types.ObjectId);
+    batch.assignedMentorId = profiles[0] ? (profiles[0]._id as mongoose.Types.ObjectId) : undefined;
+    await batch.save();
+
+    for (const mentor of profiles) {
+      await Notification.create({
+        type: 'batch.assigned',
+        userId: mentor.userId.toString(),
+        data: {
+          batchId: batch._id,
+          batchCode: batch.code,
+          startDate: batch.startDate,
+          endDate: batch.endDate,
+          batchType: batch.batchType,
+        },
+      });
+    }
+
+    logger.info(`Mentors [${mentorIds.join(', ')}] assigned to batch ${batch.code} (${batch._id})`);
     return batch;
   }
 }

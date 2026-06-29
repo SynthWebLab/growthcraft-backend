@@ -1,8 +1,10 @@
+import mongoose from 'mongoose';
 import { User, IUser } from '@/database/models/User.model';
 import { CollegeProfile } from '@/database/models/CollegeProfile.model';
 import { EmployerProfile } from '@/database/models/EmployerProfile.model';
 import { MentorProfile } from '@/database/models/MentorProfile.model';
 import { StudentProfile } from '@/database/models/StudentProfile.model';
+import { Referral } from '@/database/models/Referral.model';
 import { RegisterDto, RegisterResponseDto } from '../dto/register.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
 import { logger } from '@/common/utils/logger.util';
@@ -107,6 +109,17 @@ export class AuthService {
       });
 
       await user.save();
+
+      // Check if student was referred
+      if (user.role === 'student') {
+        const referral = await Referral.findOne({ referredEmail: user.email.toLowerCase(), status: 'pending' });
+        if (referral) {
+          referral.referredUserId = user._id as mongoose.Types.ObjectId;
+          referral.status = 'joined';
+          await referral.save();
+          logger.info(`Referral linked for user ${user.email} from referrer ${referral.referrerId}`);
+        }
+      }
 
       // Create college profile if role is college
       let collegeProfile = null;
@@ -329,6 +342,14 @@ export class AuthService {
 
       logger.info(`User logged in successfully: ${user.email}`);
 
+      let isAmbassador = false;
+      if (user.role === 'student') {
+        const studentProfile = await StudentProfile.findOne({ userId: user._id });
+        if (studentProfile) {
+          isAmbassador = studentProfile.isAmbassador || false;
+        }
+      }
+
       return {
         user: {
           id: user._id.toString(),
@@ -337,6 +358,7 @@ export class AuthService {
           phone: user.phone,
           role: user.role,
           isEmailVerified: user.isEmailVerified,
+          isAmbassador,
         },
         tokens,
       };
