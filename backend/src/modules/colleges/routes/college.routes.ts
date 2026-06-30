@@ -461,4 +461,8 @@ router.post('/events/:eventId/access', (req: Request, res: Response, next: NextF
   void collegeDashboardController.updateEventAccess(req, res, next);
 });
 
+router.post('/students/:studentId/ambassador', (req: Request, res: Response, next: NextFunction) => {
+  void collegeDashboardController.toggleAmbassadorStatus(req, res, next);
+});
+
 export default router;

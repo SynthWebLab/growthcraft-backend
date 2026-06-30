@@ -257,12 +257,12 @@ export class StudentDashboardController {
    */
   public async getMentors(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      this.getUserId(req);
+      const userId = this.getUserId(req);
       const expertise =
         typeof req.query.expertise === 'string' && req.query.expertise.length > 0
           ? req.query.expertise
           : undefined;
-      const mentors = await studentDashboardService.getMentors(expertise);
+      const mentors = await studentDashboardService.getMentors(userId, expertise);
       SuccessResponseHelper.ok(res, { mentors }, 'Mentors retrieved successfully');
     } catch (error: any) {
       logger.error('Get mentors controller error:', error);
@@ -276,26 +276,14 @@ export class StudentDashboardController {
    */
   public async bookMentorSession(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        const validationErrors = errors.array().map((err: any) => ({
-          field: err.path || err.param || 'unknown',
-          message: err.msg,
-          value: err.value,
-        }));
-        throw new ValidationError('Validation failed', validationErrors);
-      }
-
-      const userId = this.getUserId(req);
-      const { mentorUserId, topic, scheduledDate, timeSlot, sessionType } = req.body;
-      const session = await studentDashboardService.bookMentorSession(userId, {
-        mentorUserId,
-        topic,
-        scheduledDate,
-        timeSlot,
-        sessionType,
+      res.status(403).json({
+        success: false,
+        error: {
+          message: 'Direct bookings are disabled as mentors are directly assigned to cohorts by admin.',
+          code: 'DIRECT_BOOKINGS_DISABLED',
+        },
       });
-      SuccessResponseHelper.created(res, { session }, 'Mentor session booked successfully');
+      return;
     } catch (error: any) {
       logger.error('Book mentor session controller error:', error);
       next(error);
@@ -313,6 +301,59 @@ export class StudentDashboardController {
       SuccessResponseHelper.ok(res, { sessions }, 'Mentor sessions retrieved successfully');
     } catch (error: any) {
       logger.error('Get mentor sessions controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get ambassador dashboard summary
+   * GET /api/v1/students/ambassador/dashboard
+   */
+  public async getAmbassadorDashboard(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const dashboard = await studentDashboardService.getAmbassadorDashboard(userId);
+      SuccessResponseHelper.ok(res, dashboard, 'Ambassador dashboard retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get ambassador dashboard controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get ambassador referrals
+   * GET /api/v1/students/ambassador/referrals
+   */
+  public async getAmbassadorReferrals(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const referrals = await studentDashboardService.getAmbassadorReferrals(userId);
+      SuccessResponseHelper.ok(res, { referrals }, 'Ambassador referrals retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get ambassador referrals controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Create a new referral (invite a student)
+   * POST /api/v1/students/ambassador/referrals
+   */
+  public async createReferral(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const { referredEmail, referredItemType, referredItemId } = req.body;
+      if (!referredEmail || !referredItemType || !referredItemId) {
+        throw new ValidationError('Missing required fields: referredEmail, referredItemType, referredItemId');
+      }
+      const referral = await studentDashboardService.createReferral(userId, {
+        referredEmail,
+        referredItemType,
+        referredItemId,
+      });
+      SuccessResponseHelper.created(res, { referral }, 'Referral created successfully');
+    } catch (error: any) {
+      logger.error('Create referral controller error:', error);
       next(error);
     }
   }

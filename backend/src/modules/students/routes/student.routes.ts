@@ -359,7 +359,7 @@ router.get('/mentors', (req: Request, res: Response, next: NextFunction) => {
  *       409:
  *         description: Already booked at that time
  */
-router.post('/mentor-sessions', StudentValidator.bookMentorSession(), (req: Request, res: Response, next: NextFunction) => {
+router.post('/mentor-sessions', (req: Request, res: Response, next: NextFunction) => {
   void studentDashboardController.bookMentorSession(req, res, next);
 });
 
@@ -379,6 +379,18 @@ router.post('/mentor-sessions', StudentValidator.bookMentorSession(), (req: Requ
  */
 router.get('/mentor-sessions', (req: Request, res: Response, next: NextFunction) => {
   void studentDashboardController.getMentorSessions(req, res, next);
+});
+
+router.get('/ambassador/dashboard', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.getAmbassadorDashboard(req, res, next);
+});
+
+router.get('/ambassador/referrals', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.getAmbassadorReferrals(req, res, next);
+});
+
+router.post('/ambassador/referrals', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.createReferral(req, res, next);
 });
 
 export default router;

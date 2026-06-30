@@ -36,6 +36,7 @@ export interface IBatch extends Document {
   enrolledCount: number;
   status: BatchStatus;
   assignedMentorId?: mongoose.Types.ObjectId;
+  assignedMentorIds?: mongoose.Types.ObjectId[];
   fee: mongoose.Types.Decimal128;
   createdAt: Date;
   updatedAt: Date;
@@ -132,6 +133,12 @@ const batchSchema = new Schema<IBatch>(
     assignedMentorId: {
       type: Schema.Types.ObjectId,
       ref: 'MentorProfile',
+      index: true,
+    },
+    assignedMentorIds: {
+      type: [Schema.Types.ObjectId],
+      ref: 'MentorProfile',
+      default: [],
       index: true,
     },
     fee: {

@@ -9,6 +9,9 @@ import { StudentProfile, IStudentProfile } from '@/database/models/StudentProfil
 import { SupportTicket, ISupportTicket } from '@/database/models/SupportTicket.model';
 import { MentorProfile, IMentorProfile } from '@/database/models/MentorProfile.model';
 import { MentorSession, IMentorSession } from '@/database/models/MentorSession.model';
+import { Enrollment } from '@/database/models/Enrollment.model';
+import { Batch } from '@/database/models/Batch.model';
+import { Referral } from '@/database/models/Referral.model';
 import { EventType } from '@/database/models/Bootcamp.model';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ConflictError } from '@/common/errors/ConflictError';
@@ -266,18 +269,36 @@ export class StudentDashboardService {
   }
 
   /**
-   * Get available (verified) mentors, optionally filtered by area of expertise.
+   * Get mentors assigned to the student's enrolled batches, optionally filtered by area of expertise.
    */
-  public async getMentors(areaOfExpertise?: string): Promise<IMentorProfile[]> {
+  public async getMentors(studentUserId: string, areaOfExpertise?: string): Promise<IMentorProfile[]> {
     try {
-      const filter: Record<string, unknown> = {};
+      const enrollments = await Enrollment.find({ studentUserId }).exec();
+      const batchIds = enrollments.map((e) => e.batchId);
+
+      const batches = await Batch.find({ _id: { $in: batchIds } }).exec();
+
+      const mentorProfileIds = new Set<string>();
+      for (const batch of batches) {
+        if (batch.assignedMentorId) {
+          mentorProfileIds.add(batch.assignedMentorId.toString());
+        }
+        if (batch.assignedMentorIds && Array.isArray(batch.assignedMentorIds)) {
+          for (const mId of batch.assignedMentorIds) {
+            mentorProfileIds.add(mId.toString());
+          }
+        }
+      }
+
+      const filter: Record<string, unknown> = {
+        _id: { $in: Array.from(mentorProfileIds) },
+      };
       if (areaOfExpertise) {
         filter.areaOfExpertise = areaOfExpertise;
       }
 
       return await MentorProfile.find(filter)
         .populate('userId', 'fullName email')
-        .sort({ rating: -1, totalSessions: -1 })
         .exec();
     } catch (error: any) {
       logger.error('Get mentors error:', error);
@@ -394,6 +415,99 @@ export class StudentDashboardService {
       };
     } catch (error: any) {
       logger.error('Get student dashboard error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get ambassador dashboard summary statistics.
+   */
+  public async getAmbassadorDashboard(studentUserId: string): Promise<any> {
+    try {
+      const studentProfile = await StudentProfile.findOne({ userId: studentUserId });
+      if (!studentProfile || !studentProfile.isAmbassador) {
+        throw new Error('Ambassador profile not found or user is not an ambassador');
+      }
+
+      const referrals = await Referral.find({ referrerId: studentUserId }).exec();
+
+      const totalReferrals = referrals.length;
+      const joinedReferrals = referrals.filter(r => r.status === 'joined' || r.status === 'completed').length;
+      const totalCommission = referrals.reduce((sum, r) => sum + r.commissionEarned, 0);
+      const unpaidCommission = referrals.filter(r => r.payoutStatus === 'unpaid').reduce((sum, r) => sum + r.commissionEarned, 0);
+      const paidCommission = referrals.filter(r => r.payoutStatus === 'paid').reduce((sum, r) => sum + r.commissionEarned, 0);
+
+      return {
+        totalReferrals,
+        joinedReferrals,
+        totalCommission,
+        unpaidCommission,
+        paidCommission,
+        commissionRate: 10, // 10% default
+      };
+    } catch (error: any) {
+      logger.error('Get ambassador dashboard error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get list of referrals made by this ambassador.
+   */
+  public async getAmbassadorReferrals(studentUserId: string): Promise<any[]> {
+    try {
+      const studentProfile = await StudentProfile.findOne({ userId: studentUserId });
+      if (!studentProfile || !studentProfile.isAmbassador) {
+        throw new Error('Ambassador profile not found or user is not an ambassador');
+      }
+
+      return await Referral.find({ referrerId: studentUserId })
+        .sort({ createdAt: -1 })
+        .exec();
+    } catch (error: any) {
+      logger.error('Get ambassador referrals error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Track/create a new referral link generation or invite.
+   */
+  public async createReferral(
+    studentUserId: string,
+    data: {
+      referredEmail: string;
+      referredItemType: 'Course' | 'TrainingProgram' | 'Bootcamp';
+      referredItemId: string;
+    }
+  ): Promise<any> {
+    try {
+      const studentProfile = await StudentProfile.findOne({ userId: studentUserId });
+      if (!studentProfile || !studentProfile.isAmbassador) {
+        throw new Error('Ambassador profile not found or user is not an ambassador');
+      }
+
+      const existing = await Referral.findOne({
+        referrerId: studentUserId,
+        referredEmail: data.referredEmail.toLowerCase(),
+        referredItemId: data.referredItemId,
+      });
+
+      if (existing) {
+        return existing;
+      }
+
+      return await Referral.create({
+        referrerId: studentUserId,
+        referredEmail: data.referredEmail.toLowerCase(),
+        referredItemType: data.referredItemType,
+        referredItemId: data.referredItemId,
+        status: 'pending',
+        commissionEarned: 0,
+        payoutStatus: 'unpaid',
+      });
+    } catch (error: any) {
+      logger.error('Create referral error:', error);
       throw error;
     }
   }

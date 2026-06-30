@@ -3,6 +3,7 @@ import { validationResult } from 'express-validator';
 import { authService } from '../services/auth.service';
 import { RegisterDto } from '../dto/register.dto';
 import { logger } from '@/common/utils/logger.util';
+import { StudentProfile } from '@/database/models/StudentProfile.model';
 import { config } from '@/config';
 import { jwtConfig } from '@/config/jwt.config';
 
@@ -261,9 +262,15 @@ export class AuthController {
         return;
       }
 
+      let userObj = user.toJSON();
+      if (user.role === 'student') {
+        const studentProfile = await StudentProfile.findOne({ userId });
+        userObj.isAmbassador = studentProfile ? (studentProfile.isAmbassador || false) : false;
+      }
+
       res.status(200).json({
         success: true,
-        data: { user },
+        data: { user: userObj },
       });
     } catch (error) {
       _next(error);

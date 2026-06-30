@@ -40,6 +40,7 @@ export interface CollegeStudentRow {
   avgProgress: number;
   status: StudentStatus;
   lastActive: Date;
+  isAmbassador: boolean;
 }
 
 export interface CohortStatus {
@@ -220,7 +221,7 @@ export class CollegeDashboardService {
         .lean()
         .exec(),
       StudentProfile.find({ userId: { $in: userIds } })
-        .select('userId enrolledCourses completedCourses')
+        .select('userId enrolledCourses completedCourses isAmbassador')
         .lean()
         .exec(),
       CourseEnrollment.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
@@ -271,6 +272,7 @@ export class CollegeDashboardService {
         avgProgress,
         status,
         lastActive: (user as unknown as IUser).updatedAt,
+        isAmbassador: (profile as any)?.isAmbassador ?? false,
       };
     });
   }
@@ -1441,6 +1443,43 @@ export class CollegeDashboardService {
       return { success: true, modifiedCount };
     } catch (error: any) {
       logger.error('Update event access error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Toggle student's ambassador status.
+   * Asserts the student belongs to the college's campus.
+   */
+  public async toggleAmbassadorStatus(
+    collegeUserId: string,
+    studentUserId: string,
+    isAmbassador: boolean
+  ): Promise<IStudentProfile> {
+    try {
+      const college = await CollegeProfile.findOne({ userId: collegeUserId }).exec();
+      if (!college) {
+        throw new NotFoundError('College profile not found');
+      }
+
+      const studentProfile = await StudentProfile.findOne({ userId: studentUserId }).exec();
+      if (!studentProfile) {
+        throw new NotFoundError('Student profile not found');
+      }
+
+      if (studentProfile.collegeName !== college.collegeName) {
+        throw new ValidationError('Student does not belong to your college');
+      }
+
+      studentProfile.isAmbassador = isAmbassador;
+      await studentProfile.save();
+
+      logger.info(
+        `College ${college.collegeName} updated student ${studentUserId} isAmbassador status to ${isAmbassador}`
+      );
+      return studentProfile;
+    } catch (error: any) {
+      logger.error('Toggle ambassador status error:', error);
       throw error;
     }
   }

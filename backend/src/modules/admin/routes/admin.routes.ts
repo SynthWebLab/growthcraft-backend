@@ -59,6 +59,15 @@ router.patch('/batches/:id/mentor', (req: Request, res: Response, next: NextFunc
 });
 
 /**
+ * @route   PATCH /api/v1/admin/batches/:id/mentors
+ * @desc    Assign multiple mentors to batch
+ * @access  SuperAdmin, Ops
+ */
+router.patch('/batches/:id/mentors', (req: Request, res: Response, next: NextFunction) => {
+  void batchController.assignMentors(req, res, next);
+});
+
+/**
  * @route   POST /api/v1/admin/enrollments
  * @desc    Create a new enrollment
  * @access  SuperAdmin, Ops

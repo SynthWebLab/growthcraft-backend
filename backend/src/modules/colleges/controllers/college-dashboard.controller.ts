@@ -342,6 +342,31 @@ export class CollegeDashboardController {
       next(error);
     }
   }
+
+  /**
+   * POST /api/v1/colleges/students/:studentId/ambassador
+   */
+  public async toggleAmbassadorStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const collegeUserId = this.getUserId(req);
+      const studentUserId = req.params.studentId;
+      const { isAmbassador } = req.body;
+
+      if (isAmbassador === undefined || typeof isAmbassador !== 'boolean') {
+        throw new ValidationError('isAmbassador boolean is required');
+      }
+
+      const profile = await collegeDashboardService.toggleAmbassadorStatus(collegeUserId, studentUserId, isAmbassador);
+      SuccessResponseHelper.ok(
+        res,
+        { profile },
+        `Student ambassador status successfully updated to ${isAmbassador}`
+      );
+    } catch (error: any) {
+      logger.error('Toggle ambassador status controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const collegeDashboardController = CollegeDashboardController.getInstance();

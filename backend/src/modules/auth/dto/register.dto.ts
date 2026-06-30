@@ -45,6 +45,7 @@ export interface RegisterResponseDto {
     phone: string;
     role: string;
     isEmailVerified: boolean;
+    isAmbassador?: boolean;
   };
   tokens: {
     accessToken: string;

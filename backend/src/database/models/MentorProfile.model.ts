@@ -12,6 +12,18 @@ export interface IMentorProfile extends Document {
     day: string;
     slots: { startTime: string; endTime: string }[];
   }[];
+  specializations?: string[];
+  linkedinUrl?: string;
+  portfolioUrl?: string;
+  availabilityCalendar?: {
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    isAvailable: boolean;
+  }[];
+  totalHoursMentored?: number;
+  totalPayouts?: number;
+  pendingPayout?: number;
   rating: number;
   totalSessions: number;
   coursesCreated: mongoose.Types.ObjectId[];
@@ -103,6 +115,39 @@ const mentorProfileSchema = new Schema<IMentorProfile>(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+    specializations: {
+      type: [String],
+      default: [],
+    },
+    linkedinUrl: {
+      type: String,
+    },
+    portfolioUrl: {
+      type: String,
+    },
+    availabilityCalendar: {
+      type: [
+        {
+          dayOfWeek: { type: Number, min: 0, max: 6 },
+          startTime: { type: String, required: true },
+          endTime: { type: String, required: true },
+          isAvailable: { type: Boolean, default: true },
+        },
+      ],
+      default: [],
+    },
+    totalHoursMentored: {
+      type: Number,
+      default: 0,
+    },
+    totalPayouts: {
+      type: Number,
+      default: 0,
+    },
+    pendingPayout: {
+      type: Number,
+      default: 0,
     },
   },
   {

@@ -109,9 +109,27 @@ enrollmentSchema.index({ batchId: 1, status: 1 });
 enrollmentSchema.index({ status: 1, enrolledAt: 1 });
 
 // Pre-save hook to set completedAt when status becomes Completed
-enrollmentSchema.pre('save', function (next) {
+enrollmentSchema.pre('save', async function (next) {
   if (this.isModified('status') && this.status === EnrollmentStatus.COMPLETED && !this.completedAt) {
     this.completedAt = new Date();
+  }
+
+  if (this.isModified('status') && this.status === EnrollmentStatus.CONFIRMED) {
+    try {
+      const Referral = mongoose.model('Referral');
+      const referral = await Referral.findOne({
+        referredUserId: this.studentUserId,
+        status: 'joined',
+      });
+      if (referral) {
+        const fee = parseFloat(this.feeCollected ? this.feeCollected.toString() : this.feeQuoted.toString());
+        referral.commissionEarned = parseFloat((fee * 0.10).toFixed(2));
+        referral.status = 'completed';
+        await referral.save();
+      }
+    } catch (err) {
+      console.error('Error calculating referral commission on enrollment save:', err);
+    }
   }
   next();
 });
