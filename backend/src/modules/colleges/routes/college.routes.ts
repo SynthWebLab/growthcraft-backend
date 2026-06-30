@@ -461,8 +461,28 @@ router.post('/events/:eventId/access', (req: Request, res: Response, next: NextF
   void collegeDashboardController.updateEventAccess(req, res, next);
 });
 
-router.post('/students/:studentId/ambassador', (req: Request, res: Response, next: NextFunction) => {
-  void collegeDashboardController.toggleAmbassadorStatus(req, res, next);
+router.get('/attendance', (req: Request, res: Response, next: NextFunction) => {
+  void collegeDashboardController.getAttendance(req, res, next);
+});
+
+router.get('/attendance/summary', (req: Request, res: Response, next: NextFunction) => {
+  void collegeDashboardController.getAttendanceSummary(req, res, next);
+});
+
+router.get('/attendance/export', (req: Request, res: Response, next: NextFunction) => {
+  void collegeDashboardController.exportAttendanceSummary(req, res, next);
+});
+
+router.post('/ambassadors', (req: Request, res: Response, next: NextFunction) => {
+  void collegeDashboardController.activateAmbassadors(req, res, next);
+});
+
+router.get('/ambassadors', (req: Request, res: Response, next: NextFunction) => {
+  void collegeDashboardController.getAmbassadors(req, res, next);
+});
+
+router.delete('/ambassadors/:studentUserId', (req: Request, res: Response, next: NextFunction) => {
+  void collegeDashboardController.deactivateAmbassador(req, res, next);
 });
 
 export default router;

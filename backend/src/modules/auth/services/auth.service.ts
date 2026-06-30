@@ -112,12 +112,30 @@ export class AuthService {
 
       // Check if student was referred
       if (user.role === 'student') {
-        const referral = await Referral.findOne({ referredEmail: user.email.toLowerCase(), status: 'pending' });
+        let referral = await Referral.findOne({ referredEmail: user.email.toLowerCase(), status: 'sent' }).exec();
+        if (!referral && registerDto.referralCode) {
+          const ambassadorProfile = await StudentProfile.findOne({ referralCode: registerDto.referralCode }).exec();
+          if (ambassadorProfile) {
+            referral = new Referral({
+              ambassadorUserId: ambassadorProfile.userId,
+              referralCode: registerDto.referralCode,
+              referredEmail: user.email.toLowerCase(),
+              status: 'sent',
+            });
+          }
+        }
         if (referral) {
           referral.referredUserId = user._id as mongoose.Types.ObjectId;
-          referral.status = 'joined';
+          referral.status = 'registered';
           await referral.save();
-          logger.info(`Referral linked for user ${user.email} from referrer ${referral.referrerId}`);
+          
+          // Increment totalReferrals count on the ambassador profile
+          await StudentProfile.updateOne(
+            { userId: referral.ambassadorUserId },
+            { $inc: { totalReferrals: 1 } }
+          ).exec();
+
+          logger.info(`Referral linked for user ${user.email} from ambassador ${referral.ambassadorUserId}`);
         }
       }
 

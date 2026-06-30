@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
+import { parse } from 'csv-parse/sync';
 import {
   CollegeProfile,
   ICollegeProfile,
@@ -14,6 +15,9 @@ import {
 import { CourseEnrollment } from '@/database/models/CourseEnrollment.model';
 import { EventEnrollment } from '@/database/models/EventEnrollment.model';
 import { Bootcamp } from '@/database/models/Bootcamp.model';
+import { Attendance } from '@/database/models/Attendance.model';
+import { Referral } from '@/database/models/Referral.model';
+import { Batch } from '@/database/models/Batch.model';
 import { StudentProfile, IStudentProfile } from '@/database/models/StudentProfile.model';
 import { SupportTicket, ISupportTicket } from '@/database/models/SupportTicket.model';
 import { User, IUser } from '@/database/models/User.model';
@@ -952,39 +956,21 @@ export class CollegeDashboardService {
    * common header aliases. Returns one record per data row (header is required).
    */
   private parseCsv(csv: string): ImportStudentInput[] {
-    // Strip a leading UTF-8 BOM (common in exported CSVs) without a literal BOM in source.
     const normalized = csv.charCodeAt(0) === 0xfeff ? csv.slice(1) : csv;
-    const lines = normalized
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-    if (lines.length < 2) {
-      throw new ValidationError('CSV must contain a header row and at least one student row');
+    let records: any[];
+    try {
+      records = parse(normalized, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+      });
+    } catch (err: any) {
+      throw new ValidationError(`CSV parsing failed: ${err.message}`);
     }
 
-    const splitRow = (row: string): string[] => {
-      const out: string[] = [];
-      let cur = '';
-      let inQuotes = false;
-      for (let i = 0; i < row.length; i++) {
-        const ch = row[i];
-        if (ch === '"') {
-          if (inQuotes && row[i + 1] === '"') {
-            cur += '"';
-            i++;
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if (ch === ',' && !inQuotes) {
-          out.push(cur);
-          cur = '';
-        } else {
-          cur += ch;
-        }
-      }
-      out.push(cur);
-      return out.map((c) => c.trim());
-    };
+    if (records.length === 0) {
+      throw new ValidationError('CSV must contain a header row and at least one student row');
+    }
 
     const aliasMap: Record<string, keyof ImportStudentInput> = {
       name: 'fullName',
@@ -1015,48 +1001,30 @@ export class CollegeDashboardService {
       year: 'yearOfStudy',
     };
 
-    // Normalize headers: lowercase, collapse internal whitespace, drop surrounding quotes.
-    const headers = splitRow(lines[0]).map((h) =>
-      h
-        .toLowerCase()
-        .replace(/^["']|["']$/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-    );
-    const fields = headers.map((h) => aliasMap[h]);
-
-    // Fail fast with an actionable message if required columns are absent.
-    const missing = (['fullName', 'email', 'phone'] as const).filter(
-      (req) => !fields.includes(req)
-    );
-    if (missing.length > 0) {
-      throw new ValidationError(
-        `CSV is missing required column(s): ${missing.join(', ')}. ` +
-          `Detected columns: [${headers.join(', ')}]. Required headers: fullName, email, phone.`
-      );
-    }
-
-    return lines.slice(1).map((line) => {
-      const cells = splitRow(line);
-      const record: Record<string, unknown> = {};
-      fields.forEach((field, idx) => {
-        if (!field) {
-          return;
-        }
-        const value = cells[idx];
-        if (value === undefined || value === '') {
-          return;
-        }
-        if (field === 'yearOfStudy') {
-          const year = Number(value);
-          if (!Number.isNaN(year)) {
-            record[field] = year;
+    return records.map((record) => {
+      const mappedRecord: Record<string, any> = {};
+      Object.keys(record).forEach((key) => {
+        const normalizedKey = key
+          .toLowerCase()
+          .replace(/^["']|["']$/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        const field = aliasMap[normalizedKey];
+        if (field) {
+          const value = record[key];
+          if (value !== undefined && value !== '') {
+            if (field === 'yearOfStudy') {
+              const year = Number(value);
+              if (!Number.isNaN(year)) {
+                mappedRecord[field] = year;
+              }
+            } else {
+              mappedRecord[field] = value;
+            }
           }
-        } else {
-          record[field] = value;
         }
       });
-      return record as unknown as ImportStudentInput;
+      return mappedRecord as unknown as ImportStudentInput;
     });
   }
 
@@ -1077,6 +1045,8 @@ export class CollegeDashboardService {
       defaultPassword?: string;
     }
   ): Promise<ImportStudentsResult> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
       const college = await this.getProfileOrThrow(userId);
 
@@ -1137,10 +1107,11 @@ export class CollegeDashboardService {
       // 3. Map existing users; determine which rows are NEW to the cohort.
       const existingUsers = await User.find({ email: { $in: valid.map((v) => v.email) } })
         .select('email role')
+        .session(session)
         .lean()
         .exec();
       const userByEmail = new Map<string, { _id: mongoose.Types.ObjectId; role?: string }>(
-        existingUsers.map((u) => [u.email, { _id: u._id, role: u.role }])
+        existingUsers.map((u) => [u.email, { _id: u._id as any, role: u.role }])
       );
       const cohortSet = new Set((college.registeredStudents ?? []).map((id) => String(id)));
 
@@ -1185,23 +1156,29 @@ export class CollegeDashboardService {
         let user = userByEmail.get(row.email);
 
         if (!user) {
-          const createdUser = await User.create({
-            fullName: row.fullName,
-            email: row.email,
-            phone: row.phone,
-            password: input.defaultPassword || crypto.randomBytes(12).toString('base64url'),
-            role: UserRole.STUDENT,
-            isEmailVerified: false,
-          });
-          await StudentProfile.create({
-            userId: createdUser._id,
-            collegeName: college.collegeName,
-            enrollmentNumber: row.enrollmentNumber,
-            degree: row.degree,
-            branch: row.branch,
-            yearOfStudy: row.yearOfStudy,
-          });
-          user = { _id: createdUser._id };
+          const createdUser = await User.create([
+            {
+              fullName: row.fullName,
+              email: row.email,
+              phone: row.phone,
+              password: input.defaultPassword || crypto.randomBytes(12).toString('base64url'),
+              role: UserRole.STUDENT,
+              isEmailVerified: false,
+            }
+          ], { session });
+
+          await StudentProfile.create([
+            {
+              userId: createdUser[0]._id,
+              collegeName: college.collegeName,
+              enrollmentNumber: row.enrollmentNumber,
+              degree: row.degree,
+              branch: row.branch,
+              yearOfStudy: row.yearOfStudy,
+            }
+          ], { session });
+
+          user = { _id: createdUser[0]._id };
           userByEmail.set(row.email, { _id: user._id, role: UserRole.STUDENT });
           created++;
         } else {
@@ -1209,7 +1186,7 @@ export class CollegeDashboardService {
           await StudentProfile.updateOne(
             { userId: user._id },
             { $setOnInsert: { userId: user._id }, $set: { collegeName: college.collegeName } },
-            { upsert: true, runValidators: true }
+            { upsert: true, runValidators: true, session }
           ).exec();
           if (cohortSet.has(String(user._id))) {
             alreadyInCohort++;
@@ -1231,15 +1208,18 @@ export class CollegeDashboardService {
           {
             $addToSet: { registeredStudents: { $each: newCohortIds } },
             $set: { totalStudents: cohortSet.size },
-          }
+          },
+          { session }
         ).exec();
       }
 
       // 7. Optionally enroll all imported students into the supplied events.
       let eventsEnrolled = 0;
       if (input.eventIds && input.eventIds.length > 0) {
-        eventsEnrolled = await this.enrollCohortInEvents(importable, input.eventIds, userByEmail);
+        eventsEnrolled = await this.enrollCohortInEvents(importable, input.eventIds, userByEmail, session);
       }
+
+      await session.commitTransaction();
 
       const refreshed = await this.getProfileOrThrow(userId);
       return {
@@ -1251,8 +1231,11 @@ export class CollegeDashboardService {
         cohort: this.computeCohortStatus(refreshed),
       };
     } catch (error: any) {
+      await session.abortTransaction();
       logger.error('Import college students error:', error);
       throw error;
+    } finally {
+      session.endSession();
     }
   }
 
@@ -1263,7 +1246,8 @@ export class CollegeDashboardService {
   private async enrollCohortInEvents(
     students: ImportStudentInput[],
     eventIds: string[],
-    userByEmail: Map<string, { _id: mongoose.Types.ObjectId }>
+    userByEmail: Map<string, { _id: mongoose.Types.ObjectId }>,
+    session?: mongoose.ClientSession
   ): Promise<number> {
     const validEventIds = eventIds.filter((id) => mongoose.isValidObjectId(id));
     if (validEventIds.length === 0) {
@@ -1272,6 +1256,7 @@ export class CollegeDashboardService {
 
     const events = await Bootcamp.find({ _id: { $in: validEventIds } })
       .select('title type')
+      .session(session || null)
       .lean()
       .exec();
 
@@ -1280,16 +1265,18 @@ export class CollegeDashboardService {
       for (const row of students) {
         const user = userByEmail.get(row.email);
         try {
-          await EventEnrollment.create({
-            userId: user?._id,
-            eventId: event._id,
-            eventType: event.type,
-            fullName: row.fullName,
-            email: row.email,
-            phone: row.phone,
-            title: event.title,
-            status: 'confirmed',
-          });
+          await EventEnrollment.create([
+            {
+              userId: user?._id,
+              eventId: event._id,
+              eventType: event.type,
+              fullName: row.fullName,
+              email: row.email,
+              phone: row.phone,
+              title: event.title,
+              status: 'confirmed',
+            }
+          ], { session });
           enrolled++;
         } catch {
           // Duplicate enrollment (unique index) or validation issue — skip silently.
@@ -1448,13 +1435,268 @@ export class CollegeDashboardService {
   }
 
   /**
-   * Toggle student's ambassador status.
-   * Asserts the student belongs to the college's campus.
+   * GET /api/v1/colleges/attendance
+   * Returns attendance data for students belonging to this college.
    */
-  public async toggleAmbassadorStatus(
+  public async getAttendance(
     collegeUserId: string,
-    studentUserId: string,
-    isAmbassador: boolean
+    filters: {
+      batchId?: string;
+      studentId?: string;
+      startDate?: string;
+      endDate?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ records: any[]; total: number; page: number; limit: number }> {
+    try {
+      const college = await CollegeProfile.findOne({ userId: collegeUserId }).exec();
+      if (!college) {
+        throw new NotFoundError('College profile not found');
+      }
+
+      const registeredIds = college.registeredStudents || [];
+      if (registeredIds.length === 0) {
+        return { records: [], total: 0, page: filters.page || 1, limit: filters.limit || 10 };
+      }
+
+      const query: any = { studentUserId: { $in: registeredIds } };
+      if (filters.batchId && mongoose.isValidObjectId(filters.batchId)) {
+        query.batchId = new mongoose.Types.ObjectId(filters.batchId);
+      }
+      if (filters.studentId && mongoose.isValidObjectId(filters.studentId)) {
+        query.studentUserId = new mongoose.Types.ObjectId(filters.studentId);
+      }
+      if (filters.startDate || filters.endDate) {
+        query.attendanceDate = {};
+        if (filters.startDate) {
+          query.attendanceDate.$gte = new Date(filters.startDate);
+        }
+        if (filters.endDate) {
+          query.attendanceDate.$lte = new Date(filters.endDate);
+        }
+      }
+
+      const page = filters.page || 1;
+      const limit = filters.limit || 10;
+      const skip = (page - 1) * limit;
+
+      const records = await Attendance.find(query)
+        .populate({ path: 'studentUserId', select: 'fullName email' })
+        .populate({
+          path: 'batchId',
+          select: 'code courseId trainingProgramId bootcampId',
+          populate: [
+            { path: 'courseId', select: 'title' },
+            { path: 'trainingProgramId', select: 'title' },
+            { path: 'bootcampId', select: 'title' },
+          ],
+        })
+        .sort({ attendanceDate: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec();
+
+      const total = await Attendance.countDocuments(query);
+
+      const mapped = records.map((rec) => {
+        const student: any = rec.studentUserId;
+        const batch: any = rec.batchId;
+        let batchTitle = 'Batch ' + (batch?.code || '');
+        if (batch) {
+          const program: any = batch.courseId || batch.trainingProgramId || batch.bootcampId;
+          if (program?.title) {
+            batchTitle = `${program.title} (${batch.code})`;
+          }
+        }
+        return {
+          studentName: student?.fullName || 'Unknown Student',
+          batchTitle,
+          attendanceDate: rec.attendanceDate,
+          status: rec.status,
+          remarks: rec.remarks || '',
+        };
+      });
+
+      return { records: mapped, total, page, limit };
+    } catch (error: any) {
+      logger.error('Get college attendance error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * GET /api/v1/colleges/attendance/summary
+   * Aggregated view: per-student attendance percentage per batch
+   */
+  public async getAttendanceSummary(collegeUserId: string): Promise<any[]> {
+    try {
+      const college = await CollegeProfile.findOne({ userId: collegeUserId }).exec();
+      if (!college) {
+        throw new NotFoundError('College profile not found');
+      }
+
+      const registeredIds = college.registeredStudents || [];
+      if (registeredIds.length === 0) {
+        return [];
+      }
+
+      const summaryList = await Attendance.aggregate([
+        { $match: { studentUserId: { $in: registeredIds } } },
+        {
+          $group: {
+            _id: { studentUserId: '$studentUserId', batchId: '$batchId' },
+            totalSessions: { $sum: 1 },
+            present: { $sum: { $cond: [{ $eq: ['$status', 'Present'] }, 1, 0] } },
+            absent: { $sum: { $cond: [{ $eq: ['$status', 'Absent'] }, 1, 0] } },
+            late: { $sum: { $cond: [{ $eq: ['$status', 'Late'] }, 1, 0] } },
+          },
+        },
+      ]);
+
+      const studentIds = summaryList.map((s) => s._id.studentUserId);
+      const students = await User.find({ _id: { $in: studentIds } }).select('fullName email').lean();
+      const studentMap = new Map(students.map((s) => [String(s._id), s]));
+
+      const batchIds = summaryList.map((s) => s._id.batchId);
+      const batches = await Batch.find({ _id: { $in: batchIds } })
+        .select('code courseId trainingProgramId bootcampId')
+        .populate({ path: 'courseId', select: 'title' })
+        .populate({ path: 'trainingProgramId', select: 'title' })
+        .populate({ path: 'bootcampId', select: 'title' })
+        .lean()
+        .exec();
+      const batchMap = new Map(batches.map((b) => [String(b._id), b]));
+
+      return summaryList.map((s) => {
+        const student = studentMap.get(String(s._id.studentUserId));
+        const batch = batchMap.get(String(s._id.batchId));
+        let batchTitle = 'Batch ' + (batch?.code || '');
+        if (batch) {
+          const program: any = batch.courseId || batch.trainingProgramId || batch.bootcampId;
+          if (program?.title) {
+            batchTitle = `${program.title} (${batch.code})`;
+          }
+        }
+        const attended = s.present + s.late;
+        const attendancePercent = s.totalSessions > 0 ? Math.round((attended / s.totalSessions) * 100) : 0;
+        return {
+          studentName: student?.fullName || 'Unknown Student',
+          batchTitle,
+          totalSessions: s.totalSessions,
+          present: s.present,
+          absent: s.absent,
+          late: s.late,
+          attendancePercent,
+        };
+      });
+    } catch (error: any) {
+      logger.error('Get college attendance summary error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * POST /api/v1/colleges/ambassadors
+   * Promotes student(s) to ambassador status.
+   */
+  public async activateAmbassadors(
+    collegeUserId: string,
+    studentUserIds: string[]
+  ): Promise<{ activated: number }> {
+    try {
+      const college = await CollegeProfile.findOne({ userId: collegeUserId }).exec();
+      if (!college) {
+        throw new NotFoundError('College profile not found');
+      }
+
+      const registeredStrings = new Set((college.registeredStudents || []).map((id) => String(id)));
+      const belongsToCollege = studentUserIds.filter((id) => registeredStrings.has(id));
+
+      if (belongsToCollege.length === 0) {
+        return { activated: 0 };
+      }
+
+      let activated = 0;
+      for (const studentId of belongsToCollege) {
+        const profile = await StudentProfile.findOne({ userId: studentId }).exec();
+        if (profile) {
+          if (!profile.isAmbassador) {
+            profile.isAmbassador = true;
+            profile.ambassadorActivatedBy = 'college';
+            profile.ambassadorActivatedAt = new Date();
+            if (!profile.referralCode) {
+              let isUnique = false;
+              let code = '';
+              while (!isUnique) {
+                code = 'GC-' + crypto.randomBytes(3).toString('hex').toUpperCase();
+                const existing = await StudentProfile.findOne({ referralCode: code }).exec();
+                if (!existing) {
+                  isUnique = true;
+                }
+              }
+              profile.referralCode = code;
+            }
+            await profile.save();
+            activated++;
+          }
+        }
+      }
+
+      return { activated };
+    } catch (error: any) {
+      logger.error('Activate college ambassadors error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * GET /api/v1/colleges/ambassadors
+   * Lists the ambassadors registered under this college.
+   */
+  public async getAmbassadors(collegeUserId: string): Promise<any[]> {
+    try {
+      const college = await CollegeProfile.findOne({ userId: collegeUserId }).exec();
+      if (!college) {
+        throw new NotFoundError('College profile not found');
+      }
+
+      const profiles = await StudentProfile.find({
+        userId: { $in: college.registeredStudents || [] },
+        isAmbassador: true,
+      }).exec();
+
+      const userIds = profiles.map((p) => p.userId);
+      const users = await User.find({ _id: { $in: userIds } }).select('fullName email').lean();
+      const userMap = new Map(users.map((u) => [String(u._id), u]));
+
+      return profiles.map((p) => {
+        const user = userMap.get(String(p.userId));
+        return {
+          studentUserId: p.userId,
+          name: user?.fullName || 'Unknown Student',
+          email: user?.email || '',
+          referralCode: p.referralCode,
+          totalReferrals: p.totalReferrals || 0,
+          totalConversions: p.totalConversions || 0,
+          referralEarnings: p.referralEarnings || 0,
+          pendingReferralPayout: p.pendingReferralPayout || 0,
+          activatedAt: p.ambassadorActivatedAt,
+        };
+      });
+    } catch (error: any) {
+      logger.error('Get college ambassadors error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * DELETE /api/v1/colleges/ambassadors/:studentUserId
+   * Deactivates student's ambassador status.
+   */
+  public async deactivateAmbassador(
+    collegeUserId: string,
+    studentUserId: string
   ): Promise<IStudentProfile> {
     try {
       const college = await CollegeProfile.findOne({ userId: collegeUserId }).exec();
@@ -1462,24 +1704,24 @@ export class CollegeDashboardService {
         throw new NotFoundError('College profile not found');
       }
 
-      const studentProfile = await StudentProfile.findOne({ userId: studentUserId }).exec();
-      if (!studentProfile) {
+      const profile = await StudentProfile.findOne({ userId: studentUserId }).exec();
+      if (!profile) {
         throw new NotFoundError('Student profile not found');
       }
 
-      if (studentProfile.collegeName !== college.collegeName) {
+      if (profile.collegeName !== college.collegeName) {
         throw new ValidationError('Student does not belong to your college');
       }
 
-      studentProfile.isAmbassador = isAmbassador;
-      await studentProfile.save();
+      profile.isAmbassador = false;
+      await profile.save();
 
       logger.info(
-        `College ${college.collegeName} updated student ${studentUserId} isAmbassador status to ${isAmbassador}`
+        `College ${college.collegeName} deactivated student ${studentUserId} ambassador status`
       );
-      return studentProfile;
+      return profile;
     } catch (error: any) {
-      logger.error('Toggle ambassador status error:', error);
+      logger.error('Deactivate college ambassador error:', error);
       throw error;
     }
   }

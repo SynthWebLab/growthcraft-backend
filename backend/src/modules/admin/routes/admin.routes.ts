@@ -5,6 +5,7 @@ import { UserRole } from '@/common/constants/user.constants';
 import { batchController } from '../controllers/batch.controller';
 import { enrollmentController } from '../controllers/enrollment.controller';
 import { userController } from '../controllers/user.controller';
+import { ambassadorController } from '../controllers/ambassador.controller';
 import metricsJobRoutes from './metrics-job.routes';
 
 const router = Router();
@@ -98,5 +99,32 @@ router.get('/users/:id', (req: Request, res: Response, next: NextFunction) => {
  * Job management routes
  */
 router.use('/jobs', metricsJobRoutes);
+
+/**
+ * @route   GET /api/v1/admin/ambassadors
+ * @desc    List all ambassadors with statistics
+ * @access  SuperAdmin, Ops
+ */
+router.get('/ambassadors', (req: Request, res: Response, next: NextFunction) => {
+  void ambassadorController.listAmbassadors(req, res, next);
+});
+
+/**
+ * @route   PATCH /api/v1/admin/ambassadors/:userId/payout
+ * @desc    Record payout for ambassador
+ * @access  SuperAdmin, Ops
+ */
+router.patch('/ambassadors/:userId/payout', (req: Request, res: Response, next: NextFunction) => {
+  void ambassadorController.confirmPayout(req, res, next);
+});
+
+/**
+ * @route   PATCH /api/v1/admin/ambassadors/:userId/activate
+ * @desc    Admin promotes/demotes student ambassador status
+ * @access  SuperAdmin, Ops
+ */
+router.patch('/ambassadors/:userId/activate', (req: Request, res: Response, next: NextFunction) => {
+  void ambassadorController.toggleActivation(req, res, next);
+});
 
 export default router;
