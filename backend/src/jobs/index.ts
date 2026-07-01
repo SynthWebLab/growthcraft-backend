@@ -1,4 +1,5 @@
 import { scheduleNightlyJob, shutdownJobQueue, triggerManualJob } from './enrollment-metrics.job';
+import { shutdownEmailQueue } from './email-delivery.job';
 import logger from '@/common/utils/logger.util';
 
 /**
@@ -26,6 +27,7 @@ export async function shutdownJobs(): Promise<void> {
   try {
     logger.info('Shutting down all jobs...');
     await shutdownJobQueue();
+    await shutdownEmailQueue();
     logger.info('All jobs shut down successfully');
   } catch (error) {
     logger.error('Error shutting down jobs:', error);

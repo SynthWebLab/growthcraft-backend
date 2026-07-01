@@ -14,6 +14,8 @@ import { Batch } from '@/database/models/Batch.model';
 import { Referral } from '@/database/models/Referral.model';
 import { EventType } from '@/database/models/Bootcamp.model';
 import { NotFoundError } from '@/common/errors/NotFoundError';
+import mongoose from 'mongoose';
+import { queueInviteEmail } from '@/jobs/email-delivery.job';
 import { ConflictError } from '@/common/errors/ConflictError';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { logger } from '@/common/utils/logger.util';
@@ -547,6 +549,10 @@ export class StudentDashboardService {
         throw new ValidationError('User is not an active ambassador');
       }
 
+      // Fetch inviter's user name
+      const ambassadorUser = await User.findById(profile.userId).select('fullName').lean().exec();
+      const senderName = ambassadorUser ? ambassadorUser.fullName : 'Your friend';
+
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       const invites: any[] = [];
 
@@ -556,16 +562,31 @@ export class StudentDashboardService {
           continue;
         }
 
+        // Check if the user already has an account under any role in GrowthCraft
+        const userExists = await User.findOne({ email: normalizedEmail }).select('_id').lean().exec();
+        if (userExists) {
+          throw new ValidationError(`The email "${normalizedEmail}" is already registered on GrowthCraft.`);
+        }
+
         // Check if already invited by this ambassador
         let referral = await Referral.findOne({
           ambassadorUserId: studentUserId,
           referredEmail: normalizedEmail,
         }).exec();
 
+        let isNewReferral = false;
         if (!referral) {
           let inviteLink = `${frontendUrl}/register/student?ref=${profile.referralCode}`;
           if (payload.programId) {
             inviteLink += `&program=${payload.programId}`;
+          }
+
+          let enrollmentType: 'course' | 'event' | 'training-program' | null = null;
+          if (payload.programType) {
+            const pType = payload.programType.toLowerCase();
+            if (pType === 'course') enrollmentType = 'course';
+            else if (pType === 'trainingprogram' || pType === 'training-program') enrollmentType = 'training-program';
+            else if (pType === 'bootcamp' || pType === 'workshop' || pType === 'hackathon' || pType === 'event') enrollmentType = 'event';
           }
 
           referral = await Referral.create({
@@ -574,9 +595,40 @@ export class StudentDashboardService {
             referredEmail: normalizedEmail,
             status: 'sent',
             inviteLink,
-            enrollmentType: payload.programType as any || null,
+            enrollmentType,
+          });
+          isNewReferral = true;
+        }
+
+        if (isNewReferral) {
+          // Resolve program name if recommended
+          let programName: string | undefined;
+          if (payload.programId) {
+            try {
+              if (payload.programType === 'Course') {
+                const c = await mongoose.model('Course').findById(payload.programId).select('title').lean().exec() as any;
+                if (c) programName = c.title;
+              } else if (payload.programType === 'TrainingProgram') {
+                const p = await mongoose.model('TrainingProgram').findById(payload.programId).select('title').lean().exec() as any;
+                if (p) programName = p.title;
+              } else if (payload.programType === 'Bootcamp' || payload.programType === 'Workshop' || payload.programType === 'Hackathon') {
+                const b = await mongoose.model('Bootcamp').findById(payload.programId).select('title').lean().exec() as any;
+                if (b) programName = b.title;
+              }
+            } catch (err) {
+              logger.warn(`Could not resolve recommended program name: ${err}`);
+            }
+          }
+
+          // Enqueue invite email
+          void queueInviteEmail({
+            to: normalizedEmail,
+            inviteLink: referral.inviteLink || '',
+            senderName,
+            programName,
           });
         }
+
         invites.push(referral);
       }
 
