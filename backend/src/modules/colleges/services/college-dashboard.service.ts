@@ -371,11 +371,11 @@ export class CollegeDashboardService {
         .slice(0, 5)
         .map((r) => ({ name: r.name, course: '', progress: r.avgProgress }));
 
-      const cohort = this.computeCohortStatus(college);
+      const cohort = await this.computeCohortStatus(college);
 
       return {
         kpis: {
-          totalStudentsEnrolled: cohort.used,
+          totalStudentsEnrolled: userIds.length,
           activeCourses: activeCourseIds.length + activeEventIds.length,
           partnershipTier: college.partnershipTier,
           cohortLimit: cohort.limit,
@@ -397,11 +397,27 @@ export class CollegeDashboardService {
 
   /**
    * Compute cohort usage vs the tier cap. `used` is the authoritative count of
-   * students explicitly registered to the college (registeredStudents).
+   * active student enrollments (courses + events) in the college.
    */
-  private computeCohortStatus(college: ICollegeProfile): CohortStatus {
+  private async computeCohortStatus(college: ICollegeProfile, session?: mongoose.ClientSession): Promise<CohortStatus> {
     const limit = COHORT_LIMITS[college.partnershipTier];
-    const used = college.registeredStudents?.length ?? 0;
+    const userIds = await this.resolveStudentUserIds(college);
+    
+    let used = 0;
+    if (userIds.length > 0) {
+      const [courseEnrollmentsCount, eventEnrollmentsCount] = await Promise.all([
+        CourseEnrollment.countDocuments({
+          userId: { $in: userIds },
+          status: { $in: ACTIVE_ENROLLMENT_STATUSES },
+        }).session(session || null as any).exec(),
+        EventEnrollment.countDocuments({
+          userId: { $in: userIds },
+          status: { $in: ['pending', 'confirmed'] },
+        }).session(session || null as any).exec(),
+      ]);
+      used = courseEnrollmentsCount + eventEnrollmentsCount;
+    }
+
     return {
       subscribed: college.partnershipActive,
       tier: college.partnershipTier,
@@ -417,7 +433,7 @@ export class CollegeDashboardService {
    */
   public async getCohortStatus(userId: string): Promise<CohortStatus> {
     const college = await this.getProfileOrThrow(userId);
-    return this.computeCohortStatus(college);
+    return await this.computeCohortStatus(college);
   }
 
   /**
@@ -694,7 +710,7 @@ export class CollegeDashboardService {
         throw new NotFoundError('College profile not found');
       }
       logger.info(`College ${userId} subscription activated on ${tier}`);
-      return this.computeCohortStatus(profile);
+      return await this.computeCohortStatus(profile);
     } catch (error: any) {
       logger.error('Activate college subscription error:', error);
       throw error;
@@ -1131,8 +1147,24 @@ export class CollegeDashboardService {
 
       // 4. Enforce the tier cohort cap BEFORE any writes.
       const limit = COHORT_LIMITS[college.partnershipTier];
-      const used = cohortSet.size;
-      if (limit !== null && used + newToCohort.length > limit) {
+      const userIds = await this.resolveStudentUserIds(college);
+      let used = 0;
+      if (userIds.length > 0) {
+        const [courseEnrollmentsCount, eventEnrollmentsCount] = await Promise.all([
+          CourseEnrollment.countDocuments({
+            userId: { $in: userIds },
+            status: { $in: ACTIVE_ENROLLMENT_STATUSES },
+          }).session(session).exec(),
+          EventEnrollment.countDocuments({
+            userId: { $in: userIds },
+            status: { $in: ['pending', 'confirmed'] },
+          }).session(session).exec(),
+        ]);
+        used = courseEnrollmentsCount + eventEnrollmentsCount;
+      }
+      
+      const newEnrollmentsCount = (input.eventIds && input.eventIds.length > 0) ? (newToCohort.length * input.eventIds.length) : 0;
+      if (limit !== null && used + newEnrollmentsCount > limit) {
         const currentIndex = PARTNERSHIP_TIERS.indexOf(college.partnershipTier);
         const nextTier =
           currentIndex < PARTNERSHIP_TIERS.length - 1 ? PARTNERSHIP_TIERS[currentIndex + 1] : null;
@@ -1140,7 +1172,7 @@ export class CollegeDashboardService {
           tier: college.partnershipTier,
           limit,
           used,
-          attempted: newToCohort.length,
+          attempted: newEnrollmentsCount,
           remaining: Math.max(0, limit - used),
           nextTier,
         });
@@ -1228,7 +1260,7 @@ export class CollegeDashboardService {
         alreadyInCohort,
         eventsEnrolled,
         skipped,
-        cohort: this.computeCohortStatus(refreshed),
+        cohort: await this.computeCohortStatus(refreshed, session),
       };
     } catch (error: any) {
       await session.abortTransaction();
