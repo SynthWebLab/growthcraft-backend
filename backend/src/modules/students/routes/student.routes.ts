@@ -380,6 +380,9 @@ router.post('/mentor-sessions', (req: Request, res: Response, next: NextFunction
 router.get('/mentor-sessions', (req: Request, res: Response, next: NextFunction) => {
   void studentDashboardController.getMentorSessions(req, res, next);
 });
+router.post('/ambassador/activate', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.activateAmbassador(req, res, next);
+});
 
 router.get('/ambassador/dashboard', (req: Request, res: Response, next: NextFunction) => {
   void studentDashboardController.getAmbassadorDashboard(req, res, next);
@@ -389,8 +392,12 @@ router.get('/ambassador/referrals', (req: Request, res: Response, next: NextFunc
   void studentDashboardController.getAmbassadorReferrals(req, res, next);
 });
 
-router.post('/ambassador/referrals', (req: Request, res: Response, next: NextFunction) => {
-  void studentDashboardController.createReferral(req, res, next);
+router.post('/ambassador/invite', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.inviteFriends(req, res, next);
+});
+
+router.get('/ambassador/earnings', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.getEarnings(req, res, next);
 });
 
 export default router;

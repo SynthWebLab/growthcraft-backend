@@ -117,15 +117,48 @@ enrollmentSchema.pre('save', async function (next) {
   if (this.isModified('status') && this.status === EnrollmentStatus.CONFIRMED) {
     try {
       const Referral = mongoose.model('Referral');
+      const StudentProfile = mongoose.model('StudentProfile');
+      const Batch = mongoose.model('Batch');
+
+      // Find the referral document for this student with status 'registered' or 'sent'
       const referral = await Referral.findOne({
         referredUserId: this.studentUserId,
-        status: 'joined',
+        status: { $in: ['registered', 'sent'] },
       });
+
       if (referral) {
+        // Find batch to determine enrollment type
+        const batch = await Batch.findById(this.batchId).lean().exec() as any;
+        let enrollmentType: 'course' | 'event' | 'training-program' | null = null;
+        if (batch) {
+          if (batch.courseId) enrollmentType = 'course';
+          else if (batch.bootcampId) enrollmentType = 'event';
+          else if (batch.trainingProgramId) enrollmentType = 'training-program';
+        }
+
         const fee = parseFloat(this.feeCollected ? this.feeCollected.toString() : this.feeQuoted.toString());
-        referral.commissionEarned = parseFloat((fee * 0.10).toFixed(2));
-        referral.status = 'completed';
+        // Default commission rate config is 5% initially
+        const commissionAmount = parseFloat((fee * 0.05).toFixed(2));
+
+        referral.status = 'enrolled';
+        referral.enrollmentId = this._id;
+        referral.enrollmentType = enrollmentType;
+        referral.commissionAmount = commissionAmount;
         await referral.save();
+
+        // Update the referring ambassador's profile metrics
+        await StudentProfile.updateOne(
+          { userId: referral.ambassadorUserId },
+          {
+            $inc: {
+              totalConversions: 1,
+              referralEarnings: commissionAmount,
+              pendingReferralPayout: commissionAmount,
+            },
+          }
+        ).exec();
+
+        console.log(`Referral commission of INR ${commissionAmount} successfully applied for ambassador ${referral.ambassadorUserId}`);
       }
     } catch (err) {
       console.error('Error calculating referral commission on enrollment save:', err);

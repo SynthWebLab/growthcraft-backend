@@ -1870,6 +1870,16 @@
         }
       }
     },
+    "/api/v1/students/ambassador/activate": {
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/api/v1/students/ambassador/dashboard": {
       "get": {
         "description": "",
@@ -1883,12 +1893,37 @@
     "/api/v1/students/ambassador/referrals": {
       "get": {
         "description": "",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "401": {
             "description": "Unauthorized"
           }
         }
-      },
+      }
+    },
+    "/api/v1/students/ambassador/invite": {
       "post": {
         "description": "",
         "responses": {
@@ -1902,18 +1937,28 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "referredEmail": {
+                  "emails": {
                     "example": "any"
                   },
-                  "referredItemType": {
+                  "programType": {
                     "example": "any"
                   },
-                  "referredItemId": {
+                  "programId": {
                     "example": "any"
                   }
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/students/ambassador/earnings": {
+      "get": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
           }
         }
       }
@@ -2239,19 +2284,86 @@
         }
       }
     },
-    "/api/v1/colleges/students/{studentId}/ambassador": {
-      "post": {
+    "/api/v1/colleges/attendance": {
+      "get": {
         "description": "",
         "parameters": [
           {
+            "name": "batchId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "studentId",
-            "in": "path",
-            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
             "schema": {
               "type": "string"
             }
           }
         ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/colleges/attendance/summary": {
+      "get": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/colleges/attendance/export": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/colleges/ambassadors": {
+      "post": {
+        "description": "",
         "responses": {
           "401": {
             "description": "Unauthorized"
@@ -2263,12 +2375,40 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "isAmbassador": {
+                  "studentUserIds": {
                     "example": "any"
                   }
                 }
               }
             }
+          }
+        }
+      },
+      "get": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/colleges/ambassadors/{studentUserId}": {
+      "delete": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "studentUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
           }
         }
       }
@@ -2405,6 +2545,86 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ambassadors": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ambassadors/{userId}/payout": {
+      "patch": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ambassadors/{userId}/activate": {
+      "patch": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isAmbassador": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
           }
         }
       }

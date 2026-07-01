@@ -14,7 +14,10 @@ import { Batch } from '@/database/models/Batch.model';
 import { Referral } from '@/database/models/Referral.model';
 import { EventType } from '@/database/models/Bootcamp.model';
 import { NotFoundError } from '@/common/errors/NotFoundError';
+import mongoose from 'mongoose';
+import { queueInviteEmail } from '@/jobs/email-delivery.job';
 import { ConflictError } from '@/common/errors/ConflictError';
+import { ValidationError } from '@/common/errors/ValidationError';
 import { logger } from '@/common/utils/logger.util';
 
 export type StudentCertification = IStudentProfile['certifications'][number];
@@ -71,7 +74,7 @@ const ACTIVE_STATUSES = ['pending', 'confirmed'];
 export class StudentDashboardService {
   private static instance: StudentDashboardService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): StudentDashboardService {
     if (!StudentDashboardService.instance) {
@@ -420,94 +423,261 @@ export class StudentDashboardService {
   }
 
   /**
-   * Get ambassador dashboard summary statistics.
+   * Promote the student to ambassador status (self-activation).
+   */
+  public async activateAmbassador(studentUserId: string): Promise<IStudentProfile> {
+    try {
+      const profile = await StudentProfile.findOne({ userId: studentUserId }).exec();
+      if (!profile) {
+        throw new NotFoundError('Student profile not found');
+      }
+
+      if (profile.isAmbassador) {
+        return profile;
+      }
+
+      profile.isAmbassador = true;
+      profile.ambassadorActivatedBy = 'self';
+      profile.ambassadorActivatedAt = new Date();
+
+      if (!profile.referralCode) {
+        const crypto = await import('crypto');
+        let isUnique = false;
+        let code = '';
+        while (!isUnique) {
+          code = 'GC-' + crypto.randomBytes(3).toString('hex').toUpperCase();
+          const existing = await StudentProfile.findOne({ referralCode: code }).exec();
+          if (!existing) {
+            isUnique = true;
+          }
+        }
+        profile.referralCode = code;
+      }
+
+      await profile.save();
+      logger.info(`Student ${studentUserId} self-activated ambassador mode with code ${profile.referralCode}`);
+      return profile;
+    } catch (error: any) {
+      logger.error('Activate student ambassador error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get student ambassador dashboard stats and recent referrals.
    */
   public async getAmbassadorDashboard(studentUserId: string): Promise<any> {
     try {
-      const studentProfile = await StudentProfile.findOne({ userId: studentUserId });
-      if (!studentProfile || !studentProfile.isAmbassador) {
-        throw new Error('Ambassador profile not found or user is not an ambassador');
+      const profile = await StudentProfile.findOne({ userId: studentUserId }).exec();
+      if (!profile || !profile.isAmbassador) {
+        throw new ValidationError('User is not an active ambassador');
       }
 
-      const referrals = await Referral.find({ referrerId: studentUserId }).exec();
+      const referrals = await Referral.find({ ambassadorUserId: studentUserId }).exec();
+      const recentReferrals = await Referral.find({ ambassadorUserId: studentUserId })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .exec();
+
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const referralLink = `${frontendUrl}/register/student?ref=${profile.referralCode}`;
 
       const totalReferrals = referrals.length;
-      const joinedReferrals = referrals.filter(r => r.status === 'joined' || r.status === 'completed').length;
-      const totalCommission = referrals.reduce((sum, r) => sum + r.commissionEarned, 0);
-      const unpaidCommission = referrals.filter(r => r.payoutStatus === 'unpaid').reduce((sum, r) => sum + r.commissionEarned, 0);
-      const paidCommission = referrals.filter(r => r.payoutStatus === 'paid').reduce((sum, r) => sum + r.commissionEarned, 0);
+      const totalConversions = referrals.filter((r) => r.status === 'enrolled').length;
 
       return {
+        referralCode: profile.referralCode,
+        referralLink,
         totalReferrals,
-        joinedReferrals,
-        totalCommission,
-        unpaidCommission,
-        paidCommission,
-        commissionRate: 10, // 10% default
+        totalConversions,
+        pendingPayout: profile.pendingReferralPayout || 0,
+        recentReferrals,
       };
     } catch (error: any) {
-      logger.error('Get ambassador dashboard error:', error);
+      logger.error('Get student ambassador dashboard error:', error);
       throw error;
     }
   }
 
   /**
-   * Get list of referrals made by this ambassador.
+   * Get paginated referral ledger for the student ambassador.
    */
-  public async getAmbassadorReferrals(studentUserId: string): Promise<any[]> {
-    try {
-      const studentProfile = await StudentProfile.findOne({ userId: studentUserId });
-      if (!studentProfile || !studentProfile.isAmbassador) {
-        throw new Error('Ambassador profile not found or user is not an ambassador');
-      }
-
-      return await Referral.find({ referrerId: studentUserId })
-        .sort({ createdAt: -1 })
-        .exec();
-    } catch (error: any) {
-      logger.error('Get ambassador referrals error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Track/create a new referral link generation or invite.
-   */
-  public async createReferral(
+  public async getAmbassadorReferrals(
     studentUserId: string,
-    data: {
-      referredEmail: string;
-      referredItemType: 'Course' | 'TrainingProgram' | 'Bootcamp';
-      referredItemId: string;
-    }
-  ): Promise<any> {
+    filters?: { status?: string; page?: number; limit?: number }
+  ): Promise<{ referrals: any[]; total: number; page: number; limit: number }> {
     try {
-      const studentProfile = await StudentProfile.findOne({ userId: studentUserId });
-      if (!studentProfile || !studentProfile.isAmbassador) {
-        throw new Error('Ambassador profile not found or user is not an ambassador');
+      const profile = await StudentProfile.findOne({ userId: studentUserId }).exec();
+      if (!profile || !profile.isAmbassador) {
+        throw new ValidationError('User is not an active ambassador');
       }
 
-      const existing = await Referral.findOne({
-        referrerId: studentUserId,
-        referredEmail: data.referredEmail.toLowerCase(),
-        referredItemId: data.referredItemId,
-      });
-
-      if (existing) {
-        return existing;
+      const query: any = { ambassadorUserId: studentUserId };
+      if (filters?.status) {
+        query.status = filters.status;
       }
 
-      return await Referral.create({
-        referrerId: studentUserId,
-        referredEmail: data.referredEmail.toLowerCase(),
-        referredItemType: data.referredItemType,
-        referredItemId: data.referredItemId,
-        status: 'pending',
-        commissionEarned: 0,
-        payoutStatus: 'unpaid',
-      });
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 10;
+      const skip = (page - 1) * limit;
+
+      const referrals = await Referral.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec();
+
+      const total = await Referral.countDocuments(query);
+
+      return { referrals, total, page, limit };
     } catch (error: any) {
-      logger.error('Create referral error:', error);
+      logger.error('Get student ambassador referrals error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create referrals (invite friends) and return links.
+   */
+  public async inviteFriends(
+    studentUserId: string,
+    payload: { emails: string[]; programType?: string; programId?: string }
+  ): Promise<{ referrals: any[] }> {
+    try {
+      const profile = await StudentProfile.findOne({ userId: studentUserId }).exec();
+      if (!profile || !profile.isAmbassador) {
+        throw new ValidationError('User is not an active ambassador');
+      }
+
+      // Fetch inviter's user name
+      const ambassadorUser = await User.findById(profile.userId).select('fullName').lean().exec();
+      const senderName = ambassadorUser ? ambassadorUser.fullName : 'Your friend';
+
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const invites: any[] = [];
+
+      for (const email of payload.emails) {
+        const normalizedEmail = email.toLowerCase().trim();
+        if (!normalizedEmail) {
+          continue;
+        }
+
+        // Check if the user already has an account under any role in GrowthCraft
+        const userExists = await User.findOne({ email: normalizedEmail }).select('_id').lean().exec();
+        if (userExists) {
+          throw new ValidationError(`The email "${normalizedEmail}" is already registered on GrowthCraft.`);
+        }
+
+        // Check if already invited by this ambassador
+        let referral = await Referral.findOne({
+          ambassadorUserId: studentUserId,
+          referredEmail: normalizedEmail,
+        }).exec();
+
+        let isNewReferral = false;
+        if (!referral) {
+          let inviteLink = `${frontendUrl}/register/student?ref=${profile.referralCode}`;
+          if (payload.programId) {
+            inviteLink += `&program=${payload.programId}`;
+          }
+
+          let enrollmentType: 'course' | 'event' | 'training-program' | null = null;
+          if (payload.programType) {
+            const pType = payload.programType.toLowerCase();
+            if (pType === 'course') enrollmentType = 'course';
+            else if (pType === 'trainingprogram' || pType === 'training-program') enrollmentType = 'training-program';
+            else if (pType === 'bootcamp' || pType === 'workshop' || pType === 'hackathon' || pType === 'event') enrollmentType = 'event';
+          }
+
+          referral = await Referral.create({
+            ambassadorUserId: studentUserId,
+            referralCode: profile.referralCode,
+            referredEmail: normalizedEmail,
+            status: 'sent',
+            inviteLink,
+            enrollmentType,
+          });
+          isNewReferral = true;
+        }
+
+        if (isNewReferral) {
+          // Resolve program name if recommended
+          let programName: string | undefined;
+          if (payload.programId) {
+            try {
+              if (payload.programType === 'Course') {
+                const c = await mongoose.model('Course').findById(payload.programId).select('title').lean().exec() as any;
+                if (c) programName = c.title;
+              } else if (payload.programType === 'TrainingProgram') {
+                const p = await mongoose.model('TrainingProgram').findById(payload.programId).select('title').lean().exec() as any;
+                if (p) programName = p.title;
+              } else if (payload.programType === 'Bootcamp' || payload.programType === 'Workshop' || payload.programType === 'Hackathon') {
+                const b = await mongoose.model('Bootcamp').findById(payload.programId).select('title').lean().exec() as any;
+                if (b) programName = b.title;
+              }
+            } catch (err) {
+              logger.warn(`Could not resolve recommended program name: ${err}`);
+            }
+          }
+
+          // Enqueue invite email
+          void queueInviteEmail({
+            to: normalizedEmail,
+            inviteLink: referral.inviteLink || '',
+            senderName,
+            programName,
+          });
+        }
+
+        invites.push(referral);
+      }
+
+      return { referrals: invites };
+    } catch (error: any) {
+      logger.error('Invite friends student ambassador error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get earnings logs and summaries.
+   */
+  public async getEarnings(studentUserId: string): Promise<any> {
+    try {
+      const profile = await StudentProfile.findOne({ userId: studentUserId }).exec();
+      if (!profile || !profile.isAmbassador) {
+        throw new ValidationError('User is not an active ambassador');
+      }
+
+      const referrals = await Referral.find({ ambassadorUserId: studentUserId, status: 'enrolled' }).exec();
+
+      const totalEarnings = profile.referralEarnings || 0;
+      const pendingPayout = profile.pendingReferralPayout || 0;
+      const paidOut = totalEarnings - pendingPayout;
+
+      // Group earnings by month using aggregation or javascript reduce
+      const earningsByMonthMap: Record<string, number> = {};
+      referrals.forEach((ref) => {
+        if (ref.commissionAmount > 0) {
+          const date = new Date(ref.updatedAt || ref.createdAt);
+          const monthKey = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+          earningsByMonthMap[monthKey] = (earningsByMonthMap[monthKey] || 0) + ref.commissionAmount;
+        }
+      });
+
+      const earningsByMonth = Object.keys(earningsByMonthMap).map((month) => ({
+        month,
+        amount: earningsByMonthMap[month],
+      }));
+
+      return {
+        totalEarnings,
+        pendingPayout,
+        paidOut,
+        earningsByMonth,
+      };
+    } catch (error: any) {
+      logger.error('Get earnings student ambassador error:', error);
       throw error;
     }
   }

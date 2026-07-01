@@ -23,6 +23,13 @@ export interface IStudentProfile extends Document {
   linkedIn?: string;
   github?: string;
   isAmbassador?: boolean;
+  referralCode?: string;
+  ambassadorActivatedBy?: 'self' | 'college' | 'admin';
+  ambassadorActivatedAt?: Date;
+  totalReferrals: number;
+  totalConversions: number;
+  referralEarnings: number;
+  pendingReferralPayout: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -104,6 +111,35 @@ const studentProfileSchema = new Schema<IStudentProfile>(
       type: Boolean,
       default: false,
       index: true,
+    },
+    referralCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+    ambassadorActivatedBy: {
+      type: String,
+      enum: ['self', 'college', 'admin'],
+    },
+    ambassadorActivatedAt: {
+      type: Date,
+    },
+    totalReferrals: {
+      type: Number,
+      default: 0,
+    },
+    totalConversions: {
+      type: Number,
+      default: 0,
+    },
+    referralEarnings: {
+      type: Number,
+      default: 0,
+    },
+    pendingReferralPayout: {
+      type: Number,
+      default: 0,
     },
   },
   {

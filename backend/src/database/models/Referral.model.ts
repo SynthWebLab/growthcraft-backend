@@ -1,27 +1,34 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export type ReferralStatus = 'pending' | 'joined' | 'completed';
-export type ReferralPayoutStatus = 'unpaid' | 'paid';
+export type ReferralStatus = 'sent' | 'registered' | 'enrolled' | 'expired';
+export type ReferralPayoutStatus = 'unpaid' | 'paid'; // Keep for backward compatibility or status
 
 export interface IReferral extends Document {
-  referrerId: mongoose.Types.ObjectId;
+  ambassadorUserId: mongoose.Types.ObjectId;
+  referralCode: string;
   referredEmail: string;
-  referredUserId?: mongoose.Types.ObjectId;
-  referredItemType: 'Course' | 'TrainingProgram' | 'Bootcamp';
-  referredItemId: mongoose.Types.ObjectId;
+  referredUserId?: mongoose.Types.ObjectId | null;
+  enrollmentId?: mongoose.Types.ObjectId | null;
+  enrollmentType?: 'course' | 'event' | 'training-program' | null;
   status: ReferralStatus;
-  commissionEarned: number;
-  payoutStatus: ReferralPayoutStatus;
+  commissionAmount: number;
+  commissionPaid: boolean;
+  inviteLink?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const referralSchema = new Schema<IReferral>(
   {
-    referrerId: {
+    ambassadorUserId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Referrer ID is required'],
+      required: [true, 'Ambassador user ID is required'],
+      index: true,
+    },
+    referralCode: {
+      type: String,
+      required: [true, 'Referral code is required'],
       index: true,
     },
     referredEmail: {
@@ -29,37 +36,40 @@ const referralSchema = new Schema<IReferral>(
       required: [true, 'Referred email is required'],
       trim: true,
       lowercase: true,
+      index: true,
     },
     referredUserId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      index: true,
+      default: null,
     },
-    referredItemType: {
-      type: String,
-      required: true,
-      enum: ['Course', 'TrainingProgram', 'Bootcamp'],
-    },
-    referredItemId: {
+    enrollmentId: {
       type: Schema.Types.ObjectId,
-      required: true,
+      ref: 'Enrollment',
+      default: null,
+    },
+    enrollmentType: {
+      type: String,
+      enum: ['course', 'event', 'training-program', null],
+      default: null,
     },
     status: {
       type: String,
-      enum: ['pending', 'joined', 'completed'],
-      default: 'pending',
+      enum: ['sent', 'registered', 'enrolled', 'expired'],
+      default: 'sent',
       index: true,
     },
-    commissionEarned: {
+    commissionAmount: {
       type: Number,
       default: 0,
       min: 0,
     },
-    payoutStatus: {
+    commissionPaid: {
+      type: Boolean,
+      default: false,
+    },
+    inviteLink: {
       type: String,
-      enum: ['unpaid', 'paid'],
-      default: 'unpaid',
-      index: true,
     },
   },
   {
@@ -67,8 +77,7 @@ const referralSchema = new Schema<IReferral>(
   }
 );
 
-// Compound indexes
-referralSchema.index({ referrerId: 1, referredEmail: 1, referredItemId: 1 }, { unique: true });
-referralSchema.index({ referredEmail: 1, status: 1 });
+// Compound indexes for optimization
+referralSchema.index({ ambassadorUserId: 1, referredEmail: 1 }, { unique: true });
 
 export const Referral = mongoose.model<IReferral>('Referral', referralSchema);

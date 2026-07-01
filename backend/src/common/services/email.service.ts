@@ -290,6 +290,99 @@ Recipient: ${email} (${fullName})
   }
 
   /**
+   * Send invite email to referred student
+   */
+  async sendInviteEmail(email: string, inviteLink: string, senderName: string, programName?: string): Promise<void> {
+    const programText = programName ? ` for the recommended program "${programName}"` : '';
+    
+    if (config.NODE_ENV === 'development') {
+      logger.info(`
+============================================================
+[DEVELOPMENT] Student Ambassador Invite Email
+Recipient: ${email}
+Sender: ${senderName}
+Program: ${programName || 'None'}
+Link: ${inviteLink}
+============================================================
+      `);
+    }
+
+    const mailOptions = {
+      from: '"GrowthCraft" <' + smtpUser + '>',
+      to: email,
+      subject: `${senderName} invited you to join GrowthCraft! 🌱`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { padding: 30px; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; }
+            .button { display: inline-block; padding: 12px 30px; background-color: #4F46E5; color: white !important; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+            .highlight { background: #EEF2FF; padding: 15px; border-radius: 6px; border-left: 4px solid #4F46E5; margin: 15px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>GrowthCraft Invitation</h1>
+            </div>
+            <div class="content">
+              <h2>Hello!</h2>
+              <p>Your friend <strong>${senderName}</strong> has invited you to join GrowthCraft${programText}.</p>
+              
+              <div class="highlight">
+                <strong>Why GrowthCraft?</strong><br>
+                GrowthCraft is an offline-first learning platform delivering premium, in-person cohort training on college campuses to accelerate your tech career.
+              </div>
+
+              <p>Click the button below to register and join your college cohort:</p>
+              <div style="text-align: center;">
+                <a href="${inviteLink}" class="button">Accept Invitation</a>
+              </div>
+              
+              <p style="font-size: 12px; color: #666; word-break: break-all; text-align: center; margin-top: 20px;">
+                Or copy and paste this URL into your browser:<br>
+                <a href="${inviteLink}" style="color: #4F46E5;">${inviteLink}</a>
+              </p>
+
+              <p>See you in the cohort!<br>Team GrowthCraft</p>
+            </div>
+            <div class="footer">
+              <p>&copy; ${new Date().getFullYear()} GrowthCraft. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+Hello!
+
+Your friend ${senderName} has invited you to join GrowthCraft${programText}.
+
+GrowthCraft is an offline-first learning platform delivering premium, in-person cohort training on college campuses to accelerate your tech career.
+
+Accept your invitation by visiting the link below:
+${inviteLink}
+
+See you in the cohort!
+Team GrowthCraft
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      logger.info(`Invite email sent successfully to: ${email}`);
+    } catch (error) {
+      logger.error('Invite email sending failed:', error);
+      throw new Error('Failed to send invite email');
+    }
+  }
+
+  /**
    * Test email configuration
    */
   async testConnection(): Promise<boolean> {

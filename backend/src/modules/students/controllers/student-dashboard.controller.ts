@@ -306,7 +306,20 @@ export class StudentDashboardController {
   }
 
   /**
-   * Get ambassador dashboard summary
+   * POST /api/v1/students/ambassador/activate
+   */
+  public async activateAmbassador(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const profile = await studentDashboardService.activateAmbassador(userId);
+      SuccessResponseHelper.ok(res, { profile }, 'Ambassador activated successfully');
+    } catch (error: any) {
+      logger.error('Activate ambassador controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
    * GET /api/v1/students/ambassador/dashboard
    */
   public async getAmbassadorDashboard(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -321,14 +334,22 @@ export class StudentDashboardController {
   }
 
   /**
-   * Get ambassador referrals
    * GET /api/v1/students/ambassador/referrals
    */
   public async getAmbassadorReferrals(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = this.getUserId(req);
-      const referrals = await studentDashboardService.getAmbassadorReferrals(userId);
-      SuccessResponseHelper.ok(res, { referrals }, 'Ambassador referrals retrieved successfully');
+      const status = typeof req.query.status === 'string' ? req.query.status : undefined;
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+
+      const result = await studentDashboardService.getAmbassadorReferrals(userId, { status, page, limit });
+      SuccessResponseHelper.paginated(
+        res,
+        result.referrals,
+        { page: result.page, limit: result.limit, total: result.total },
+        'Ambassador referrals retrieved successfully'
+      );
     } catch (error: any) {
       logger.error('Get ambassador referrals controller error:', error);
       next(error);
@@ -336,24 +357,35 @@ export class StudentDashboardController {
   }
 
   /**
-   * Create a new referral (invite a student)
-   * POST /api/v1/students/ambassador/referrals
+   * POST /api/v1/students/ambassador/invite
    */
-  public async createReferral(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public async inviteFriends(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = this.getUserId(req);
-      const { referredEmail, referredItemType, referredItemId } = req.body;
-      if (!referredEmail || !referredItemType || !referredItemId) {
-        throw new ValidationError('Missing required fields: referredEmail, referredItemType, referredItemId');
+      const { emails, programType, programId } = req.body;
+
+      if (!emails || !Array.isArray(emails) || emails.length === 0) {
+        throw new ValidationError('emails must be a non-empty array');
       }
-      const referral = await studentDashboardService.createReferral(userId, {
-        referredEmail,
-        referredItemType,
-        referredItemId,
-      });
-      SuccessResponseHelper.created(res, { referral }, 'Referral created successfully');
+
+      const result = await studentDashboardService.inviteFriends(userId, { emails, programType, programId });
+      SuccessResponseHelper.ok(res, result, 'Invites sent successfully');
     } catch (error: any) {
-      logger.error('Create referral controller error:', error);
+      logger.error('Invite friends controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/students/ambassador/earnings
+   */
+  public async getEarnings(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const earnings = await studentDashboardService.getEarnings(userId);
+      SuccessResponseHelper.ok(res, earnings, 'Ambassador earnings retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get ambassador earnings controller error:', error);
       next(error);
     }
   }

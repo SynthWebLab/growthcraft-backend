@@ -35,6 +35,8 @@ export interface RegisterDto {
     currentOrganization: string;
     bio: string;
   };
+  // Optional referral code for tracking
+  referralCode?: string;
 }
 
 export interface RegisterResponseDto {

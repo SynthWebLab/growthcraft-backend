@@ -344,26 +344,127 @@ export class CollegeDashboardController {
   }
 
   /**
-   * POST /api/v1/colleges/students/:studentId/ambassador
+   * GET /api/v1/colleges/attendance
    */
-  public async toggleAmbassadorStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public async getAttendance(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const collegeUserId = this.getUserId(req);
-      const studentUserId = req.params.studentId;
-      const { isAmbassador } = req.body;
+      this.assertValid(req);
+      const userId = this.getUserId(req);
 
-      if (isAmbassador === undefined || typeof isAmbassador !== 'boolean') {
-        throw new ValidationError('isAmbassador boolean is required');
-      }
+      const batchId = typeof req.query.batchId === 'string' ? req.query.batchId : undefined;
+      const studentId = typeof req.query.studentId === 'string' ? req.query.studentId : undefined;
+      const startDate = typeof req.query.startDate === 'string' ? req.query.startDate : undefined;
+      const endDate = typeof req.query.endDate === 'string' ? req.query.endDate : undefined;
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 
-      const profile = await collegeDashboardService.toggleAmbassadorStatus(collegeUserId, studentUserId, isAmbassador);
-      SuccessResponseHelper.ok(
+      const result = await collegeDashboardService.getAttendance(userId, {
+        batchId,
+        studentId,
+        startDate,
+        endDate,
+        page,
+        limit,
+      });
+
+      SuccessResponseHelper.paginated(
         res,
-        { profile },
-        `Student ambassador status successfully updated to ${isAmbassador}`
+        result.records,
+        { page: result.page, limit: result.limit, total: result.total },
+        'Attendance records retrieved successfully'
       );
     } catch (error: any) {
-      logger.error('Toggle ambassador status controller error:', error);
+      logger.error('Get attendance controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/colleges/attendance/summary
+   */
+  public async getAttendanceSummary(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const summary = await collegeDashboardService.getAttendanceSummary(userId);
+      SuccessResponseHelper.ok(res, summary, 'Attendance summary retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get attendance summary controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/colleges/attendance/export
+   */
+  public async exportAttendanceSummary(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const summary = await collegeDashboardService.getAttendanceSummary(userId);
+
+      let csv = 'Student Name,Batch,Total Sessions,Present,Absent,Late,Attendance Rate (%)\n';
+      summary.forEach((s) => {
+        csv += `"${s.studentName}","${s.batchTitle}",${s.totalSessions},${s.present},${s.absent},${s.late},${s.attendancePercent}\n`;
+      });
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=attendance_summary.csv');
+      res.status(200).send(csv);
+    } catch (error: any) {
+      logger.error('Export attendance summary controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/colleges/ambassadors
+   */
+  public async activateAmbassadors(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const collegeUserId = this.getUserId(req);
+      const { studentUserIds } = req.body;
+
+      if (!studentUserIds || !Array.isArray(studentUserIds) || studentUserIds.length === 0) {
+        throw new ValidationError('studentUserIds must be a non-empty array of strings');
+      }
+
+      const result = await collegeDashboardService.activateAmbassadors(collegeUserId, studentUserIds);
+      SuccessResponseHelper.ok(res, result, `${result.activated} student(s) promoted to ambassador`);
+    } catch (error: any) {
+      logger.error('Activate ambassadors controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/v1/colleges/ambassadors
+   */
+  public async getAmbassadors(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const collegeUserId = this.getUserId(req);
+      const ambassadors = await collegeDashboardService.getAmbassadors(collegeUserId);
+      SuccessResponseHelper.ok(res, ambassadors, 'Ambassadors list retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get ambassadors controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * DELETE /api/v1/colleges/ambassadors/:studentUserId
+   */
+  public async deactivateAmbassador(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const collegeUserId = this.getUserId(req);
+      const { studentUserId } = req.params;
+
+      if (!studentUserId) {
+        throw new ValidationError('studentUserId parameter is required');
+      }
+
+      const profile = await collegeDashboardService.deactivateAmbassador(collegeUserId, studentUserId);
+      SuccessResponseHelper.ok(res, { profile }, 'Ambassador deactivated successfully');
+    } catch (error: any) {
+      logger.error('Deactivate ambassador controller error:', error);
       next(error);
     }
   }
