@@ -74,7 +74,7 @@ const ACTIVE_STATUSES = ['pending', 'confirmed'];
 export class StudentDashboardService {
   private static instance: StudentDashboardService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): StudentDashboardService {
     if (!StudentDashboardService.instance) {
