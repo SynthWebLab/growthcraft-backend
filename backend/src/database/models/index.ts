@@ -38,5 +38,8 @@ export { ProgressNote, IProgressNote } from './ProgressNote.model';
 export { Lead, ILead } from './Lead.model';
 export { Referral, IReferral, ReferralStatus, ReferralPayoutStatus } from './Referral.model';
 export { MentorCheckIn, IMentorCheckIn, MentorCheckInStatus } from './MentorCheckIn.model';
+export { JobPosting, IJobPosting } from './JobPosting.model';
+export { JobApplication, IJobApplication } from './JobApplication.model';
+
 
 
