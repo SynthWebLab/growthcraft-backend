@@ -142,4 +142,22 @@ export class StudentValidator {
         .withMessage('Session type must be 1:1 or Group'),
     ];
   }
+
+  /**
+   * Validate applying for a job.
+   */
+  public static applyJob(): ValidationChain[] {
+    return [
+      body('resumeUrl')
+        .trim()
+        .notEmpty()
+        .withMessage('Resume URL is required')
+        .isURL()
+        .withMessage('Resume URL must be a valid URL'),
+      body('coverLetter')
+        .optional()
+        .trim(),
+    ];
+  }
 }
+

@@ -4,6 +4,7 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import { config } from './config';
 import { logger } from './common/utils/logger.util';
@@ -87,6 +88,9 @@ app.get('/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // API routes
 app.use('/api/v1', routes);

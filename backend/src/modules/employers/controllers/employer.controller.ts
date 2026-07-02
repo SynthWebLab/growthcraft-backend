@@ -182,6 +182,38 @@ export class EmployerController {
       next(error);
     }
   }
+
+  /**
+   * GET /api/v1/employers/applications
+   */
+  public async getApplications(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const applications = await employerService.getApplications(userId);
+      SuccessResponseHelper.ok(res, applications, 'Employer applications retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get employer applications controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * PATCH /api/v1/employers/applications/:id/status
+   */
+  public async updateApplicationStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      this.assertValid(req);
+      const userId = this.getUserId(req);
+      const applicationId = req.params.id;
+      const status = req.body.status;
+      const application = await employerService.updateApplicationStatus(userId, applicationId, status);
+      SuccessResponseHelper.ok(res, application, 'Application status updated successfully');
+    } catch (error: any) {
+      logger.error('Update employer application status controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const employerController = EmployerController.getInstance();
+

@@ -71,4 +71,14 @@ export class EmployerValidator {
       body('contactPerson.phone').optional().trim().notEmpty().withMessage('Contact person phone is required'),
     ];
   }
+
+  public static updateApplicationStatus(): ValidationChain[] {
+    return [
+      param('id').isMongoId().withMessage('Invalid application ID'),
+      body('status')
+        .isIn(['Applied', 'Shortlisted', 'Interview', 'Hired', 'Rejected'])
+        .withMessage('Status must be Applied, Shortlisted, Interview, Hired, or Rejected'),
+    ];
+  }
 }
+

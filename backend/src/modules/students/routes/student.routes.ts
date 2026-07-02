@@ -1,6 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { studentDashboardController } from '../controllers/student-dashboard.controller';
+import { studentJobsController } from '../controllers/student-jobs.controller';
 import { StudentValidator } from '../validators/student.validator';
+import { uploadResumeMiddleware } from '@/common/middleware/upload.middleware';
 import { authenticate } from '@/common/middleware/authenticate.middleware';
 
 const router = Router();
@@ -398,6 +400,23 @@ router.post('/ambassador/invite', (req: Request, res: Response, next: NextFuncti
 
 router.get('/ambassador/earnings', (req: Request, res: Response, next: NextFunction) => {
   void studentDashboardController.getEarnings(req, res, next);
+});
+
+// Student Job Application Endpoints
+router.get('/jobs', (req: Request, res: Response, next: NextFunction) => {
+  void studentJobsController.getJobs(req, res, next);
+});
+
+router.post('/jobs/:id/apply', StudentValidator.applyJob(), (req: Request, res: Response, next: NextFunction) => {
+  void studentJobsController.applyJob(req, res, next);
+});
+
+router.get('/applications', (req: Request, res: Response, next: NextFunction) => {
+  void studentJobsController.getApplications(req, res, next);
+});
+
+router.post('/resume/upload', uploadResumeMiddleware, (req: Request, res: Response, next: NextFunction) => {
+  void studentJobsController.uploadResume(req, res, next);
 });
 
 export default router;

@@ -59,6 +59,18 @@ employerRouter.patch(
   }
 );
 
+employerRouter.get('/applications', (req: Request, res: Response, next: NextFunction) => {
+  void employerController.getApplications(req, res, next);
+});
+
+employerRouter.patch(
+  '/applications/:id/status',
+  EmployerValidator.updateApplicationStatus(),
+  (req: Request, res: Response, next: NextFunction) => {
+    void employerController.updateApplicationStatus(req, res, next);
+  }
+);
+
 
 // Router for /api/v1/talent
 export const talentRouter = Router();

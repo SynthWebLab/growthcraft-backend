@@ -3,6 +3,7 @@ import { JobPosting, IJobPosting } from '@/database/models/JobPosting.model';
 import { EmployerProfile, IEmployerProfile } from '@/database/models/EmployerProfile.model';
 import { StudentProfile } from '@/database/models/StudentProfile.model';
 import { Course } from '@/database/models/Course.model';
+import { JobApplication, IJobApplication } from '@/database/models/JobApplication.model';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { logger } from '@/common/utils/logger.util';
@@ -53,38 +54,41 @@ export class EmployerService {
     try {
       const profile = await this.getOrCreateProfile(userId);
       const jobs = await JobPosting.find({ hiringPartnerId: userId }).exec();
+      const jobIds = jobs.map(j => j._id);
 
       const activeJobsCount = jobs.filter(j => j.status === 'Active').length;
-      const totalApplicants = jobs.reduce((sum, j) => sum + (j.applicantsCount || 0), 0);
-      
-      // Calculate realistic funnels and metrics
-      const shortlistedCount = Math.round(totalApplicants * 0.4);
-      const hiresCount = profile.totalHires || Math.round(totalApplicants * 0.06);
+
+      // Count actual applications dynamically
+      const totalApplicants = await JobApplication.countDocuments({ jobId: { $in: jobIds } }).exec();
+      const shortlistedCount = await JobApplication.countDocuments({ jobId: { $in: jobIds }, status: 'Shortlisted' }).exec();
+      const interviewCount = await JobApplication.countDocuments({ jobId: { $in: jobIds }, status: 'Interview' }).exec();
+      const hiresCount = await JobApplication.countDocuments({ jobId: { $in: jobIds }, status: 'Hired' }).exec();
 
       // Funnel
       const funnelData = [
         { stage: 'Applied', count: totalApplicants },
         { stage: 'Shortlisted', count: shortlistedCount },
-        { stage: 'Interview', count: Math.round(totalApplicants * 0.17) },
+        { stage: 'Interview', count: interviewCount },
         { stage: 'Hired', count: hiresCount }
       ];
 
-      // Retrieve recent candidates from completed student pool to populate recent apps
-      const completedStudents = await StudentProfile.find({ 'completedCourses.0': { $exists: true } })
+      // Retrieve recent applications
+      const recentAppsList = await JobApplication.find({ jobId: { $in: jobIds } })
+        .sort({ appliedAt: -1 })
         .limit(10)
+        .populate('jobId', 'title')
+        .populate({ path: 'studentId', select: 'fullName email' })
         .exec();
 
-      const recentApps = completedStudents.map((student, index) => {
-        const statuses: ('pending' | 'active' | 'cancelled' | 'completed')[] = ['pending', 'active', 'completed'];
-        const status = statuses[index % statuses.length];
-        const date = new Date();
-        date.setDate(date.getDate() - (index + 1));
-        
+      const recentApps = recentAppsList.map(app => {
+        const studentUser = app.studentId as any;
+        const job = app.jobId as any;
         return {
-          name: `Candidate ${student._id.toString().substring(20).toUpperCase()}`,
-          role: jobs[index % jobs.length]?.title || 'Software Engineer Intern',
-          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          status,
+          id: app._id.toString(),
+          name: studentUser?.fullName || 'Anonymous Candidate',
+          role: job?.title || 'Software Engineer',
+          date: app.appliedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          status: app.status.toLowerCase(),
         };
       });
 
@@ -292,6 +296,102 @@ export class EmployerService {
       return resolvedJobs;
     } catch (error: any) {
       logger.error('Get public active jobs service error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all applications received for jobs posted by this employer
+   */
+  public async getApplications(employerUserId: string) {
+    try {
+      const jobs = await JobPosting.find({ hiringPartnerId: employerUserId }).exec();
+      const jobIds = jobs.map(j => j._id);
+
+      const applications = await JobApplication.find({ jobId: { $in: jobIds } })
+        .sort({ appliedAt: -1 })
+        .populate('jobId', 'title location locationType salaryRange jobType')
+        .populate({ path: 'studentId', select: 'fullName email' })
+        .exec();
+
+      const resolvedApplications = await Promise.all(
+        applications.map(async app => {
+          const studentUser = app.studentId as any;
+          const job = app.jobId as any;
+
+          let degree = 'Computer Science';
+          let skills = ['React', 'Node.js', 'JavaScript'];
+
+          if (studentUser?._id) {
+            const studentProfile = await StudentProfile.findOne({ userId: studentUser._id })
+              .select('degree skills')
+              .exec();
+            if (studentProfile) {
+              if (studentProfile.degree) degree = studentProfile.degree;
+              if (studentProfile.skills && studentProfile.skills.length > 0) skills = studentProfile.skills;
+            }
+          }
+
+          return {
+            id: app._id.toString(),
+            name: studentUser?.fullName || 'Anonymous Candidate',
+            email: studentUser?.email || '',
+            role: job?.title || 'Software Engineer',
+            appliedDate: app.appliedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            stage: app.status,
+            degree,
+            skills,
+            resumeUrl: app.resumeUrl,
+            coverLetter: app.coverLetter,
+          };
+        })
+      );
+
+      return resolvedApplications;
+    } catch (error: any) {
+      logger.error('Get employer applications service error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update the status of a specific job application
+   */
+  public async updateApplicationStatus(
+    employerUserId: string,
+    applicationId: string,
+    status: 'Applied' | 'Shortlisted' | 'Interview' | 'Hired' | 'Rejected'
+  ): Promise<IJobApplication> {
+    try {
+      const application = await JobApplication.findById(applicationId)
+        .populate('jobId')
+        .exec();
+
+      if (!application) {
+        throw new NotFoundError('Job application not found');
+      }
+
+      const job = application.jobId as any;
+      if (!job || job.hiringPartnerId.toString() !== employerUserId) {
+        throw new ValidationError('Unauthorized to update this application status');
+      }
+
+      const oldStatus = application.status;
+      application.status = status;
+      const savedApplication = await application.save();
+
+      if (status === 'Hired' && oldStatus !== 'Hired') {
+        const profile = await EmployerProfile.findOne({ userId: employerUserId }).exec();
+        if (profile) {
+          profile.totalHires = (profile.totalHires || 0) + 1;
+          await profile.save();
+        }
+      }
+
+      logger.info(`Employer ${employerUserId} updated Application ${applicationId} status to ${status}`);
+      return savedApplication;
+    } catch (error: any) {
+      logger.error('Update application status service error:', error);
       throw error;
     }
   }
