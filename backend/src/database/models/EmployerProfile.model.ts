@@ -56,7 +56,7 @@ const employerProfileSchema = new Schema<IEmployerProfile>(
     },
     jobsPosted: {
       type: [Schema.Types.ObjectId],
-      ref: 'Job',
+      ref: 'JobPosting',
       default: [],
     },
     totalHires: {
