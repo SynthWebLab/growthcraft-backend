@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction, CookieOptions } from 'express';
 import { validationResult } from 'express-validator';
 import { authService } from '../services/auth.service';
+import { redisTokenService } from '../services/redis-token.service';
 import { RegisterDto } from '../dto/register.dto';
 import { logger } from '@/common/utils/logger.util';
 import { StudentProfile } from '@/database/models/StudentProfile.model';
@@ -49,7 +50,11 @@ export class AuthController {
     return {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      // 'strict' blocks the browser from sending cookies on any cross-site request,
+      // preventing CSRF force-logout (and other CSRF attacks) on the unprotected logout endpoint.
+      // NOTE: If the frontend (Vercel) and backend (Railway) are on DIFFERENT domains in prod,
+      // you must keep this as 'lax' and add explicit CSRF token validation instead.
+      sameSite: isProduction ? 'strict' : 'lax',
       domain: isProduction ? 'growthcraft.cloud' : undefined,
       path: '/',
     };
@@ -362,18 +367,37 @@ export class AuthController {
 
   public async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req as any).user.userId;
       const refreshToken = req.cookies.refreshToken;
+      const accessToken = req.cookies.access_token; // may be expired — blacklist it anyway
 
       if (refreshToken) {
         try {
-          await authService.logout(userId, refreshToken);
+          // Derive userId from the refresh token — no need for a valid access token
+          const decoded = jwtConfig.verifyRefreshToken(refreshToken);
+          await authService.logout(decoded.userId, refreshToken, accessToken);
         } catch (dbError) {
-          logger.error('Failed to invalidate token in database/Redis during logout:', dbError);
+          // Token may be expired/invalid — still clear cookies and blacklist access token below
+          logger.warn('Could not invalidate refresh token during logout (may already be expired):', dbError);
+          // Even if refresh token is bad, still try to blacklist the access token
+          if (accessToken) {
+            const decoded = jwtConfig.decodeToken(accessToken);
+            if (decoded) {
+              await redisTokenService.blacklistAccessToken(accessToken, decoded.exp);
+            }
+          }
         }
+      } else {
+        // No refresh token — at least blacklist the access token if present
+        if (accessToken) {
+          const decoded = jwtConfig.decodeToken(accessToken);
+          if (decoded) {
+            await redisTokenService.blacklistAccessToken(accessToken, decoded.exp);
+          }
+        }
+        logger.debug('Logout called with no refresh token cookie — clearing cookies anyway');
       }
 
-      // Clear cookies
+      // Always clear cookies regardless of token state
       this.clearTokenCookies(res);
 
       res.status(200).json({
@@ -387,15 +411,22 @@ export class AuthController {
 
   public async logoutAll(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req as any).user.userId;
+      const refreshToken = req.cookies.refreshToken;
+      const accessToken = req.cookies.access_token;
 
-      try {
-        await authService.logoutAll(userId);
-      } catch (dbError) {
-        logger.error('Failed to invalidate all tokens in database/Redis during logoutAll:', dbError);
+      if (refreshToken) {
+        try {
+          // Derive userId from the refresh token — no need for a valid access token
+          const decoded = jwtConfig.verifyRefreshToken(refreshToken);
+          await authService.logoutAll(decoded.userId, accessToken);
+        } catch (dbError) {
+          logger.warn('Could not invalidate all tokens during logout-all (refresh token may be expired):', dbError);
+        }
+      } else {
+        logger.debug('Logout-all called with no refresh token cookie — clearing cookies anyway');
       }
 
-      // Clear cookies
+      // Always clear cookies regardless of token state
       this.clearTokenCookies(res);
 
       res.status(200).json({

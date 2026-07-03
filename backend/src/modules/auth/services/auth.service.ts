@@ -471,9 +471,19 @@ export class AuthService {
     }
   }
 
-  public async logout(userId: string, refreshToken: string): Promise<void> {
+  public async logout(
+    userId: string,
+    refreshToken: string,
+    accessToken?: string,
+  ): Promise<void> {
     try {
-      // Try Redis first, fallback to MongoDB
+      // Immediately blacklist the access token so it cannot be reused within its 15-min window
+      if (accessToken) {
+        const decoded = jwtConfig.decodeToken(accessToken);
+        await redisTokenService.blacklistAccessToken(accessToken, decoded?.exp);
+      }
+
+      // Remove refresh token — Redis first, fallback to MongoDB
       if (redisTokenService.isAvailable()) {
         try {
           await redisTokenService.removeRefreshToken(userId, refreshToken);
@@ -491,9 +501,15 @@ export class AuthService {
     }
   }
 
-  public async logoutAll(userId: string): Promise<void> {
+  public async logoutAll(userId: string, accessToken?: string): Promise<void> {
     try {
-      // Try Redis first, fallback to MongoDB
+      // Blacklist the current session's access token immediately
+      if (accessToken) {
+        const decoded = jwtConfig.decodeToken(accessToken);
+        await redisTokenService.blacklistAccessToken(accessToken, decoded?.exp);
+      }
+
+      // Remove all refresh tokens — Redis first, fallback to MongoDB
       if (redisTokenService.isAvailable()) {
         try {
           await redisTokenService.removeAllRefreshTokens(userId);

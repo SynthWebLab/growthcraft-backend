@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 import { jwtConfig } from '@/config/jwt.config';
 import { logger } from '@/common/utils/logger.util';
 import { UserRole } from '@/common/constants/user.constants';
+import { redisTokenService } from '@/modules/auth/services/redis-token.service';
 
 /**
  * Extract JWT token from request
@@ -53,7 +54,7 @@ const extractToken = (req: Request): string | null => {
  *   // ... handle request
  * });
  */
-export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Extract token from multiple possible sources
     const token = extractToken(req);
@@ -81,6 +82,20 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
         error: {
           message: 'Invalid token payload',
           code: 'INVALID_TOKEN_PAYLOAD',
+        },
+      });
+      return;
+    }
+
+    // Check if this token has been blacklisted (i.e. user already logged out)
+    const isBlacklisted = await redisTokenService.isAccessTokenBlacklisted(token);
+    if (isBlacklisted) {
+      logger.warn(`Blacklisted access token used by user ${decoded.userId}`);
+      res.status(401).json({
+        success: false,
+        error: {
+          message: 'Token has been revoked. Please login again.',
+          code: 'TOKEN_REVOKED',
         },
       });
       return;

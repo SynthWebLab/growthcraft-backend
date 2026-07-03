@@ -14,6 +14,8 @@ export class RedisTokenService {
   private static instance: RedisTokenService;
   private readonly TOKEN_PREFIX = 'refresh_token:';
   private readonly USER_TOKENS_PREFIX = 'user_tokens:';
+  private readonly BLACKLIST_PREFIX = 'blacklist:access:';  // for invalidated access tokens
+
 
   private constructor() {}
 
@@ -234,6 +236,57 @@ export class RedisTokenService {
     } catch (error: any) {
       logger.error('Error getting active token count from Redis:', error);
       return 0;
+    }
+  }
+
+  /**
+   * Blacklist an access token until its natural expiry.
+   * Call this on logout so stolen access tokens are rejected immediately.
+   * @param token   Raw JWT access token
+   * @param expAt   Token `exp` claim (Unix seconds). If undefined, defaults to 15 min from now.
+   */
+  public async blacklistAccessToken(token: string, expAt?: number): Promise<void> {
+    const client = redisConfig.getClient();
+    if (!client || !redisConfig.getConnectionStatus()) {
+      logger.warn('Redis not connected. Access token blacklisting skipped.');
+      return; // Gracefully degrade — still clear the cookies
+    }
+
+    try {
+      const hashedToken = this.hashToken(token);
+      const key = `${this.BLACKLIST_PREFIX}${hashedToken}`;
+
+      // TTL = remaining lifetime of the token (minimum 1 second)
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const ttl = expAt ? Math.max(expAt - nowSeconds, 1) : 15 * 60;
+
+      await client.setEx(key, ttl, '1');
+      logger.debug(`Access token blacklisted (TTL: ${ttl}s)`);
+    } catch (error: any) {
+      // Non-fatal — log and continue
+      logger.error('Error blacklisting access token:', error);
+    }
+  }
+
+  /**
+   * Returns true if the given access token has been blacklisted (i.e. the user logged out).
+   */
+  public async isAccessTokenBlacklisted(token: string): Promise<boolean> {
+    const client = redisConfig.getClient();
+    if (!client || !redisConfig.getConnectionStatus()) {
+      // Redis unavailable — cannot check blacklist, allow through (fail-open)
+      logger.warn('Redis not connected. Blacklist check skipped — allowing request.');
+      return false;
+    }
+
+    try {
+      const hashedToken = this.hashToken(token);
+      const key = `${this.BLACKLIST_PREFIX}${hashedToken}`;
+      const result = await client.get(key);
+      return result !== null;
+    } catch (error: any) {
+      logger.error('Error checking access token blacklist:', error);
+      return false; // Fail-open: don't break authenticated requests if Redis glitches
     }
   }
 

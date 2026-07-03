@@ -245,7 +245,7 @@ router.get('/profile', authenticate, (req: Request, res: Response, next: NextFun
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/logout', authenticate, (req: Request, res: Response, next: NextFunction) => {
+router.post('/logout', (req: Request, res: Response, next: NextFunction) => {
   void authController.logout(req, res, next);
 });
 
@@ -278,7 +278,7 @@ router.post('/logout', authenticate, (req: Request, res: Response, next: NextFun
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/logout-all', authenticate, (req: Request, res: Response, next: NextFunction) => {
+router.post('/logout-all', (req: Request, res: Response, next: NextFunction) => {
   void authController.logoutAll(req, res, next);
 });
 
