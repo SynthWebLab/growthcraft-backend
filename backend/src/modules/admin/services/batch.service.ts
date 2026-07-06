@@ -34,6 +34,7 @@ export interface UpdateBatchInput {
   venue?: string;
   capacity?: number;
   status?: BatchStatus;
+  fee?: number;
 }
 
 export interface ListBatchesQuery {
@@ -456,6 +457,11 @@ export class BatchService {
     // Update capacity if provided
     if (input.capacity !== undefined) {
       batch.capacity = input.capacity;
+    }
+
+    // Update fee if provided
+    if (input.fee !== undefined) {
+      batch.fee = mongoose.Types.Decimal128.fromString(input.fee.toString()) as any;
     }
 
     await batch.save();
