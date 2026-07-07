@@ -140,6 +140,48 @@ export class UserController {
       next(error);
     }
   }
+
+  /**
+   * PATCH /api/v1/admin/users/:id/status
+   * Toggle activation/suspension of user
+   */
+  public async updateUserStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw ValidationError.forField('id', 'Invalid user ID format');
+      }
+
+      if (isActive === undefined || typeof isActive !== 'boolean') {
+        throw new ValidationError('isActive boolean is required in request body');
+      }
+
+      const user = await User.findById(id).exec();
+      if (!user) {
+        throw ValidationError.forField('id', 'User not found');
+      }
+
+      user.isActive = isActive;
+      await user.save();
+
+      // Write AuditLog
+      const { auditLogService } = await import('../services/audit-log.service');
+      await auditLogService.log(
+        req.user!.userId,
+        isActive ? 'user.activate' : 'user.suspend',
+        id,
+        { email: user.email, role: user.role },
+        req.ip
+      );
+
+      SuccessResponseHelper.ok(res, { isActive: user.isActive }, `User status updated successfully`);
+    } catch (error: any) {
+      logger.error('Update user status controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const userController = UserController.getInstance();

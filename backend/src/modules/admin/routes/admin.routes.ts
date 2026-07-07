@@ -58,6 +58,9 @@ router.get('/users', (req: Request, res: Response, next: NextFunction) => {
 router.get('/users/:id', (req: Request, res: Response, next: NextFunction) => {
   void userController.getUserById(req, res, next);
 });
+router.patch('/users/:id/status', (req: Request, res: Response, next: NextFunction) => {
+  void userController.updateUserStatus(req, res, next);
+});
 
 /**
  * Job management
