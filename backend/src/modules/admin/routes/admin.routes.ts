@@ -12,6 +12,8 @@ import { attendanceController } from '../controllers/attendance.controller';
 import { courseAdminController } from '../controllers/course-admin.controller';
 import { trainingProgramAdminController } from '../controllers/training-program-admin.controller';
 import { eventAdminController } from '../controllers/event-admin.controller';
+import { collegeAdminController } from '../controllers/college-admin.controller';
+import { employerAdminController } from '../controllers/employer-admin.controller';
 import { analyticsController } from '../controllers/analytics.controller';
 import { auditLogController } from '../controllers/audit-log.controller';
 import { uploadController } from '../controllers/upload.controller';
@@ -183,6 +185,32 @@ router.put('/events/:id', (req: Request, res: Response, next: NextFunction) => {
 });
 router.delete('/events/:id', (req: Request, res: Response, next: NextFunction) => {
   void eventAdminController.deleteEvent(req, res, next);
+});
+
+/**
+ * College Admin CRUD
+ */
+router.get('/colleges', (req: Request, res: Response, next: NextFunction) => {
+  void collegeAdminController.listColleges(req, res, next);
+});
+router.put('/colleges/:id', (req: Request, res: Response, next: NextFunction) => {
+  void collegeAdminController.updateCollege(req, res, next);
+});
+router.delete('/colleges/:id', (req: Request, res: Response, next: NextFunction) => {
+  void collegeAdminController.deleteCollege(req, res, next);
+});
+
+/**
+ * Employer Admin CRUD
+ */
+router.get('/employers', (req: Request, res: Response, next: NextFunction) => {
+  void employerAdminController.listEmployers(req, res, next);
+});
+router.put('/employers/:id', (req: Request, res: Response, next: NextFunction) => {
+  void employerAdminController.updateEmployer(req, res, next);
+});
+router.delete('/employers/:id', (req: Request, res: Response, next: NextFunction) => {
+  void employerAdminController.deleteEmployer(req, res, next);
 });
 
 /**
