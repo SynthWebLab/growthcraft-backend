@@ -158,6 +158,21 @@ enrollmentSchema.pre('save', async function (next) {
           }
         ).exec();
 
+        // Trigger notification for referring ambassador
+        try {
+          const { notificationService } = await import('@/modules/notifications/services/notification.service');
+          await notificationService.createNotification(
+            referral.ambassadorUserId.toString(),
+            'referral.conversion',
+            {
+              studentUserId: this.studentUserId,
+              commissionAmount,
+            }
+          );
+        } catch (err) {
+          console.error('Failed to trigger referral conversion notification:', err);
+        }
+
         console.log(`Referral commission of INR ${commissionAmount} successfully applied for ambassador ${referral.ambassadorUserId}`);
       }
     } catch (err) {

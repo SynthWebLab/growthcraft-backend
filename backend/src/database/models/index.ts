@@ -40,6 +40,9 @@ export { Referral, IReferral, ReferralStatus, ReferralPayoutStatus } from './Ref
 export { MentorCheckIn, IMentorCheckIn, MentorCheckInStatus } from './MentorCheckIn.model';
 export { JobPosting, IJobPosting } from './JobPosting.model';
 export { JobApplication, IJobApplication } from './JobApplication.model';
+export { AuditLog, IAuditLog } from './AuditLog.model';
+export { MentorPayout, IMentorPayout } from './MentorPayout.model';
+
 
 
 

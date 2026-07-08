@@ -34,6 +34,7 @@ const updateBatchSchema = z.object({
   venue: z.string().trim().min(1).optional(),
   capacity: z.number().int().min(1).optional(),
   status: z.nativeEnum(BatchStatus).optional(),
+  fee: z.number().min(0).optional(),
 });
 
 const assignMentorSchema = z.object({

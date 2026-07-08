@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import { authenticate } from '@/common/middleware/authenticate.middleware';
 import { authorize } from '@/common/middleware/authorize.middleware';
 import { UserRole } from '@/common/constants/user.constants';
@@ -6,125 +7,217 @@ import { batchController } from '../controllers/batch.controller';
 import { enrollmentController } from '../controllers/enrollment.controller';
 import { userController } from '../controllers/user.controller';
 import { ambassadorController } from '../controllers/ambassador.controller';
+import { mentorPayoutController } from '../controllers/mentor-payout.controller';
+import { attendanceController } from '../controllers/attendance.controller';
+import { courseAdminController } from '../controllers/course-admin.controller';
+import { trainingProgramAdminController } from '../controllers/training-program-admin.controller';
+import { eventAdminController } from '../controllers/event-admin.controller';
+import { collegeAdminController } from '../controllers/college-admin.controller';
+import { employerAdminController } from '../controllers/employer-admin.controller';
+import { analyticsController } from '../controllers/analytics.controller';
+import { auditLogController } from '../controllers/audit-log.controller';
+import { uploadController } from '../controllers/upload.controller';
 import metricsJobRoutes from './metrics-job.routes';
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
-// All admin routes require authentication and SuperAdmin or Ops role
+// All admin routes require authentication and SuperAdmin or Ops role by default
 router.use(authenticate);
 router.use(authorize([UserRole.SUPER_ADMIN, UserRole.OPS]));
 
 /**
- * @route   POST /api/v1/admin/batches
- * @desc    Create a new batch
- * @access  SuperAdmin, Ops
+ * Batches management
  */
 router.post('/batches', (req: Request, res: Response, next: NextFunction) => {
   void batchController.createBatch(req, res, next);
 });
-
-/**
- * @route   GET /api/v1/admin/batches
- * @desc    List all batches with filters
- * @access  SuperAdmin, Ops
- */
 router.get('/batches', (req: Request, res: Response, next: NextFunction) => {
   void batchController.listBatches(req, res, next);
 });
-
-/**
- * @route   GET /api/v1/admin/batches/:id
- * @desc    Get batch by ID
- * @access  SuperAdmin, Ops
- */
 router.get('/batches/:id', (req: Request, res: Response, next: NextFunction) => {
   void batchController.getBatchById(req, res, next);
 });
-
-/**
- * @route   PATCH /api/v1/admin/batches/:id
- * @desc    Update batch details
- * @access  SuperAdmin, Ops
- */
 router.patch('/batches/:id', (req: Request, res: Response, next: NextFunction) => {
   void batchController.updateBatch(req, res, next);
 });
-
-/**
- * @route   PATCH /api/v1/admin/batches/:id/mentor
- * @desc    Assign mentor to batch
- * @access  SuperAdmin, Ops
- */
 router.patch('/batches/:id/mentor', (req: Request, res: Response, next: NextFunction) => {
   void batchController.assignMentor(req, res, next);
 });
-
-/**
- * @route   PATCH /api/v1/admin/batches/:id/mentors
- * @desc    Assign multiple mentors to batch
- * @access  SuperAdmin, Ops
- */
 router.patch('/batches/:id/mentors', (req: Request, res: Response, next: NextFunction) => {
   void batchController.assignMentors(req, res, next);
 });
 
 /**
- * @route   POST /api/v1/admin/enrollments
- * @desc    Create a new enrollment
- * @access  SuperAdmin, Ops
+ * Enrollments & Users
  */
 router.post('/enrollments', (req: Request, res: Response, next: NextFunction) => {
   void enrollmentController.createEnrollment(req, res, next);
 });
-
-/**
- * @route   GET /api/v1/admin/users
- * @desc    List all users with filters
- * @access  SuperAdmin, Ops
- */
 router.get('/users', (req: Request, res: Response, next: NextFunction) => {
   void userController.listUsers(req, res, next);
 });
-
-/**
- * @route   GET /api/v1/admin/users/:id
- * @desc    Get user by ID
- * @access  SuperAdmin, Ops
- */
 router.get('/users/:id', (req: Request, res: Response, next: NextFunction) => {
   void userController.getUserById(req, res, next);
 });
+router.patch('/users/:id/status', (req: Request, res: Response, next: NextFunction) => {
+  void userController.updateUserStatus(req, res, next);
+});
 
 /**
- * Job management routes
+ * Job management
  */
 router.use('/jobs', metricsJobRoutes);
 
 /**
- * @route   GET /api/v1/admin/ambassadors
- * @desc    List all ambassadors with statistics
- * @access  SuperAdmin, Ops
+ * Ambassador management
  */
 router.get('/ambassadors', (req: Request, res: Response, next: NextFunction) => {
   void ambassadorController.listAmbassadors(req, res, next);
 });
-
-/**
- * @route   PATCH /api/v1/admin/ambassadors/:userId/payout
- * @desc    Record payout for ambassador
- * @access  SuperAdmin, Ops
- */
 router.patch('/ambassadors/:userId/payout', (req: Request, res: Response, next: NextFunction) => {
   void ambassadorController.confirmPayout(req, res, next);
 });
-
-/**
- * @route   PATCH /api/v1/admin/ambassadors/:userId/activate
- * @desc    Admin promotes/demotes student ambassador status
- * @access  SuperAdmin, Ops
- */
 router.patch('/ambassadors/:userId/activate', (req: Request, res: Response, next: NextFunction) => {
   void ambassadorController.toggleActivation(req, res, next);
+});
+
+/**
+ * Mentor Payouts & Availability (Admin view)
+ */
+router.get('/mentors', (req: Request, res: Response, next: NextFunction) => {
+  void mentorPayoutController.listMentors(req, res, next);
+});
+router.get('/mentors/available', (req: Request, res: Response, next: NextFunction) => {
+  void mentorPayoutController.getAvailableMentors(req, res, next);
+});
+router.get('/mentors/:mentorId', (req: Request, res: Response, next: NextFunction) => {
+  void mentorPayoutController.getMentorDetails(req, res, next);
+});
+router.get('/mentors/:mentorId/check-ins', (req: Request, res: Response, next: NextFunction) => {
+  void mentorPayoutController.getMentorCheckIns(req, res, next);
+});
+router.patch('/mentors/:mentorId/check-ins/:checkInId/verify', (req: Request, res: Response, next: NextFunction) => {
+  void mentorPayoutController.verifyCheckIn(req, res, next);
+});
+router.get('/mentors/:mentorId/payouts', (req: Request, res: Response, next: NextFunction) => {
+  void mentorPayoutController.getMentorPayouts(req, res, next);
+});
+router.get('/mentor-payouts', (req: Request, res: Response, next: NextFunction) => {
+  void mentorPayoutController.getGlobalPayoutOverview(req, res, next);
+});
+router.get('/mentors/:mentorId/availability', (req: Request, res: Response, next: NextFunction) => {
+  void mentorPayoutController.getMentorAvailability(req, res, next);
+});
+
+// Payout processing requires SuperAdmin privilege
+router.post('/mentors/:mentorId/payout', authorize([UserRole.SUPER_ADMIN]), (req: Request, res: Response, next: NextFunction) => {
+  void mentorPayoutController.recordPayout(req, res, next);
+});
+
+/**
+ * Student Attendance Management
+ */
+router.post('/attendance', (req: Request, res: Response, next: NextFunction) => {
+  void attendanceController.markAttendance(req, res, next);
+});
+router.get('/attendance', (req: Request, res: Response, next: NextFunction) => {
+  void attendanceController.listAttendance(req, res, next);
+});
+router.get('/attendance/batch/:batchId/summary', (req: Request, res: Response, next: NextFunction) => {
+  void attendanceController.getBatchAttendanceSummary(req, res, next);
+});
+
+/**
+ * Revenue Report (SuperAdmin only)
+ */
+router.get('/revenue', authorize([UserRole.SUPER_ADMIN]), (req: Request, res: Response, next: NextFunction) => {
+  void analyticsController.getRevenueReport(req, res, next);
+});
+
+/**
+ * General Analytics & Audit Logs
+ */
+router.get('/analytics', (req: Request, res: Response, next: NextFunction) => {
+  void analyticsController.getAnalyticsOverview(req, res, next);
+});
+router.get('/audit-logs', (req: Request, res: Response, next: NextFunction) => {
+  void auditLogController.getAuditLogs(req, res, next);
+});
+
+/**
+ * Course Admin CRUD
+ */
+router.post('/courses', (req: Request, res: Response, next: NextFunction) => {
+  void courseAdminController.createCourse(req, res, next);
+});
+router.put('/courses/:id', (req: Request, res: Response, next: NextFunction) => {
+  void courseAdminController.updateCourse(req, res, next);
+});
+router.delete('/courses/:id', (req: Request, res: Response, next: NextFunction) => {
+  void courseAdminController.deleteCourse(req, res, next);
+});
+router.patch('/courses/:id/publish', (req: Request, res: Response, next: NextFunction) => {
+  void courseAdminController.publishCourse(req, res, next);
+});
+
+/**
+ * Training Program Admin CRUD
+ */
+router.post('/training-programs', (req: Request, res: Response, next: NextFunction) => {
+  void trainingProgramAdminController.createTrainingProgram(req, res, next);
+});
+router.put('/training-programs/:id', (req: Request, res: Response, next: NextFunction) => {
+  void trainingProgramAdminController.updateTrainingProgram(req, res, next);
+});
+router.delete('/training-programs/:id', (req: Request, res: Response, next: NextFunction) => {
+  void trainingProgramAdminController.deleteTrainingProgram(req, res, next);
+});
+
+/**
+ * Event Admin CRUD
+ */
+router.post('/events', (req: Request, res: Response, next: NextFunction) => {
+  void eventAdminController.createEvent(req, res, next);
+});
+router.put('/events/:id', (req: Request, res: Response, next: NextFunction) => {
+  void eventAdminController.updateEvent(req, res, next);
+});
+router.delete('/events/:id', (req: Request, res: Response, next: NextFunction) => {
+  void eventAdminController.deleteEvent(req, res, next);
+});
+
+/**
+ * College Admin CRUD
+ */
+router.get('/colleges', (req: Request, res: Response, next: NextFunction) => {
+  void collegeAdminController.listColleges(req, res, next);
+});
+router.put('/colleges/:id', (req: Request, res: Response, next: NextFunction) => {
+  void collegeAdminController.updateCollege(req, res, next);
+});
+router.delete('/colleges/:id', (req: Request, res: Response, next: NextFunction) => {
+  void collegeAdminController.deleteCollege(req, res, next);
+});
+
+/**
+ * Employer Admin CRUD
+ */
+router.get('/employers', (req: Request, res: Response, next: NextFunction) => {
+  void employerAdminController.listEmployers(req, res, next);
+});
+router.put('/employers/:id', (req: Request, res: Response, next: NextFunction) => {
+  void employerAdminController.updateEmployer(req, res, next);
+});
+router.delete('/employers/:id', (req: Request, res: Response, next: NextFunction) => {
+  void employerAdminController.deleteEmployer(req, res, next);
+});
+
+/**
+ * Image upload with local fallback
+ */
+router.post('/upload', upload.single('file'), (req: Request, res: Response, next: NextFunction) => {
+  void uploadController.uploadImage(req, res, next);
 });
 
 export default router;

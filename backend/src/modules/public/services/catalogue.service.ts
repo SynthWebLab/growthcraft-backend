@@ -33,6 +33,11 @@ export class CatalogueService {
     queryParams: CatalogueQueryParams
   ): Promise<CataloguePaginatedResponse> {
     try {
+      // Normalize type to lowercase so frontend Title Case values (e.g. "Bootcamp") work correctly
+      if (queryParams.type) {
+        queryParams = { ...queryParams, type: queryParams.type.toLowerCase() as any };
+      }
+
       // Debug logging
       logger.info(`Query params received: ${JSON.stringify(queryParams)}`);
       

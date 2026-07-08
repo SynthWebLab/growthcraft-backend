@@ -12,6 +12,7 @@ import {
   IBatch,
   User,
 } from '@/database/models';
+import { notificationService } from '@/modules/notifications/services/notification.service';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { generateBatchCode } from '../utils/generate-batch-code.util';
@@ -34,6 +35,7 @@ export interface UpdateBatchInput {
   venue?: string;
   capacity?: number;
   status?: BatchStatus;
+  fee?: number;
 }
 
 export interface ListBatchesQuery {
@@ -458,6 +460,11 @@ export class BatchService {
       batch.capacity = input.capacity;
     }
 
+    // Update fee if provided
+    if (input.fee !== undefined) {
+      batch.fee = mongoose.Types.Decimal128.fromString(input.fee.toString()) as any;
+    }
+
     await batch.save();
     logger.info(`Batch updated: ${batch.code} (${batch._id})`);
 
@@ -496,17 +503,17 @@ export class BatchService {
     await batch.save();
 
     // Create notification for mentor
-    await Notification.create({
-      type: 'batch.assigned',
-      userId: mentorId,
-      data: {
+    try {
+      await notificationService.createNotification(mentorId, 'batch.assigned', {
         batchId: batch._id,
         batchCode: batch.code,
         startDate: batch.startDate,
         endDate: batch.endDate,
         batchType: batch.batchType,
-      },
-    });
+      });
+    } catch (err) {
+      logger.error(`Failed to trigger notification for mentor ${mentorId}:`, err);
+    }
 
     logger.info(`Mentor ${mentorId} assigned to batch ${batch.code} (${batch._id})`);
 
@@ -546,17 +553,21 @@ export class BatchService {
     await batch.save();
 
     for (const mentor of profiles) {
-      await Notification.create({
-        type: 'batch.assigned',
-        userId: mentor.userId.toString(),
-        data: {
-          batchId: batch._id,
-          batchCode: batch.code,
-          startDate: batch.startDate,
-          endDate: batch.endDate,
-          batchType: batch.batchType,
-        },
-      });
+      try {
+        await notificationService.createNotification(
+          mentor.userId.toString(),
+          'batch.assigned',
+          {
+            batchId: batch._id,
+            batchCode: batch.code,
+            startDate: batch.startDate,
+            endDate: batch.endDate,
+            batchType: batch.batchType,
+          }
+        );
+      } catch (err) {
+        logger.error(`Failed to trigger notification for mentor ${mentor.userId}:`, err);
+      }
     }
 
     logger.info(`Mentors [${mentorIds.join(', ')}] assigned to batch ${batch.code} (${batch._id})`);

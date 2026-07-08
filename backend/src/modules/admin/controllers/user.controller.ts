@@ -5,7 +5,7 @@ import { UserRole } from '@/common/constants/user.constants';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
 import { logger } from '@/common/utils/logger.util';
-import { User } from '@/database/models';
+import { User, StudentProfile } from '@/database/models';
 
 const listUsersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
@@ -45,9 +45,19 @@ export class UserController {
       const filter: any = {};
 
       if (role) {
-        // Support both uppercase and lowercase role values
         const normalizedRole = role.toLowerCase();
-        filter.role = { $regex: new RegExp(`^${normalizedRole}$`, 'i') };
+        if (normalizedRole === 'ambassador') {
+          // Find all student profiles who are ambassadors
+          const ambassadorProfiles = await StudentProfile.find({ isAmbassador: true }).select('userId').lean().exec();
+          const ambassadorUserIds = ambassadorProfiles.map(p => p.userId);
+          filter._id = { $in: ambassadorUserIds };
+        } else if (normalizedRole === 'admin') {
+          // Find all administrators (super_admin and ops)
+          filter.role = { $in: [UserRole.SUPER_ADMIN, UserRole.OPS] };
+        } else {
+          // Support both uppercase and lowercase role values
+          filter.role = { $regex: new RegExp(`^${normalizedRole}$`, 'i') };
+        }
       }
 
       if (search) {
@@ -69,9 +79,27 @@ export class UserController {
         User.countDocuments(filter).exec(),
       ]);
 
+      // Populate isAmbassador flag for student users
+      const studentUserIds = users.filter(u => u.role === UserRole.STUDENT).map(u => u._id);
+      const ambassadorProfilesMap = new Map();
+      if (studentUserIds.length > 0) {
+        const studentProfiles = await StudentProfile.find({
+          userId: { $in: studentUserIds }
+        }).select('userId isAmbassador').lean().exec();
+        
+        studentProfiles.forEach(p => {
+          ambassadorProfilesMap.set(String(p.userId), p.isAmbassador);
+        });
+      }
+
+      const usersWithAmbassadorFlag = users.map(u => ({
+        ...u,
+        isAmbassador: u.role === UserRole.STUDENT ? !!ambassadorProfilesMap.get(String(u._id)) : false
+      }));
+
       SuccessResponseHelper.paginated(
         res,
-        users,
+        usersWithAmbassadorFlag,
         {
           page,
           limit,
@@ -109,6 +137,48 @@ export class UserController {
       SuccessResponseHelper.ok(res, { user }, 'User retrieved successfully');
     } catch (error: any) {
       logger.error('Get user by ID controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * PATCH /api/v1/admin/users/:id/status
+   * Toggle activation/suspension of user
+   */
+  public async updateUserStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw ValidationError.forField('id', 'Invalid user ID format');
+      }
+
+      if (isActive === undefined || typeof isActive !== 'boolean') {
+        throw new ValidationError('isActive boolean is required in request body');
+      }
+
+      const user = await User.findById(id).exec();
+      if (!user) {
+        throw ValidationError.forField('id', 'User not found');
+      }
+
+      user.isActive = isActive;
+      await user.save();
+
+      // Write AuditLog
+      const { auditLogService } = await import('../services/audit-log.service');
+      await auditLogService.log(
+        req.user!.userId,
+        isActive ? 'user.activate' : 'user.suspend',
+        id,
+        { email: user.email, role: user.role },
+        req.ip
+      );
+
+      SuccessResponseHelper.ok(res, { isActive: user.isActive }, `User status updated successfully`);
+    } catch (error: any) {
+      logger.error('Update user status controller error:', error);
       next(error);
     }
   }

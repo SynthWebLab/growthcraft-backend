@@ -4,6 +4,7 @@ import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { logger } from '@/common/utils/logger.util';
 import { UserRole } from '@/common/constants/user.constants';
+import { notificationService } from '@/modules/notifications/services/notification.service';
 
 export interface CreateEnrollmentInput {
   studentUserId: string;
@@ -117,6 +118,21 @@ export class EnrollmentService {
       logger.info(
         `Enrollment created: Student ${input.studentUserId} enrolled in batch ${batch.code}`
       );
+
+      // Trigger notification for student
+      try {
+        await notificationService.createNotification(
+          input.studentUserId,
+          'enrollment.created',
+          {
+            batchId: batch._id,
+            batchCode: batch.code,
+            feeQuoted: input.feeQuoted,
+          }
+        );
+      } catch (err) {
+        logger.error('Failed to trigger enrollment creation notification:', err);
+      }
 
       // Generate payment link if Razorpay payment method is specified
       let paymentLink: PaymentLink | undefined;

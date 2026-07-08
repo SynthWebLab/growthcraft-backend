@@ -4,6 +4,7 @@ import { databaseConfig } from './config/database.config';
 import { redisConfig } from './config/redis.config';
 import { logger } from './common/utils/logger.util';
 import { initializeJobs, shutdownJobs } from './jobs';
+import { socketService } from './modules/notifications/services/socket.service';
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error: Error) => {
@@ -50,6 +51,9 @@ const startServer = async () => {
       logger.info(`Environment: ${config.NODE_ENV}`);
       logger.info(`Health check: http://localhost:${config.PORT}/health`);
     });
+
+    // Initialize Socket.io
+    socketService.init(server);
 
     // Graceful shutdown
     const gracefulShutdown = (signal: string) => {
