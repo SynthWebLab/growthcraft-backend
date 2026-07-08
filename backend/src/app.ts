@@ -14,6 +14,9 @@ import { apiLimiter } from './common/middleware/rate-limiter.middleware';
 import routes from './routes/v1';
 import { swaggerSpec } from './config/swagger.config';
 import swaggerOutputAuto from './config/swagger-output.json';
+import mongoSanitize from 'express-mongo-sanitize';
+import mongoose from 'mongoose';
+import { redisConfig } from './config/redis.config';
 
 // Create Express app
 const app: Application = express();
@@ -29,6 +32,9 @@ app.use(
     credentials: true, // CRITICAL: Allow cookies to be sent
   })
 );
+
+// Prevent NoSQL query injection
+app.use(mongoSanitize());
 
 // Rate limiting middleware
 app.use('/api/', apiLimiter);
@@ -81,11 +87,22 @@ if (config.SWAGGER_ENABLED) {
 }
 
 // Health check endpoint
-app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is healthy',
+app.get('/health', async (req: Request, res: Response) => {
+  const dbConnected = mongoose.connection.readyState === 1;
+  const redisConnected = redisConfig.getConnectionStatus();
+
+  // If REDIS_URL is not set, we bypass redis connection check
+  const isHealthy = dbConnected && (!process.env.REDIS_URL || redisConnected);
+  const status = isHealthy ? 200 : 500;
+
+  res.status(status).json({
+    success: isHealthy,
+    message: isHealthy ? 'Server is healthy' : 'Server is unhealthy',
     timestamp: new Date().toISOString(),
+    services: {
+      database: dbConnected ? 'connected' : 'disconnected',
+      redis: redisConnected ? 'connected' : 'disconnected',
+    },
   });
 });
 

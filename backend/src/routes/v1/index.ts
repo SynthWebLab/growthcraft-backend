@@ -14,6 +14,7 @@ import collegeRoutes from '@/modules/colleges/routes/college.routes';
 import leadRoutes from '@/modules/leads/routes/lead.routes';
 import mentorRoutes from '@/modules/mentor/routes/mentor.routes';
 import { employerRouter, talentRouter, publicJobsRouter } from '@/modules/employers/routes/employer.routes';
+import notificationRoutes from '@/modules/notifications/routes/notification.routes';
 
 const router = Router();
 
@@ -33,6 +34,8 @@ router.use('/mentor', mentorRoutes);
 router.use('/employers', employerRouter);
 router.use('/talent', talentRouter);
 router.use('/public/jobs', publicJobsRouter);
+router.use('/notifications', notificationRoutes);
+
 
 
 // Public routes (no auth required)

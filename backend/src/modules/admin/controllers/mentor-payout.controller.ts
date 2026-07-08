@@ -11,6 +11,7 @@ import { ValidationError } from '@/common/errors/ValidationError';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
 import { auditLogService } from '../services/audit-log.service';
+import { notificationService } from '@/modules/notifications/services/notification.service';
 import { logger } from '@/common/utils/logger.util';
 
 export class MentorPayoutController {
@@ -260,6 +261,22 @@ export class MentorPayoutController {
       profile.pendingPayout = (profile.pendingPayout || 0) + earned;
       profile.totalHoursMentored = (profile.totalHoursMentored || 0) + checkIn.hoursWorked;
       await profile.save();
+
+      // Trigger notification for mentor
+      try {
+        await notificationService.createNotification(
+          mentorId,
+          'mentor.checkin.verified',
+          {
+            checkInId: checkIn._id,
+            hoursWorked: checkIn.hoursWorked,
+            earned,
+            pendingPayout: profile.pendingPayout,
+          }
+        );
+      } catch (err) {
+        logger.error('Failed to trigger check-in verification notification:', err);
+      }
 
       // Log in AuditLog
       await auditLogService.log(
