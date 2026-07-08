@@ -54,7 +54,7 @@ export class SocketService {
         }
 
         if (!token) {
-          logger.warn('Socket handshake authentication failed: No token provided');
+          logger.warn(`Socket handshake authentication failed: No token provided. CookieHeader: ${cookieHeader}`);
           return next(new Error('Authentication error: No token provided'));
         }
 
