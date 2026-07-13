@@ -164,7 +164,11 @@ export class MentorDashboardService {
       };
 
       if (query.status) {
-        filter.status = query.status;
+        if (query.status === 'Active') {
+          filter.status = { $in: ['Open', 'Filling', 'Full', 'InProgress'] };
+        } else {
+          filter.status = query.status;
+        }
       }
       if (query.batchType) {
         filter.batchType = query.batchType;

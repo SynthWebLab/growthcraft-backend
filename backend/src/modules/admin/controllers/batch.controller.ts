@@ -77,7 +77,7 @@ const listBatchesQuerySchema = z.object({
   parentType: z
     .enum(["Course", "TrainingProgram", "Bootcamp"])
     .optional()
-    .transform((val) => (val === "" ? undefined : val)),
+    .transform((val) => ((val as any) === "" ? undefined : val)),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
 });
