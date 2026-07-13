@@ -88,6 +88,13 @@ courseEnrollmentSchema.methods.toJSON = function (): Record<string, unknown> {
   return obj;
 };
 
+courseEnrollmentSchema.post('save', function (doc) {
+  if (doc.status === 'pending' || doc.status === 'confirmed') {
+    const { autoLinkBatchEnrollment } = require('@/common/utils/auto-enroll.util');
+    void autoLinkBatchEnrollment(doc.userId, doc.email, doc.courseId, 'Course');
+  }
+});
+
 export const CourseEnrollment = mongoose.model<ICourseEnrollment>(
   'CourseEnrollment',
   courseEnrollmentSchema

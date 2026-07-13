@@ -102,6 +102,13 @@ eventEnrollmentSchema.methods.toJSON = function (): Record<string, unknown> {
   return obj;
 };
 
+eventEnrollmentSchema.post('save', function (doc) {
+  if (doc.status === 'pending' || doc.status === 'confirmed') {
+    const { autoLinkBatchEnrollment } = require('@/common/utils/auto-enroll.util');
+    void autoLinkBatchEnrollment(doc.userId, doc.email, doc.eventId, 'Bootcamp');
+  }
+});
+
 export const EventEnrollment = mongoose.model<IEventEnrollment>(
   'EventEnrollment',
   eventEnrollmentSchema
