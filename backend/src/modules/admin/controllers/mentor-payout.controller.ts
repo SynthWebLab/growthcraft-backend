@@ -96,6 +96,9 @@ export class MentorPayoutController {
           ),
           pendingPayout: profile?.pendingPayout || 0,
           totalPaid: profile?.totalPayouts || 0,
+          areaOfExpertise: profile?.areaOfExpertise || 'N/A',
+          experienceYears: profile?.experienceYears || 0,
+          isVerified: profile?.isVerified || false,
         };
       });
 

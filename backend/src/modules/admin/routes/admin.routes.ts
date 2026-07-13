@@ -60,7 +60,7 @@ router.get('/users', (req: Request, res: Response, next: NextFunction) => {
 router.get('/users/:id', (req: Request, res: Response, next: NextFunction) => {
   void userController.getUserById(req, res, next);
 });
-router.patch('/users/:id/status', (req: Request, res: Response, next: NextFunction) => {
+router.patch('/users/:id/status', authorize([UserRole.SUPER_ADMIN]), (req: Request, res: Response, next: NextFunction) => {
   void userController.updateUserStatus(req, res, next);
 });
 
@@ -141,7 +141,7 @@ router.get('/revenue', authorize([UserRole.SUPER_ADMIN]), (req: Request, res: Re
 router.get('/analytics', (req: Request, res: Response, next: NextFunction) => {
   void analyticsController.getAnalyticsOverview(req, res, next);
 });
-router.get('/audit-logs', (req: Request, res: Response, next: NextFunction) => {
+router.get('/audit-logs', authorize([UserRole.SUPER_ADMIN]), (req: Request, res: Response, next: NextFunction) => {
   void auditLogController.getAuditLogs(req, res, next);
 });
 
