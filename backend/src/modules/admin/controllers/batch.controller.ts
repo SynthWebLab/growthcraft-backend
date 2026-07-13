@@ -51,26 +51,33 @@ const assignMentorsSchema = z.object({
 
 const listBatchesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(50).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
   status: z.nativeEnum(BatchStatus).optional(),
   batchType: z.nativeEnum(BatchType).optional(),
   courseId: z
     .string()
-    .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid courseId format')
-    .optional(),
+    .optional()
+    .transform((val) => (val === "" ? undefined : val))
+    .refine((val) => !val || mongoose.Types.ObjectId.isValid(val), "Invalid courseId format"),
   trainingProgramId: z
     .string()
-    .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid trainingProgramId format')
-    .optional(),
+    .optional()
+    .transform((val) => (val === "" ? undefined : val))
+    .refine((val) => !val || mongoose.Types.ObjectId.isValid(val), "Invalid trainingProgramId format"),
   bootcampId: z
     .string()
-    .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid bootcampId format')
-    .optional(),
+    .optional()
+    .transform((val) => (val === "" ? undefined : val))
+    .refine((val) => !val || mongoose.Types.ObjectId.isValid(val), "Invalid bootcampId format"),
   mentorId: z
     .string()
-    .refine((value) => mongoose.Types.ObjectId.isValid(value), 'Invalid mentorId format')
-    .optional(),
-  parentType: z.enum(['Course', 'TrainingProgram', 'Bootcamp']).optional(),
+    .optional()
+    .transform((val) => (val === "" ? undefined : val))
+    .refine((val) => !val || mongoose.Types.ObjectId.isValid(val), "Invalid mentorId format"),
+  parentType: z
+    .enum(["Course", "TrainingProgram", "Bootcamp"])
+    .optional()
+    .transform((val) => (val === "" ? undefined : val)),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
 });
