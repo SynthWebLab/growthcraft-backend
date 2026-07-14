@@ -113,6 +113,21 @@ export class StudentDashboardController {
   }
 
   /**
+   * Get student's enrolled cohort batches
+   * GET /api/v1/students/batches
+   */
+  public async getBatches(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const batches = await studentDashboardService.getBatches(userId);
+      SuccessResponseHelper.ok(res, { batches }, 'Batches retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get student batches controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
    * Get student's enrolled workshops
    * GET /api/v1/students/workshops
    */

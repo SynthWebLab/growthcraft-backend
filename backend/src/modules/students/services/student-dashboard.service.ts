@@ -681,6 +681,60 @@ export class StudentDashboardService {
       throw error;
     }
   }
+
+  /**
+   * Get cohort batches enrolled by student
+   */
+  public async getBatches(userId: string): Promise<any[]> {
+    try {
+      const Enrollment = mongoose.model('Enrollment');
+      const Batch = mongoose.model('Batch');
+      
+      const enrollments = await Enrollment.find({ studentUserId: userId }).exec();
+      const batchIds = enrollments.map((e) => e.batchId);
+
+      const batchesRaw = await Batch.find({ _id: { $in: batchIds } })
+        .populate('courseId', 'title description slug')
+        .populate('bootcampId', 'title description slug')
+        .populate('trainingProgramId', 'title description slug')
+        .exec();
+
+      const batches = [];
+      for (const b of batchesRaw) {
+        let mentorName = 'Not Assigned';
+        let mentorEmail = '';
+        if (b.assignedMentorId) {
+          const MentorProfile = mongoose.model('MentorProfile');
+          const mentorProfileObj = await MentorProfile.findById(b.assignedMentorId).populate('userId', 'firstName lastName email').exec();
+          if (mentorProfileObj && mentorProfileObj.userId) {
+            const mUser = mentorProfileObj.userId as any;
+            mentorName = `${mUser.firstName} ${mUser.lastName}`;
+            mentorEmail = mUser.email;
+          }
+        }
+
+        batches.push({
+          id: b._id.toString(),
+          code: b.code,
+          batchType: b.batchType,
+          mode: b.mode,
+          venue: b.venue || 'TBD',
+          startDate: b.startDate,
+          endDate: b.endDate,
+          status: b.status,
+          title: (b.courseId as any)?.title || (b.bootcampId as any)?.title || (b.trainingProgramId as any)?.title || 'Program',
+          description: (b.courseId as any)?.description || (b.bootcampId as any)?.description || (b.trainingProgramId as any)?.description || '',
+          mentorName,
+          mentorEmail,
+        });
+      }
+
+      return batches;
+    } catch (error: any) {
+      logger.error('Get student batches service error:', error);
+      throw error;
+    }
+  }
 }
 
 export const studentDashboardService = StudentDashboardService.getInstance();

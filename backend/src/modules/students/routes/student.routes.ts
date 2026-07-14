@@ -145,6 +145,10 @@ router.get('/bootcamps', (req: Request, res: Response, next: NextFunction) => {
   void studentDashboardController.getBootcamps(req, res, next);
 });
 
+router.get('/batches', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.getBatches(req, res, next);
+});
+
 /**
  * @swagger
  * /students/workshops:
