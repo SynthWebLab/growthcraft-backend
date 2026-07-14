@@ -14,6 +14,15 @@ export async function backfillEnrollmentBatches() {
     const Course = mongoose.model('Course');
     const TrainingProgram = mongoose.model('TrainingProgram');
     const EventEnrollment = mongoose.model('EventEnrollment');
+    const Batch = mongoose.model('Batch');
+    const Enrollment = mongoose.model('Enrollment');
+
+    // Clean up previous auto-created batches and enrollments that had dead/missing bootcamp IDs
+    const deletedBatches = await Batch.find({ code: /AUTO/ }).exec();
+    const deletedBatchIds = deletedBatches.map(b => b._id);
+    await Enrollment.deleteMany({ batchId: { $in: deletedBatchIds } }).exec();
+    await Batch.deleteMany({ _id: { $in: deletedBatchIds } }).exec();
+    logger.info(`Cleaned up ${deletedBatches.length} legacy auto-created batches and associated enrollments.`);
 
     // 1. Backfill EventEnrollments (Bootcamps, Workshops, Hackathons)
     const eventEnrollments = await EventEnrollment.find({}).exec();
@@ -26,8 +35,16 @@ export async function backfillEnrollmentBatches() {
         let eventId = ee.eventId;
         let eventTitle = ee.title;
 
-        // If eventId is missing/null, try to find the Bootcamp by matching title
-        if (!eventId) {
+        let bootcampExists = false;
+        if (eventId) {
+          const exists = await Bootcamp.findById(eventId).exec();
+          if (exists) {
+            bootcampExists = true;
+          }
+        }
+
+        // If eventId is missing/null or points to a non-existent bootcamp, try to find it by matching title
+        if (!eventId || !bootcampExists) {
           // Clean title name (e.g. "Game Development with Unity — Batch 1" -> "Game Development with Unity")
           const cleanTitle = eventTitle.split(/[—\-\–]/)[0].trim();
           
@@ -39,7 +56,7 @@ export async function backfillEnrollmentBatches() {
             eventId = matchingBootcamp._id;
             ee.eventId = matchingBootcamp._id;
             await ee.save();
-            logger.info(`Resolved missing eventId for enrollment ${ee._id} using title matching: "${matchingBootcamp.title}"`);
+            logger.info(`Resolved missing/dead eventId for enrollment ${ee._id} using title matching: "${matchingBootcamp.title}"`);
           } else {
             // Check if there is a general fallback bootcamp
             const fallbackBootcamp = await Bootcamp.findOne({}).exec();
@@ -47,7 +64,7 @@ export async function backfillEnrollmentBatches() {
               eventId = fallbackBootcamp._id;
               ee.eventId = fallbackBootcamp._id;
               await ee.save();
-              logger.info(`Resolved missing eventId for enrollment ${ee._id} using fallback bootcamp: "${fallbackBootcamp.title}"`);
+              logger.info(`Resolved missing/dead eventId for enrollment ${ee._id} using fallback bootcamp: "${fallbackBootcamp.title}"`);
             }
           }
         }
