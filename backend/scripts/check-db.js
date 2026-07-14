@@ -9,21 +9,21 @@ async function run() {
 
   const db = mongoose.connection.db;
 
-  const users = await db.collection('users').find({}).toArray();
-  console.log('=== USERS ===');
-  console.log(users.map(u => ({ id: u._id, name: u.fullName, email: u.email, role: u.role })));
+  const bootcamps = await db.collection('bootcamps').find({}).toArray();
+  console.log('=== BOOTCAMPS ===');
+  console.log(bootcamps.map(b => ({ id: b._id, title: b.title, status: b.status })));
 
-  const employers = await db.collection('employerprofiles').find({}).toArray();
-  console.log('=== EMPLOYERS ===');
-  console.log(employers.map(e => ({ id: e._id, userId: e.userId, companyName: e.companyName })));
+  const batches = await db.collection('batches').find({}).toArray();
+  console.log('=== BATCHES ===');
+  console.log(batches.map(b => ({ id: b._id, code: b.code, status: b.status, bootcampId: b.bootcampId, courseId: b.courseId })));
 
-  const jobs = await db.collection('jobpostings').find({}).toArray();
-  console.log('=== JOBS ===');
-  console.log(jobs.map(j => ({ id: j._id, title: j.title, hiringPartnerId: j.hiringPartnerId, status: j.status })));
+  const enrollments = await db.collection('enrollments').find({}).toArray();
+  console.log('=== unified ENROLLMENTS ===');
+  console.log(enrollments.map(e => ({ id: e._id, studentUserId: e.studentUserId, batchId: e.batchId, status: e.status })));
 
-  const apps = await db.collection('jobapplications').find({}).toArray();
-  console.log('=== APPLICATIONS ===');
-  console.log(apps.map(a => ({ id: a._id, jobId: a.jobId, studentId: a.studentId, status: a.status })));
+  const eventEnrollments = await db.collection('eventenrollments').find({}).toArray();
+  console.log('=== EVENT ENROLLMENTS ===');
+  console.log(eventEnrollments.map(e => ({ id: e._id, email: e.email, eventId: e.eventId, title: e.title, status: e.status })));
 
   await mongoose.disconnect();
 }

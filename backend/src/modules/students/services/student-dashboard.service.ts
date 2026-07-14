@@ -93,20 +93,62 @@ export class StudentDashboardService {
 
       const email = user.email.toLowerCase().trim();
 
+      // Find all distinct userIds currently associated with this email in parent enrollments
+      const [courses, events, programs] = await Promise.all([
+        CourseEnrollment.find({ email }).select('userId').lean().exec(),
+        EventEnrollment.find({ email }).select('userId').lean().exec(),
+        TrainingProgramEnrollment.find({ email }).select('userId').lean().exec(),
+      ]);
+
+      const oldUserIds = new Set<string>();
+      const allParentEnrollments = [...courses, ...events, ...programs];
+      for (const e of allParentEnrollments) {
+        if (e.userId && e.userId.toString() !== userId) {
+          oldUserIds.add(e.userId.toString());
+        }
+      }
+
+      // Update parent enrollments to have the correct userId
       await Promise.all([
         CourseEnrollment.updateMany(
-          { email, userId: { $exists: false } },
+          { email },
           { $set: { userId } }
         ),
         EventEnrollment.updateMany(
-          { email, userId: { $exists: false } },
+          { email },
           { $set: { userId } }
         ),
         TrainingProgramEnrollment.updateMany(
-          { email, userId: { $exists: false } },
+          { email },
           { $set: { userId } }
         ),
       ]);
+
+      // Update operational batch enrollments for any old/guest user IDs
+      if (oldUserIds.size > 0) {
+        const Enrollment = mongoose.model('Enrollment');
+        
+        for (const oldId of oldUserIds) {
+          const oldEnrollments = await Enrollment.find({ studentUserId: oldId }).exec();
+          
+          for (const e of oldEnrollments) {
+            const duplicate = await Enrollment.findOne({
+              studentUserId: userId,
+              batchId: e.batchId
+            }).exec();
+
+            if (duplicate) {
+              await Enrollment.deleteOne({ _id: e._id });
+            } else {
+              await Enrollment.updateOne(
+                { _id: e._id },
+                { $set: { studentUserId: userId } }
+              );
+            }
+          }
+        }
+      }
+
       return email;
     } catch (error) {
       logger.error('Error linking student enrollments by email:', error);
@@ -689,11 +731,34 @@ export class StudentDashboardService {
     try {
       const Enrollment = mongoose.model('Enrollment');
       const Batch = mongoose.model('Batch');
+
+      // 1. Get student's active course, event, and training program enrollments
+      const email = await this.linkEnrollmentsByEmail(userId);
+      const emailFilter = email ? { $or: [{ userId }, { email }] } : { userId };
+
+      const [activeCourses, activeEvents, activePrograms] = await Promise.all([
+        CourseEnrollment.find({ ...emailFilter, status: { $in: ['confirmed', 'pending'] } }).select('courseId').lean().exec(),
+        EventEnrollment.find({ ...emailFilter, status: { $in: ['confirmed', 'pending'] } }).select('eventId').lean().exec(),
+        TrainingProgramEnrollment.find({ ...emailFilter, status: { $in: ['confirmed', 'pending'] } }).select('programId').lean().exec(),
+      ]);
+
+      const activeCourseIds = new Set(activeCourses.map((c: any) => c.courseId.toString()));
+      const activeEventIds = new Set(activeEvents.map((e: any) => e.eventId.toString()));
+      const activeProgramIds = new Set(activePrograms.map((p: any) => p.programId.toString()));
+
+      // 2. Get student's operational batch enrollments (only Confirmed or Pending)
+      const enrollments = await Enrollment.find({
+        studentUserId: userId,
+        status: { $in: ['Confirmed', 'Pending'] }
+      }).exec();
       
-      const enrollments = await Enrollment.find({ studentUserId: userId }).exec();
       const batchIds = enrollments.map((e) => e.batchId);
 
-      const batchesRaw = await Batch.find({ _id: { $in: batchIds } })
+      // 3. Fetch batches that are not cancelled
+      const batchesRaw = await Batch.find({
+        _id: { $in: batchIds },
+        status: { $ne: 'Cancelled' }
+      })
         .populate('courseId', 'title description slug')
         .populate('bootcampId', 'title description slug')
         .populate('trainingProgramId', 'title description slug')
@@ -701,6 +766,19 @@ export class StudentDashboardService {
 
       const batches = [];
       for (const b of batchesRaw) {
+        // Verify that the batch belongs to an active course, event, or program enrollment
+        const courseIdStr = b.courseId?._id?.toString() || b.courseId?.toString();
+        const bootcampIdStr = b.bootcampId?._id?.toString() || b.bootcampId?.toString();
+        const programIdStr = b.trainingProgramId?._id?.toString() || b.trainingProgramId?.toString();
+
+        const isCourseActive = courseIdStr && activeCourseIds.has(courseIdStr);
+        const isEventActive = bootcampIdStr && activeEventIds.has(bootcampIdStr);
+        const isProgramActive = programIdStr && activeProgramIds.has(programIdStr);
+
+        if (!isCourseActive && !isEventActive && !isProgramActive) {
+          continue; // Skip this batch if the parent course/event/program is not active for the student
+        }
+
         let mentorName = 'Not Assigned';
         let mentorEmail = '';
         if (b.assignedMentorId) {

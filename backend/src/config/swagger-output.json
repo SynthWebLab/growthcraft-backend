@@ -1745,6 +1745,16 @@
         }
       }
     },
+    "/api/v1/students/batches": {
+      "get": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/api/v1/students/workshops": {
       "get": {
         "description": "",
