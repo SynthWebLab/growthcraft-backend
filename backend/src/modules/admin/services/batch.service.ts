@@ -484,13 +484,14 @@ export class BatchService {
       throw ValidationError.forField('mentorId', 'Invalid mentor ID format');
     }
 
-    const [batch, mentor] = await Promise.all([
-      Batch.findById(id).exec(),
-      MentorProfile.findById(mentorId).exec(),
-    ]);
-
+    const batch = await Batch.findById(id).exec();
     if (!batch) {
       throw NotFoundError.resource('Batch');
+    }
+
+    let mentor = await MentorProfile.findById(mentorId).exec();
+    if (!mentor) {
+      mentor = await MentorProfile.findOne({ userId: mentorId }).exec();
     }
 
     if (!mentor) {
@@ -504,7 +505,7 @@ export class BatchService {
 
     // Create notification for mentor
     try {
-      await notificationService.createNotification(mentorId, 'batch.assigned', {
+      await notificationService.createNotification(mentor.userId.toString(), 'batch.assigned', {
         batchId: batch._id,
         batchCode: batch.code,
         startDate: batch.startDate,
@@ -512,10 +513,10 @@ export class BatchService {
         batchType: batch.batchType,
       });
     } catch (err) {
-      logger.error(`Failed to trigger notification for mentor ${mentorId}:`, err);
+      logger.error(`Failed to trigger notification for mentor ${mentor.userId}:`, err);
     }
 
-    logger.info(`Mentor ${mentorId} assigned to batch ${batch.code} (${batch._id})`);
+    logger.info(`Mentor ${mentor._id} (User: ${mentor.userId}) assigned to batch ${batch.code} (${batch._id})`);
 
     return batch;
   }

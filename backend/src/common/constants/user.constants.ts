@@ -69,6 +69,8 @@ export const ROLE_PERMISSIONS = {
     'manage:courses',
     'manage:bootcamps',
     'manage:training_programs',
+    'manage:mentors',
+    'manage:attendance',
     'read:analytics',
     'manage:enrollments',
   ],

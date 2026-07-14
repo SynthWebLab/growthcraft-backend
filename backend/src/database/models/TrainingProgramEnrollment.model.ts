@@ -90,6 +90,13 @@ trainingProgramEnrollmentSchema.methods.toJSON = function (): Record<string, unk
   return obj;
 };
 
+trainingProgramEnrollmentSchema.post('save', function (doc) {
+  if (doc.status === 'pending' || doc.status === 'confirmed') {
+    const { autoLinkBatchEnrollment } = require('@/common/utils/auto-enroll.util');
+    void autoLinkBatchEnrollment(doc.userId, doc.email, doc.programId, 'TrainingProgram');
+  }
+});
+
 export const TrainingProgramEnrollment = mongoose.model<ITrainingProgramEnrollment>(
   'TrainingProgramEnrollment',
   trainingProgramEnrollmentSchema
