@@ -617,13 +617,13 @@ export class AuthController {
         return;
       }
 
-      const { token, newPassword } = req.body;
+      const { email, otp, newPassword } = req.body;
 
-      if (!token || !newPassword) {
+      if (!email || !otp || !newPassword) {
         res.status(400).json({
           success: false,
           error: {
-            message: 'Token and new password are required',
+            message: 'Email, verification code (OTP), and new password are required',
             code: 'MISSING_FIELDS',
           },
         });
@@ -641,7 +641,7 @@ export class AuthController {
         return;
       }
 
-      await authService.resetPassword(token, newPassword);
+      await authService.resetPassword(email, otp, newPassword);
 
       res.status(200).json({
         success: true,
@@ -650,12 +650,12 @@ export class AuthController {
     } catch (error: any) {
       logger.error('Password reset controller error:', error);
 
-      if (error.message === 'Invalid or expired reset token') {
+      if (error.message === 'Invalid or expired verification code') {
         res.status(400).json({
           success: false,
           error: {
             message: error.message,
-            code: 'INVALID_TOKEN',
+            code: 'INVALID_OTP',
           },
         });
         return;

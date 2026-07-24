@@ -678,17 +678,17 @@ export class AuthService {
         return;
       }
 
-      // Generate reset token
-      const resetToken = generateVerificationToken();
-      const hashedToken = hashToken(resetToken);
+      // Generate 6-digit OTP
+      const otp = generateOTP();
+      const hashedToken = hashToken(otp);
 
       user.passwordResetToken = hashedToken;
-      user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
       await user.save();
 
       // Send password reset email
       try {
-        await emailService.sendPasswordResetEmail(user.email, resetToken, user.fullName);
+        await emailService.sendPasswordResetEmail(user.email, otp, user.fullName);
       } catch (emailError) {
         if (config.NODE_ENV === 'development') {
           logger.warn(`[DEVELOPMENT ONLY] Failed to send password reset email: ${(emailError as any).message}`);
@@ -697,24 +697,25 @@ export class AuthService {
         }
       }
 
-      logger.info(`Password reset email sent to: ${user.email}`);
+      logger.info(`Password reset OTP email sent to: ${user.email}`);
     } catch (error: any) {
       logger.error('Password reset request error:', error);
       throw error;
     }
   }
 
-  public async resetPassword(token: string, newPassword: string): Promise<void> {
+  public async resetPassword(email: string, otp: string, newPassword: string): Promise<void> {
     try {
-      const hashedToken = hashToken(token);
+      const hashedToken = hashToken(otp);
 
       const user = await User.findOne({
+        email: email.toLowerCase().trim(),
         passwordResetToken: hashedToken,
         passwordResetExpires: { $gt: Date.now() },
       }).select('+passwordResetToken +passwordResetExpires +password');
 
       if (!user) {
-        throw new Error('Invalid or expired reset token');
+        throw new Error('Invalid or expired verification code');
       }
 
       user.password = newPassword;

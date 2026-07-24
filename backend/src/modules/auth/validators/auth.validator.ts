@@ -236,12 +236,22 @@ export class AuthValidator {
 
   public static resetPassword(): ValidationChain[] {
     return [
-      body('token')
+      body('email')
         .trim()
         .notEmpty()
-        .withMessage('Reset token is required')
-        .isLength({ min: 32 })
-        .withMessage('Invalid reset token format'),
+        .withMessage('Email is required')
+        .isEmail()
+        .withMessage('Please provide a valid email')
+        .normalizeEmail(),
+
+      body('otp')
+        .trim()
+        .notEmpty()
+        .withMessage('Verification OTP is required')
+        .isLength({ min: 6, max: 6 })
+        .withMessage('OTP must be exactly 6 digits')
+        .isNumeric()
+        .withMessage('OTP must contain only numbers'),
 
       // Use centralized password validation
       PasswordValidator.passwordRules('newPassword'),
