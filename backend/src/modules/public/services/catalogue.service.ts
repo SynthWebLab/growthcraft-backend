@@ -15,7 +15,7 @@ import mongoose from 'mongoose';
 export class CatalogueService {
   private static instance: CatalogueService;
   private readonly CACHE_TTL = 300; // 5 minutes
-  private readonly CACHE_VERSION = 'cta-v5';
+  private readonly CACHE_VERSION = 'cta-v6';
 
   private constructor() {}
 
@@ -246,7 +246,7 @@ export class CatalogueService {
 
     this.applyCursorFilter(filter, queryParams.cursor, sortBy, sortOrder);
 
-    const sort: any = { [sortBy]: sortOrder, _id: sortOrder };
+    const sort: any = { isFeatured: -1, [sortBy]: sortOrder, _id: sortOrder };
     if (queryParams.search && queryParams.search.trim()) {
       sort.score = { $meta: 'textScore' };
     }
@@ -413,6 +413,8 @@ export class CatalogueService {
       mentorNames: bootcamp.mentorNames,
       duration: bootcamp.duration,
       status: bootcamp.status,
+      isFeatured: Boolean(bootcamp.isFeatured),
+      mentors: (bootcamp as any).mentors || [],
       canRegister: bootcamp.canRegister(),
       primaryCTA: bootcamp.getPrimaryCTA(),
       secondaryCTA: bootcamp.getSecondaryCTA(),

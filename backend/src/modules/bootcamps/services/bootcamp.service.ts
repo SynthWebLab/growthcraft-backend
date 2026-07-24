@@ -22,7 +22,7 @@ export interface BootcampQueryParams {
 export class BootcampService {
   private static instance: BootcampService;
   private readonly CACHE_TTL = 300; // 5 minutes
-  private readonly CACHE_VERSION = 'cta-v4';
+  private readonly CACHE_VERSION = 'cta-v6';
 
   private constructor() {}
 
@@ -76,6 +76,7 @@ export class BootcampService {
 
       // Build sort query
       const sort: Record<string, 1 | -1 | any> = {
+        isFeatured: -1,
         [sortBy]: sortOrder,
         _id: sortOrder,
       };

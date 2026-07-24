@@ -250,6 +250,7 @@ const hackathonSeeds = [
     mode: 'Hybrid' as const,
     status: 'Open' as const,
     isPublished: true,
+    isFeatured: true,
     isActive: true,
     publishedAt: new Date('2026-07-15'),
     skillsCovered: ['React', 'Node.js', 'PostgreSQL', 'Flutter', 'Firebase'],

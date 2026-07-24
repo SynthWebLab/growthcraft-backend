@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
-import { Bootcamp, EventType } from '@/database/models';
+import { Bootcamp, EventType, User, MentorProfile } from '@/database/models';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
 import { auditLogService } from '../services/audit-log.service';
+import { catalogueService } from '@/modules/public/services/catalogue.service';
 import { logger } from '@/common/utils/logger.util';
 
 // Helper to slugify title
@@ -17,6 +18,43 @@ const slugify = (text: string): string => {
     .replace(/\-\-+/g, '-')
     .replace(/^-+/, '')
     .replace(/-+$/, '');
+};
+
+// Helper to resolve real mentors from mentorIds array or input
+const resolveMentors = async (mentorIds?: string[], mentorsInput?: any[]): Promise<any[]> => {
+  let resolvedMentors: any[] = [];
+  if (Array.isArray(mentorsInput) && mentorsInput.length > 0) {
+    resolvedMentors = mentorsInput.map((m) => ({
+      userId: m.userId || m.id || undefined,
+      mentorProfileId: m.mentorProfileId || undefined,
+      name: m.name || m.fullName || 'GrowthCraft Mentor',
+      avatar: m.avatar || '',
+      designation: m.designation || m.currentOrganization || m.areaOfExpertise || '',
+      areaOfExpertise: m.areaOfExpertise || '',
+      bio: m.bio || '',
+    }));
+  } else if (Array.isArray(mentorIds) && mentorIds.length > 0) {
+    const validIds = mentorIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validIds.length > 0) {
+      const users = await User.find({ _id: { $in: validIds } }).select('fullName email avatar').exec();
+      const profiles = await MentorProfile.find({ userId: { $in: validIds } }).exec();
+      const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
+
+      resolvedMentors = users.map((u) => {
+        const p = profileMap.get(u._id.toString());
+        return {
+          userId: u._id,
+          mentorProfileId: p?._id,
+          name: u.fullName || u.email,
+          avatar: (u as any).avatar || '',
+          designation: p?.currentOrganization || p?.areaOfExpertise || '',
+          areaOfExpertise: p?.areaOfExpertise || '',
+          bio: p?.bio || '',
+        };
+      });
+    }
+  }
+  return resolvedMentors;
 };
 
 export class EventAdminController {
@@ -32,21 +70,60 @@ export class EventAdminController {
   }
 
   /**
+   * GET /api/v1/admin/events
+   * List all events for admin dashboard
+   */
+  public async listEvents(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { page = 1, limit = 100, search } = req.query;
+      const skip = (Number(page) - 1) * Number(limit);
+
+      const query: any = { deletedAt: null };
+      if (search) {
+        query.$or = [
+          { title: { $regex: search as string, $options: 'i' } },
+          { domain: { $regex: search as string, $options: 'i' } },
+          { type: { $regex: search as string, $options: 'i' } },
+        ];
+      }
+
+      const [items, total] = await Promise.all([
+        Bootcamp.find(query).sort({ isFeatured: -1, updatedAt: -1, createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
+        Bootcamp.countDocuments(query),
+      ]);
+
+      SuccessResponseHelper.ok(
+        res,
+        {
+          items,
+          pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total,
+            totalPages: Math.ceil(total / Number(limit)),
+          },
+        },
+        'Events retrieved successfully'
+      );
+    } catch (error) {
+      logger.error('Error listing events:', error);
+      next(error);
+    }
+  }
+
+  /**
    * POST /api/v1/admin/events
    * Create an event/bootcamp
    */
   public async createEvent(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { title, type, domain, durationDays, price, startDate, endDate, maxSeats, ...otherFields } = req.body;
+      const { title, type, domain, durationDays, price, startDate, endDate, maxSeats, mentorIds, mentors, isPublished, isFeatured, ...otherFields } = req.body;
 
-      if (!title || !type || !domain || !durationDays || price === undefined || !startDate || !endDate || !maxSeats) {
-        throw new ValidationError('Title, type, domain, durationDays, price, startDate, endDate, and maxSeats are required');
+      if (!title || !domain) {
+        throw new ValidationError('Title and domain are required');
       }
 
-      if (!Object.values(EventType).includes(type)) {
-        throw new ValidationError(`Invalid event type: ${type}`);
-      }
-
+      const eventType = type && Object.values(EventType).includes(type) ? type : EventType.BOOTCAMP;
       const slug = otherFields.slug ? slugify(otherFields.slug) : slugify(title);
 
       const existing = await Bootcamp.findOne({ slug, deletedAt: null }).exec();
@@ -54,20 +131,25 @@ export class EventAdminController {
         throw new ValidationError(`Event with slug or title similar to '${slug}' already exists`);
       }
 
+      const resolvedMentors = await resolveMentors(mentorIds, mentors);
+
       const event = await Bootcamp.create({
         title,
-        type,
+        type: eventType,
         domain,
-        durationDays,
-        price,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        maxSeats,
+        durationDays: durationDays ? Number(durationDays) : 30,
+        price: price ? Number(price) : 0,
+        startDate: startDate ? new Date(startDate) : new Date(),
+        endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 86400000),
+        maxSeats: maxSeats ? Number(maxSeats) : 50,
         slug,
-        status: 'Draft',
-        isPublished: false,
+        status: isPublished ? 'Open' : 'Draft',
+        isPublished: !!isPublished,
+        isFeatured: !!isFeatured,
         isActive: true,
         enrolledCount: 0,
+        mentors: resolvedMentors,
+        mentorNames: resolvedMentors.map((m) => m.name),
         ...otherFields,
       });
 
@@ -76,9 +158,12 @@ export class EventAdminController {
         req.user!.userId,
         'event.create',
         event._id.toString(),
-        { title, type, domain, price },
+        { title, type: eventType, domain, price },
         req.ip
       );
+
+      // Invalidate catalogue cache
+      await catalogueService.clearCatalogueCache();
 
       SuccessResponseHelper.created(res, { event }, 'Event created successfully');
     } catch (error) {
@@ -121,6 +206,19 @@ export class EventAdminController {
         }
       }
 
+      if (updates.mentorIds || updates.mentors) {
+        updates.mentors = await resolveMentors(updates.mentorIds, updates.mentors);
+        updates.mentorNames = updates.mentors.map((m: any) => m.name);
+        delete updates.mentorIds;
+      }
+
+      if (updates.isPublished !== undefined) {
+        updates.status = updates.isPublished ? 'Open' : 'Draft';
+      }
+
+      if (updates.startDate) updates.startDate = new Date(updates.startDate);
+      if (updates.endDate) updates.endDate = new Date(updates.endDate);
+
       const oldValues = event.toObject();
 
       Object.assign(event, updates);
@@ -135,9 +233,58 @@ export class EventAdminController {
         req.ip
       );
 
+      // Invalidate catalogue cache
+      await catalogueService.clearCatalogueCache();
+
       SuccessResponseHelper.ok(res, { event }, 'Event updated successfully');
     } catch (error) {
       logger.error('Error updating event:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * PATCH /api/v1/admin/events/:id/publish
+   * Toggle publish status of an event
+   */
+  public async publishEvent(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ValidationError('Invalid event ID');
+      }
+
+      const event = await Bootcamp.findOne({ _id: id, deletedAt: null }).exec();
+      if (!event) {
+        throw new NotFoundError('Event not found');
+      }
+
+      event.isPublished = !event.isPublished;
+      event.status = event.isPublished ? 'Open' : 'Draft';
+      if (event.isPublished && !event.publishedAt) {
+        event.publishedAt = new Date();
+      }
+
+      await event.save();
+
+      await auditLogService.log(
+        req.user!.userId,
+        event.isPublished ? 'event.publish' : 'event.unpublish',
+        id,
+        { title: event.title, isPublished: event.isPublished },
+        req.ip
+      );
+
+      // Invalidate catalogue cache
+      await catalogueService.clearCatalogueCache();
+
+      SuccessResponseHelper.ok(
+        res,
+        { event },
+        `Event ${event.isPublished ? 'published' : 'unpublished'} successfully`
+      );
+    } catch (error) {
+      logger.error('Error toggling event publish status:', error);
       next(error);
     }
   }
@@ -172,6 +319,9 @@ export class EventAdminController {
         { title: event.title },
         req.ip
       );
+
+      // Invalidate catalogue cache
+      await catalogueService.clearCatalogueCache();
 
       SuccessResponseHelper.ok(res, null, 'Event deleted successfully');
     } catch (error) {

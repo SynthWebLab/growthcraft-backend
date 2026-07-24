@@ -186,11 +186,17 @@ router.delete('/training-programs/:id', (req: Request, res: Response, next: Next
 /**
  * Event Admin CRUD
  */
+router.get('/events', (req: Request, res: Response, next: NextFunction) => {
+  void eventAdminController.listEvents(req, res, next);
+});
 router.post('/events', (req: Request, res: Response, next: NextFunction) => {
   void eventAdminController.createEvent(req, res, next);
 });
 router.put('/events/:id', (req: Request, res: Response, next: NextFunction) => {
   void eventAdminController.updateEvent(req, res, next);
+});
+router.patch('/events/:id/publish', (req: Request, res: Response, next: NextFunction) => {
+  void eventAdminController.publishEvent(req, res, next);
 });
 router.delete('/events/:id', (req: Request, res: Response, next: NextFunction) => {
   void eventAdminController.deleteEvent(req, res, next);

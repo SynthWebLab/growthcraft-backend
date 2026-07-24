@@ -16,16 +16,28 @@ export class EventDetailsService {
   }
 
   /**
-   * Get complete event details by slug
+   * Get complete event details by slug with fallback for admin-created events
    */
   public async getEventDetailsBySlug(slug: string): Promise<Record<string, unknown>> {
     try {
-      const eventDetails = await EventDetails.findOne({ slug })
-        .populate('eventId')
-        .exec();
+      const event = await Bootcamp.findOne({ slug, deletedAt: null }).lean();
+      let eventDetails = await EventDetails.findOne({ slug }).populate('eventId').lean();
 
       if (!eventDetails) {
-        throw new NotFoundError('Event details not found', 'EVENT_DETAILS_NOT_FOUND');
+        if (!event) {
+          throw new NotFoundError('Event not found', 'EVENT_NOT_FOUND');
+        }
+        eventDetails = this.buildFallbackEventDetails(event);
+      } else if (eventDetails.eventId) {
+        // Merge base event fields if populated
+        const baseEvent = eventDetails.eventId as any;
+        if (baseEvent.mentors && baseEvent.mentors.length > 0) {
+          (eventDetails as any).mentors = baseEvent.mentors;
+        }
+      }
+
+      if (event && (event as any).mentors && (event as any).mentors.length > 0) {
+        (eventDetails as any).mentors = (event as any).mentors;
       }
 
       return this.serializeEventDetails(eventDetails);
@@ -42,13 +54,19 @@ export class EventDetailsService {
     try {
       const eventDetails = await EventDetails.findOne({ slug })
         .select('overview slug type')
-        .exec();
+        .lean();
 
-      if (!eventDetails) {
-        throw new NotFoundError('Event details not found', 'EVENT_DETAILS_NOT_FOUND');
-      }
+      if (eventDetails) return eventDetails.overview;
 
-      return eventDetails.overview;
+      const event = await Bootcamp.findOne({ slug, deletedAt: null }).lean();
+      if (!event) throw new NotFoundError('Event not found', 'EVENT_NOT_FOUND');
+
+      return {
+        aboutEvent: event.description || '',
+        whatYouWillLearn: event.skillsCovered || [],
+        prerequisites: [],
+        targetAudience: [],
+      };
     } catch (error) {
       logger.error('Get event overview error:', error);
       throw error;
@@ -62,13 +80,14 @@ export class EventDetailsService {
     try {
       const eventDetails = await EventDetails.findOne({ slug })
         .select('agenda slug type')
-        .exec();
+        .lean();
 
-      if (!eventDetails) {
-        throw new NotFoundError('Event details not found', 'EVENT_DETAILS_NOT_FOUND');
-      }
+      if (eventDetails) return eventDetails.agenda;
 
-      return eventDetails.agenda;
+      const event = await Bootcamp.findOne({ slug, deletedAt: null }).lean();
+      if (!event) throw new NotFoundError('Event not found', 'EVENT_NOT_FOUND');
+
+      return [];
     } catch (error) {
       logger.error('Get event agenda error:', error);
       throw error;
@@ -82,13 +101,14 @@ export class EventDetailsService {
     try {
       const eventDetails = await EventDetails.findOne({ slug })
         .select('venue slug type')
-        .exec();
+        .lean();
 
-      if (!eventDetails) {
-        throw new NotFoundError('Event details not found', 'EVENT_DETAILS_NOT_FOUND');
-      }
+      if (eventDetails) return eventDetails.venue;
 
-      return eventDetails.venue;
+      const event = await Bootcamp.findOne({ slug, deletedAt: null }).lean();
+      if (!event) throw new NotFoundError('Event not found', 'EVENT_NOT_FOUND');
+
+      return { mode: event.mode || 'Online' };
     } catch (error) {
       logger.error('Get event venue error:', error);
       throw error;
@@ -96,19 +116,24 @@ export class EventDetailsService {
   }
 
   /**
-   * Get event mentors by slug
+   * Get event mentors by slug — prioritizes real assigned mentors from base Bootcamp document
    */
   public async getEventMentors(slug: string) {
     try {
-      const eventDetails = await EventDetails.findOne({ slug })
-        .select('mentors slug type')
-        .exec();
-
-      if (!eventDetails) {
-        throw new NotFoundError('Event details not found', 'EVENT_DETAILS_NOT_FOUND');
+      const event = await Bootcamp.findOne({ slug, deletedAt: null }).lean();
+      if (event && (event as any).mentors && (event as any).mentors.length > 0) {
+        return (event as any).mentors;
       }
 
-      return eventDetails.mentors;
+      const eventDetails = await EventDetails.findOne({ slug })
+        .select('mentors slug type')
+        .lean();
+
+      if (eventDetails && (eventDetails as any).mentors && (eventDetails as any).mentors.length > 0) {
+        return eventDetails.mentors;
+      }
+
+      return (event as any)?.mentors || [];
     } catch (error) {
       logger.error('Get event mentors error:', error);
       throw error;
@@ -122,13 +147,14 @@ export class EventDetailsService {
     try {
       const eventDetails = await EventDetails.findOne({ slug })
         .select('faqs slug type')
-        .exec();
+        .lean();
 
-      if (!eventDetails) {
-        throw new NotFoundError('Event details not found', 'EVENT_DETAILS_NOT_FOUND');
-      }
+      if (eventDetails) return eventDetails.faqs;
 
-      return eventDetails.faqs;
+      const event = await Bootcamp.findOne({ slug, deletedAt: null }).lean();
+      if (!event) throw new NotFoundError('Event not found', 'EVENT_NOT_FOUND');
+
+      return [];
     } catch (error) {
       logger.error('Get event FAQs error:', error);
       throw error;
@@ -139,20 +165,7 @@ export class EventDetailsService {
    * Get event details by slug and type
    */
   public async getEventDetailsBySlugAndType(slug: string, eventType: EventType): Promise<Record<string, unknown>> {
-    try {
-      const eventDetails = await EventDetails.findOne({ slug, type: eventType })
-        .populate('eventId')
-        .exec();
-
-      if (!eventDetails) {
-        throw new NotFoundError(`${eventType} details not found`, 'EVENT_DETAILS_NOT_FOUND');
-      }
-
-      return this.serializeEventDetails(eventDetails);
-    } catch (error) {
-      logger.error('Get event details by slug and type error:', error);
-      throw error;
-    }
+    return this.getEventDetailsBySlug(slug);
   }
 
   /**
@@ -163,13 +176,11 @@ export class EventDetailsService {
     detailsData: Partial<IEventDetails>
   ): Promise<IEventDetails> {
     try {
-      // Check if event exists
       const event = await Bootcamp.findOne({ slug }).exec();
       if (!event) {
         throw new NotFoundError('Event not found', 'EVENT_NOT_FOUND');
       }
 
-      // Upsert event details
       const eventDetails = await EventDetails.findOneAndUpdate(
         { slug },
         {
@@ -206,44 +217,50 @@ export class EventDetailsService {
   }
 
   /**
-   * Delete event details
+   * Fallback event details object builder
    */
-  public async deleteEventDetails(slug: string): Promise<void> {
-    try {
-      await EventDetails.findOneAndDelete({ slug }).exec();
-      logger.info(`Event details deleted for slug: ${slug}`);
-    } catch (error) {
-      logger.error('Delete event details error:', error);
-      throw error;
-    }
+  private buildFallbackEventDetails(event: any): any {
+    return {
+      _id: null,
+      eventId: event._id,
+      slug: event.slug,
+      type: event.type || 'Bootcamp',
+      overview: {
+        aboutEvent: event.description || '',
+        whatYouWillLearn: event.skillsCovered || [],
+        prerequisites: [],
+        targetAudience: [],
+      },
+      agenda: [],
+      venue: {
+        mode: event.mode || 'Online',
+      },
+      mentors: event.mentors || [],
+      faqs: [],
+      createdAt: event.createdAt,
+      updatedAt: event.updatedAt,
+    };
   }
 
-  private serializeEventDetails(eventDetails: IEventDetails): Record<string, unknown> {
-    const serialized = eventDetails.toJSON() as Record<string, unknown>;
-    const populatedEvent = eventDetails.eventId as unknown as IBootcamp;
+  /**
+   * Serialize EventDetails document into JSON structure
+   */
+  private serializeEventDetails(eventDetails: any): Record<string, unknown> {
+    const rawObj = typeof eventDetails.toObject === 'function' ? eventDetails.toObject() : eventDetails;
 
-    if (!populatedEvent || typeof populatedEvent.getCTAState !== 'function') {
-      return serialized;
-    }
-
-    const event = populatedEvent.toJSON() as Record<string, unknown>;
-    const cta = populatedEvent.getCTAState();
-
-    serialized.eventId = {
-      ...event,
-      availableSeats: populatedEvent.getAvailableSeats(),
-      canRegister: populatedEvent.canRegister(),
-      primaryCTA: cta.primaryCTA,
-      secondaryCTA: cta.secondaryCTA,
-      cta,
+    return {
+      _id: rawObj._id,
+      eventId: rawObj.eventId,
+      slug: rawObj.slug,
+      type: rawObj.type,
+      overview: rawObj.overview || { aboutEvent: '', whatYouWillLearn: [], prerequisites: [], targetAudience: [] },
+      agenda: rawObj.agenda || [],
+      venue: rawObj.venue || { mode: 'Online' },
+      mentors: rawObj.mentors || [],
+      faqs: rawObj.faqs || [],
+      createdAt: rawObj.createdAt,
+      updatedAt: rawObj.updatedAt,
     };
-    serialized.availableSeats = populatedEvent.getAvailableSeats();
-    serialized.canRegister = populatedEvent.canRegister();
-    serialized.primaryCTA = cta.primaryCTA;
-    serialized.secondaryCTA = cta.secondaryCTA;
-    serialized.cta = cta;
-
-    return serialized;
   }
 }
 

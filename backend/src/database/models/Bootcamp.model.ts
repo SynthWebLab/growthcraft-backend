@@ -21,6 +21,16 @@ export enum EventType {
   HACKATHON = 'Hackathon',
 }
 
+export interface IBootcampMentor {
+  userId?: mongoose.Types.ObjectId | string;
+  mentorProfileId?: mongoose.Types.ObjectId | string;
+  name: string;
+  avatar?: string;
+  designation?: string;
+  areaOfExpertise?: string;
+  bio?: string;
+}
+
 export interface IBootcamp extends Document {
   // GC-S401-T1: Core Event fields
   slug: string; // @unique
@@ -30,6 +40,8 @@ export interface IBootcamp extends Document {
   durationDays: number; // Duration in days
   keyTopics: string[]; // Key topics covered
   isPublished: boolean; // Publication status
+  isFeatured: boolean; // Featured/Trending status
+  mentors: IBootcampMentor[]; // Array of assigned real mentors
   deletedAt?: Date; // Soft delete
   
   // Legacy/additional fields
@@ -207,6 +219,25 @@ const bootcampSchema = new Schema<IBootcamp>(
     },
     mentorNames: {
       type: [String],
+      default: [],
+    },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    mentors: {
+      type: [
+        {
+          userId: { type: Schema.Types.ObjectId, ref: 'User' },
+          mentorProfileId: { type: Schema.Types.ObjectId, ref: 'MentorProfile' },
+          name: { type: String, required: true },
+          avatar: { type: String, default: '' },
+          designation: { type: String, default: '' },
+          areaOfExpertise: { type: String, default: '' },
+          bio: { type: String, default: '' },
+        },
+      ],
       default: [],
     },
     status: {
