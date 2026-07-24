@@ -221,7 +221,7 @@ export class CatalogueService {
 
     this.applyCursorFilter(filter, queryParams.cursor, sortBy, sortOrder);
 
-    const sort: any = { [sortBy]: sortOrder, _id: sortOrder };
+    const sort: any = { isFeatured: -1, [sortBy]: sortOrder, _id: sortOrder };
     if (queryParams.search && queryParams.search.trim()) {
       sort.score = { $meta: 'textScore' };
     }
@@ -359,6 +359,7 @@ export class CatalogueService {
       duration: course.duration,
       lessonsCount: course.lessonsCount,
       instructor: course.instructor,
+      mentors: course.mentors && course.mentors.length > 0 ? (course.mentors as any) : (course.instructor?.name ? [{ name: course.instructor.name, avatar: course.instructor.avatar }] : []),
       enrollmentCount: course.enrollmentCount,
       status: course.getStatus(),
       isFeatured: Boolean(course.isFeatured),

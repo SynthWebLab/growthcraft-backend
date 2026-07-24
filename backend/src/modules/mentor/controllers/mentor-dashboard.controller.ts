@@ -381,6 +381,21 @@ export class MentorDashboardController {
       next(error);
     }
   }
+
+  /**
+   * Get assigned courses
+   * GET /api/v1/mentor/courses
+   */
+  public async getCourses(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const courses = await mentorDashboardService.getAssignedCourses(userId);
+      SuccessResponseHelper.ok(res, { courses }, 'Assigned courses retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get mentor courses controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const mentorDashboardController = MentorDashboardController.getInstance();

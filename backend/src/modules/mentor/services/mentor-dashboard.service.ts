@@ -7,6 +7,7 @@ import { MentorCheckIn, IMentorCheckIn } from '@/database/models/MentorCheckIn.m
 import { Attendance } from '@/database/models/Attendance.model';
 import { ProgressNote, IProgressNote } from '@/database/models/ProgressNote.model';
 import { SupportTicket, ISupportTicket } from '@/database/models/SupportTicket.model';
+import { Course } from '@/database/models/Course.model';
 import { logger } from '@/common/utils/logger.util';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ValidationError } from '@/common/errors/ValidationError';
@@ -819,6 +820,30 @@ export class MentorDashboardService {
     } catch (error: any) {
       logger.error('Get mentor students error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get assigned courses for mentor
+   */
+  public async getAssignedCourses(userId: string): Promise<any[]> {
+    try {
+      const user = await User.findById(userId).exec();
+      const userName = user?.fullName || '';
+
+      const filter: any = {
+        deletedAt: null,
+        $or: [
+          { 'mentors.userId': new mongoose.Types.ObjectId(userId) },
+          { instructorId: userId },
+          ...(userName ? [{ 'instructor.name': { $regex: userName, $options: 'i' } }] : []),
+        ],
+      };
+
+      return await Course.find(filter).sort({ createdAt: -1 }).exec();
+    } catch (error) {
+      logger.error('Error fetching assigned courses for mentor:', error);
+      return [];
     }
   }
 }

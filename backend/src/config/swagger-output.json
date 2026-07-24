@@ -3297,6 +3297,12 @@
                   },
                   "otherFields": {
                     "example": "any"
+                  },
+                  "mentorIds": {
+                    "example": "any"
+                  },
+                  "mentors": {
+                    "example": "any"
                   }
                 }
               }
@@ -4156,6 +4162,16 @@
       }
     },
     "/api/v1/mentor/students": {
+      "get": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/mentor/courses": {
       "get": {
         "description": "",
         "responses": {

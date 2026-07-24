@@ -27,9 +27,21 @@ export type DifficultyLevel = string;
 export type CourseStatus = 'Active' | 'Coming Soon' | 'Draft'; // Status is computed, not stored
 export type CourseType = string;
 
+export interface ICourseMentor {
+  userId?: mongoose.Types.ObjectId | string;
+  mentorProfileId?: mongoose.Types.ObjectId | string;
+  name: string;
+  avatar?: string;
+  designation?: string;
+  areaOfExpertise?: string;
+  bio?: string;
+}
+
 export interface IInstructor {
   name: string;
   avatar?: string;
+  userId?: mongoose.Types.ObjectId | string;
+  designation?: string;
 }
 
 export interface IBootcampDetails {
@@ -64,6 +76,7 @@ export interface ICourse extends Document {
   originalPrice?: number; // maps to price in frontend (before discount)
   rating: number; // maps to avgRating in frontend
   instructor: IInstructor;
+  mentors?: ICourseMentor[];
   thumbnail?: string;
   isActive: boolean;
   enrollmentCount: number;
@@ -214,7 +227,25 @@ const courseSchema = new Schema<ICourse>(
         type: String,
         trim: true,
       },
+      userId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      designation: {
+        type: String,
+      },
     },
+    mentors: [
+      {
+        userId: { type: Schema.Types.ObjectId, ref: 'User' },
+        mentorProfileId: { type: Schema.Types.ObjectId, ref: 'MentorProfile' },
+        name: { type: String, required: true },
+        avatar: { type: String },
+        designation: { type: String },
+        areaOfExpertise: { type: String },
+        bio: { type: String },
+      },
+    ],
     thumbnail: {
       type: String,
       trim: true,

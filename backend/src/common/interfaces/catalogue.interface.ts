@@ -39,6 +39,15 @@ export interface CatalogueItem {
     name: string;
     avatar?: string;
   };
+  mentors?: Array<{
+    userId?: string;
+    mentorProfileId?: string;
+    name: string;
+    avatar?: string;
+    designation?: string;
+    areaOfExpertise?: string;
+    bio?: string;
+  }>;
   enrollmentCount?: number;
   
   // For bootcamps

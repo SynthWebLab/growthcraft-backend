@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
-import { Course, CourseCategory, CourseLevel } from '@/database/models';
+import { Course, CourseCategory, CourseLevel, User, MentorProfile } from '@/database/models';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
@@ -18,6 +18,53 @@ const slugify = (text: string): string => {
     .replace(/\-\-+/g, '-') // Replace multiple - with single -
     .replace(/^-+/, '') // Trim - from start
     .replace(/-+$/, ''); // Trim - from end
+};
+
+// Helper to resolve mentors
+const resolveMentors = async (mentorIds?: string[], mentorsInput?: any[]): Promise<{ mentors: any[]; primaryInstructor: any }> => {
+  let resolvedMentors: any[] = [];
+  if (Array.isArray(mentorsInput) && mentorsInput.length > 0) {
+    resolvedMentors = mentorsInput.map((m) => ({
+      userId: m.userId || m.id || undefined,
+      mentorProfileId: m.mentorProfileId || undefined,
+      name: m.name || m.fullName || 'GrowthCraft Team',
+      avatar: m.avatar || '',
+      designation: m.designation || m.currentOrganization || m.areaOfExpertise || '',
+      areaOfExpertise: m.areaOfExpertise || '',
+      bio: m.bio || '',
+    }));
+  } else if (Array.isArray(mentorIds) && mentorIds.length > 0) {
+    const validIds = mentorIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validIds.length > 0) {
+      const users = await User.find({ _id: { $in: validIds } }).select('fullName email avatar').exec();
+      const profiles = await MentorProfile.find({ userId: { $in: validIds } }).exec();
+      const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
+
+      resolvedMentors = users.map((u) => {
+        const p = profileMap.get(u._id.toString());
+        return {
+          userId: u._id,
+          mentorProfileId: p?._id,
+          name: u.fullName || u.email,
+          avatar: (u as any).avatar || '',
+          designation: p?.currentOrganization || p?.areaOfExpertise || '',
+          areaOfExpertise: p?.areaOfExpertise || '',
+          bio: p?.bio || '',
+        };
+      });
+    }
+  }
+
+  const primaryInstructor = resolvedMentors.length > 0
+    ? {
+        name: resolvedMentors[0].name,
+        avatar: resolvedMentors[0].avatar,
+        userId: resolvedMentors[0].userId,
+        designation: resolvedMentors[0].designation,
+      }
+    : null;
+
+  return { mentors: resolvedMentors, primaryInstructor };
 };
 
 // Normalize category to match Mongoose enum values
@@ -111,6 +158,20 @@ export class CourseAdminController {
       const resolvedDifficulty = difficultyLevel || level || 'Beginner';
       const resolvedInstructorName = instructorName || instructor?.name || 'GrowthCraft Team';
 
+      const { mentorIds, mentors: mentorsInput } = req.body;
+      const { mentors: resolvedMentors, primaryInstructor } = await resolveMentors(mentorIds, mentorsInput);
+
+      let finalInstructor = {
+        name: resolvedInstructorName.trim(),
+        avatar: instructor?.avatar || otherFields.instructorAvatar || '',
+      };
+      if (primaryInstructor) {
+        finalInstructor = {
+          name: primaryInstructor.name,
+          avatar: primaryInstructor.avatar || finalInstructor.avatar,
+        };
+      }
+
       const coursePayload: Record<string, any> = {
         title: title.trim(),
         description: description.trim(),
@@ -121,10 +182,8 @@ export class CourseAdminController {
         totalHours: numDuration,
         lessonsCount: numLessons,
         difficultyLevel: resolvedDifficulty,
-        instructor: {
-          name: resolvedInstructorName.trim(),
-          avatar: instructor?.avatar || otherFields.instructorAvatar || '',
-        },
+        instructor: finalInstructor,
+        mentors: resolvedMentors.length > 0 ? resolvedMentors : [{ name: finalInstructor.name, avatar: finalInstructor.avatar }],
         tags: Array.isArray(tags) ? tags : typeof tags === 'string' ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
         isPublished: Boolean(isPublished),
         isDraft: !Boolean(isPublished),
@@ -195,11 +254,22 @@ export class CourseAdminController {
         updates.category = normalizeCategory(updates.category);
       }
 
-      // Instructor normalization
-      if (updates.instructorName !== undefined || updates.instructor !== undefined) {
+      // Instructor & Mentors normalization
+      if (updates.mentorIds !== undefined || updates.mentors !== undefined) {
+        const { mentors: resolvedMentors, primaryInstructor } = await resolveMentors(updates.mentorIds, updates.mentors);
+        if (resolvedMentors.length > 0) {
+          updates.mentors = resolvedMentors;
+          updates.instructor = {
+            name: primaryInstructor.name,
+            avatar: primaryInstructor.avatar || course.instructor?.avatar || '',
+          };
+        }
+        delete updates.mentorIds;
+      } else if (updates.instructorName !== undefined || updates.instructor !== undefined) {
         const name = updates.instructorName || updates.instructor?.name || course.instructor?.name || 'GrowthCraft Team';
         const avatar = updates.instructor?.avatar || course.instructor?.avatar;
         updates.instructor = { name: name.trim(), avatar };
+        updates.mentors = [{ name: name.trim(), avatar }];
         delete updates.instructorName;
       }
 

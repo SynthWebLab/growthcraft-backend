@@ -128,6 +128,14 @@ router.get('/students', (req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
+ * GET /api/v1/mentor/courses
+ * Get courses assigned to logged-in mentor
+ */
+router.get('/courses', (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.getCourses(req, res, next);
+});
+
+/**
  * GET /api/v1/mentor/profile
  * Get mentor profile details
  */
