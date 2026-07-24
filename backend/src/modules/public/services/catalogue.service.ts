@@ -272,8 +272,11 @@ export class CatalogueService {
    * Build course filters shared by list and count queries.
    */
   private buildCourseFilter(queryParams: CatalogueQueryParams): any {
-    const filter: any = { isActive: true };
+    const filter: any = { isActive: true, isPublished: true, deletedAt: null };
 
+    if (queryParams.isFeatured !== undefined) {
+      filter.isFeatured = queryParams.isFeatured === true || (queryParams.isFeatured as any) === 'true';
+    }
     if (queryParams.category) filter.category = queryParams.category;
     if (queryParams.level || queryParams.difficultyLevel) {
       filter.difficultyLevel = queryParams.level || queryParams.difficultyLevel;
@@ -358,6 +361,7 @@ export class CatalogueService {
       instructor: course.instructor,
       enrollmentCount: course.enrollmentCount,
       status: course.getStatus(),
+      isFeatured: Boolean(course.isFeatured),
       canEnroll: course.canEnroll(),
       primaryCTA: course.getPrimaryCTA(),
       secondaryCTA: course.getSecondaryCTA(),
@@ -607,6 +611,18 @@ export class CatalogueService {
       logger.info(`Cached catalogue data with key: ${key} (TTL: ${this.CACHE_TTL}s)`);
     } catch (error: any) {
       logger.warn('Redis set error (non-critical):', error.message);
+    }
+  }
+
+  /**
+   * Clear catalogue cache (called when admin creates, updates, deletes, or publishes courses/bootcamps)
+   */
+  public async clearCatalogueCache(): Promise<void> {
+    try {
+      await redisConfig.delByPattern('public:*');
+      logger.info('Catalogue cache invalidated successfully');
+    } catch (error: any) {
+      logger.warn('Error clearing catalogue cache:', error.message);
     }
   }
 }

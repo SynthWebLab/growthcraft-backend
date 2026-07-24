@@ -188,6 +188,34 @@ export class RedisConfig {
       throw error;
     }
   }
+
+  public async keys(pattern: string): Promise<string[]> {
+    if (!this.client || !this.isConnected) {
+      return [];
+    }
+
+    try {
+      return await this.client.keys(pattern);
+    } catch (error) {
+      logger.error('Redis KEYS error:', error);
+      return [];
+    }
+  }
+
+  public async delByPattern(pattern: string): Promise<void> {
+    if (!this.client || !this.isConnected) {
+      return;
+    }
+
+    try {
+      const keys = await this.client.keys(pattern);
+      if (keys && keys.length > 0) {
+        await this.client.del(keys);
+      }
+    } catch (error) {
+      logger.error('Redis DEL pattern error:', error);
+    }
+  }
 }
 
 export const redisConfig = RedisConfig.getInstance();

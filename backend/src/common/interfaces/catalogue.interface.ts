@@ -51,6 +51,7 @@ export interface CatalogueItem {
   
   // Status
   status: string;
+  isFeatured?: boolean;
   canEnroll?: boolean; // For courses
   canRegister?: boolean; // For bootcamps
   primaryCTA?: string;
@@ -84,6 +85,7 @@ export interface CatalogueQueryParams {
   
   // Course-specific filters
   difficultyLevel?: string;
+  isFeatured?: boolean | string;
   
   // Search
   search?: string;

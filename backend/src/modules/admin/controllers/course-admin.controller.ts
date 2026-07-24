@@ -5,6 +5,7 @@ import { ValidationError } from '@/common/errors/ValidationError';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
 import { auditLogService } from '../services/audit-log.service';
+import { catalogueService } from '@/modules/public/services/catalogue.service';
 import { logger } from '@/common/utils/logger.util';
 
 // Helper to slugify title
@@ -147,6 +148,8 @@ export class CourseAdminController {
         req.ip
       );
 
+      await catalogueService.clearCatalogueCache();
+
       SuccessResponseHelper.created(res, { course }, 'Course created successfully');
     } catch (error) {
       logger.error('Error creating course:', error);
@@ -234,6 +237,8 @@ export class CourseAdminController {
         req.ip
       );
 
+      await catalogueService.clearCatalogueCache();
+
       SuccessResponseHelper.ok(res, { course }, 'Course updated successfully');
     } catch (error) {
       logger.error('Error updating course:', error);
@@ -271,6 +276,8 @@ export class CourseAdminController {
         { title: course.title },
         req.ip
       );
+
+      await catalogueService.clearCatalogueCache();
 
       SuccessResponseHelper.ok(res, null, 'Course deleted successfully');
     } catch (error) {
@@ -310,6 +317,8 @@ export class CourseAdminController {
         { title: course.title, isPublished: course.isPublished, publishedAt: course.publishedAt },
         req.ip
       );
+
+      await catalogueService.clearCatalogueCache();
 
       SuccessResponseHelper.ok(res, { course }, `Course ${course.isPublished ? 'published' : 'unpublished'} successfully`);
     } catch (error) {

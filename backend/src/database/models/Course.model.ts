@@ -53,6 +53,7 @@ export interface ICourse extends Document {
   totalHours?: number; // Optional - uses duration if not set
   instructorId?: string; // Optional for backward compatibility
   isPublished: boolean;
+  isFeatured?: boolean;
   deletedAt?: Date;
   
   // Legacy/additional fields for backward compatibility
@@ -159,6 +160,11 @@ const courseSchema = new Schema<ICourse>(
       // Optional - for backward compatibility
     },
     isPublished: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isFeatured: {
       type: Boolean,
       default: false,
       index: true,

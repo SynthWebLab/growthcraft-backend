@@ -219,7 +219,7 @@ export class CourseService {
    * Build filter query from query parameters
    */
   private buildFilterQuery(queryParams: CourseQueryParams): FilterQuery<ICourse> {
-    const filter: FilterQuery<ICourse> = { isActive: true };
+    const filter: FilterQuery<ICourse> = { isActive: true, isPublished: true, deletedAt: null };
 
     // Category filter
     if (queryParams.category) {
