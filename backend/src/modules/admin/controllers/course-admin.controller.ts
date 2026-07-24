@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
-import { Course } from '@/database/models';
+import { Course, CourseCategory, CourseLevel } from '@/database/models';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
@@ -19,6 +19,28 @@ const slugify = (text: string): string => {
     .replace(/-+$/, ''); // Trim - from end
 };
 
+// Normalize category to match Mongoose enum values
+const normalizeCategory = (cat: string): string => {
+  if (!cat) return CourseCategory.OTHER;
+  const mapping: Record<string, CourseCategory> = {
+    MERN: CourseCategory.WEB_DEVELOPMENT,
+    'UI/UX': CourseCategory.DESIGN,
+    DataScience: CourseCategory.DATA_SCIENCE,
+    'Data Science': CourseCategory.DATA_SCIENCE,
+    'Web Development': CourseCategory.WEB_DEVELOPMENT,
+    'Mobile Development': CourseCategory.MOBILE_DEVELOPMENT,
+    'Cloud Computing': CourseCategory.CLOUD_COMPUTING,
+    Cybersecurity: CourseCategory.CYBERSECURITY,
+    'AI/ML': CourseCategory.AI_ML,
+    DevOps: CourseCategory.DEVOPS,
+    Design: CourseCategory.DESIGN,
+    Business: CourseCategory.BUSINESS,
+    Programming: CourseCategory.PROGRAMMING,
+    Other: CourseCategory.OTHER,
+  };
+  return mapping[cat] || cat;
+};
+
 export class CourseAdminController {
   private static instance: CourseAdminController;
 
@@ -32,43 +54,96 @@ export class CourseAdminController {
   }
 
   /**
+   * GET /api/v1/admin/courses
+   * Get all non-deleted courses for admin management
+   */
+  public async listCourses(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const courses = await Course.find({ deletedAt: null }).sort({ createdAt: -1 }).exec();
+      SuccessResponseHelper.ok(res, courses, 'Courses fetched successfully');
+    } catch (error) {
+      logger.error('Error fetching admin courses:', error);
+      next(error);
+    }
+  }
+
+  /**
    * POST /api/v1/admin/courses
    * Create a new course
    */
   public async createCourse(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { title, description, category, price, ...otherFields } = req.body;
+      const {
+        title,
+        description,
+        category,
+        price,
+        duration,
+        lessonsCount,
+        instructorName,
+        instructor,
+        difficultyLevel,
+        level,
+        originalPrice,
+        tags,
+        isPublished,
+        isFeatured,
+        slug: customSlug,
+        ...otherFields
+      } = req.body;
 
-      if (!title || !description || !category || price === undefined) {
-        throw new ValidationError('Title, description, category, and price are required');
+      if (!title || !description || price === undefined || price === null) {
+        throw new ValidationError('Title, description, and price are required');
       }
 
-      const slug = otherFields.slug ? slugify(otherFields.slug) : slugify(title);
+      const normalizedCat = normalizeCategory(category);
+      const slug = customSlug ? slugify(customSlug) : slugify(title);
 
-      // Check if slug is unique
+      // Check if slug is unique among non-deleted courses
       const existingCourse = await Course.findOne({ slug, deletedAt: null }).exec();
       if (existingCourse) {
         throw new ValidationError(`Course with slug or title similar to '${slug}' already exists`);
       }
 
-      const course = await Course.create({
-        title,
-        description,
-        category,
-        price,
+      const numDuration = Number(duration || otherFields.totalHours || 20);
+      const numLessons = Number(lessonsCount || otherFields.totalLessons || Math.max(1, Math.floor(numDuration * 2)));
+      const resolvedDifficulty = difficultyLevel || level || 'Beginner';
+      const resolvedInstructorName = instructorName || instructor?.name || 'GrowthCraft Team';
+
+      const coursePayload: Record<string, any> = {
+        title: title.trim(),
+        description: description.trim(),
+        category: normalizedCat,
+        price: Number(price),
         slug,
-        isPublished: false,
-        isDraft: true,
+        duration: numDuration,
+        totalHours: numDuration,
+        lessonsCount: numLessons,
+        difficultyLevel: resolvedDifficulty,
+        instructor: {
+          name: resolvedInstructorName.trim(),
+          avatar: instructor?.avatar || otherFields.instructorAvatar || '',
+        },
+        tags: Array.isArray(tags) ? tags : typeof tags === 'string' ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+        isPublished: Boolean(isPublished),
+        isDraft: !Boolean(isPublished),
+        isFeatured: Boolean(isFeatured),
         isActive: true,
         ...otherFields,
-      });
+      };
+
+      if (originalPrice !== undefined && originalPrice !== null && originalPrice !== '') {
+        coursePayload.originalPrice = Number(originalPrice);
+      }
+
+      const course = await Course.create(coursePayload);
 
       // Write AuditLog
       await auditLogService.log(
         req.user!.userId,
         'course.create',
         course._id.toString(),
-        { title, category, price },
+        { title, category: normalizedCat, price },
         req.ip
       );
 
@@ -90,13 +165,14 @@ export class CourseAdminController {
         throw new ValidationError('Invalid course ID');
       }
 
-      const updates = req.body;
       const course = await Course.findOne({ _id: id, deletedAt: null }).exec();
       if (!course) {
         throw new NotFoundError('Course not found');
       }
 
-      // If title is modified, optionally update slug if not explicitly passed
+      const updates = { ...req.body };
+
+      // Handle title and slug updating
       if (updates.title && !updates.slug) {
         updates.slug = slugify(updates.title);
       } else if (updates.slug) {
@@ -110,6 +186,38 @@ export class CourseAdminController {
           throw new ValidationError(`Course with slug '${updates.slug}' already exists`);
         }
       }
+
+      // Category normalization
+      if (updates.category) {
+        updates.category = normalizeCategory(updates.category);
+      }
+
+      // Instructor normalization
+      if (updates.instructorName !== undefined || updates.instructor !== undefined) {
+        const name = updates.instructorName || updates.instructor?.name || course.instructor?.name || 'GrowthCraft Team';
+        const avatar = updates.instructor?.avatar || course.instructor?.avatar;
+        updates.instructor = { name: name.trim(), avatar };
+        delete updates.instructorName;
+      }
+
+      // Duration & Lessons count
+      if (updates.duration !== undefined) {
+        updates.duration = Number(updates.duration);
+        updates.totalHours = updates.duration;
+      }
+      if (updates.lessonsCount !== undefined) {
+        updates.lessonsCount = Number(updates.lessonsCount);
+      }
+
+      // Sync published & draft status
+      if (updates.isPublished !== undefined) {
+        updates.isPublished = Boolean(updates.isPublished);
+        updates.isDraft = !updates.isPublished;
+      }
+
+      // Clean numbers
+      if (updates.price !== undefined) updates.price = Number(updates.price);
+      if (updates.originalPrice !== undefined) updates.originalPrice = Number(updates.originalPrice);
 
       const oldValues = course.toObject();
 
@@ -151,6 +259,8 @@ export class CourseAdminController {
 
       course.deletedAt = new Date();
       course.isActive = false;
+      course.isPublished = false;
+      course.isDraft = true;
       await course.save();
 
       // Write AuditLog
@@ -185,9 +295,11 @@ export class CourseAdminController {
         throw new NotFoundError('Course not found');
       }
 
-      course.isPublished = true;
-      course.isDraft = false;
-      course.publishedAt = new Date();
+      course.isPublished = !course.isPublished;
+      course.isDraft = !course.isPublished;
+      if (course.isPublished) {
+        course.publishedAt = new Date();
+      }
       await course.save();
 
       // Write AuditLog
@@ -195,11 +307,11 @@ export class CourseAdminController {
         req.user!.userId,
         'course.publish',
         id,
-        { title: course.title, publishedAt: course.publishedAt },
+        { title: course.title, isPublished: course.isPublished, publishedAt: course.publishedAt },
         req.ip
       );
 
-      SuccessResponseHelper.ok(res, { course }, 'Course published successfully');
+      SuccessResponseHelper.ok(res, { course }, `Course ${course.isPublished ? 'published' : 'unpublished'} successfully`);
     } catch (error) {
       logger.error('Error publishing course:', error);
       next(error);

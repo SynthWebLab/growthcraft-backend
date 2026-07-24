@@ -3229,6 +3229,14 @@
       }
     },
     "/api/v1/admin/courses": {
+      "get": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
       "post": {
         "description": "",
         "responses": {
@@ -3252,6 +3260,39 @@
                     "example": "any"
                   },
                   "price": {
+                    "example": "any"
+                  },
+                  "duration": {
+                    "example": "any"
+                  },
+                  "lessonsCount": {
+                    "example": "any"
+                  },
+                  "instructorName": {
+                    "example": "any"
+                  },
+                  "instructor": {
+                    "example": "any"
+                  },
+                  "difficultyLevel": {
+                    "example": "any"
+                  },
+                  "level": {
+                    "example": "any"
+                  },
+                  "originalPrice": {
+                    "example": "any"
+                  },
+                  "tags": {
+                    "example": "any"
+                  },
+                  "isPublished": {
+                    "example": "any"
+                  },
+                  "isFeatured": {
+                    "example": "any"
+                  },
+                  "slug": {
                     "example": "any"
                   },
                   "otherFields": {
@@ -3280,23 +3321,6 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "example": "any"
-                  },
-                  "slug": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
           }
         }
       },
