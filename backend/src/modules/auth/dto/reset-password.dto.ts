@@ -2,7 +2,8 @@
  * DTO for reset password request
  */
 export interface ResetPasswordDto {
-  token: string;
+  email: string;
+  otp: string;
   newPassword: string;
 }
 

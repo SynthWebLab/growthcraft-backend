@@ -126,17 +126,15 @@ Verification Code (OTP): ${otp}
   }
 
   /**
-   * Send password reset email
+   * Send password reset email with OTP
    */
-  async sendPasswordResetEmail(email: string, token: string, fullName: string): Promise<void> {
-    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
-
+  async sendPasswordResetEmail(email: string, otp: string, fullName: string): Promise<void> {
     if (config.NODE_ENV === 'development') {
       logger.info(`
 ============================================================
-[DEVELOPMENT] Password Reset Email
+[DEVELOPMENT] Password Reset Email OTP
 Recipient: ${email} (${fullName})
-Reset Link: ${resetUrl}
+Verification OTP Code: ${otp}
 ============================================================
       `);
     }
@@ -144,7 +142,7 @@ Reset Link: ${resetUrl}
     const mailOptions = {
       from: '"GrowthCraft" <' + smtpUser + '>',
       to: email,
-      subject: 'Password Reset Request - GrowthCraft',
+      subject: 'Password Reset Verification Code - GrowthCraft',
       html: `
         <!DOCTYPE html>
         <html>
@@ -154,24 +152,20 @@ Reset Link: ${resetUrl}
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
             .header { background-color: #DC2626; color: white; padding: 20px; text-align: center; }
             .content { padding: 30px; background-color: #f9fafb; }
-            .button { display: inline-block; padding: 12px 30px; background-color: #DC2626; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .otp-box { background-color: #f3f4f6; border: 2px dashed #dc2626; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #dc2626; text-align: center; padding: 15px; margin: 20px 0; }
             .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <h1>Password Reset Request</h1>
+              <h1>Password Reset Verification Code</h1>
             </div>
             <div class="content">
               <h2>Hi ${fullName},</h2>
-              <p>We received a request to reset your password. Click the button below to create a new password:</p>
-              <div style="text-align: center;">
-                <a href="${resetUrl}" class="button">Reset Password</a>
-              </div>
-              <p>Or copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; color: #DC2626;">${resetUrl}</p>
-              <p><strong>This link will expire in 1 hour.</strong></p>
+              <p>We received a request to reset your password. Use the following verification code to reset your password:</p>
+              <div class="otp-box">${otp}</div>
+              <p><strong>This code will expire in 15 minutes.</strong></p>
               <p>If you didn't request a password reset, please ignore this email or contact support if you have concerns.</p>
             </div>
             <div class="footer">
