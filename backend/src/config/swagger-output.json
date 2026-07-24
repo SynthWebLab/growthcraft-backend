@@ -3370,6 +3370,37 @@
       }
     },
     "/api/v1/admin/training-programs": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
       "post": {
         "description": "",
         "responses": {
@@ -3399,6 +3430,18 @@
                     "example": "any"
                   },
                   "price": {
+                    "example": "any"
+                  },
+                  "isPublished": {
+                    "example": "any"
+                  },
+                  "isFeatured": {
+                    "example": "any"
+                  },
+                  "mentorIds": {
+                    "example": "any"
+                  },
+                  "mentors": {
                     "example": "any"
                   },
                   "otherFields": {
@@ -3440,6 +3483,18 @@
                   },
                   "slug": {
                     "example": "any"
+                  },
+                  "mentorIds": {
+                    "example": "any"
+                  },
+                  "mentors": {
+                    "example": "any"
+                  },
+                  "isPublished": {
+                    "example": "any"
+                  },
+                  "status": {
+                    "example": "any"
                   }
                 }
               }
@@ -3448,6 +3503,26 @@
         }
       },
       "delete": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/training-programs/{id}/publish": {
+      "patch": {
         "description": "",
         "parameters": [
           {

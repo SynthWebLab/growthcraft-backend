@@ -167,11 +167,17 @@ router.patch('/courses/:id/publish', (req: Request, res: Response, next: NextFun
 /**
  * Training Program Admin CRUD
  */
+router.get('/training-programs', (req: Request, res: Response, next: NextFunction) => {
+  void trainingProgramAdminController.listTrainingPrograms(req, res, next);
+});
 router.post('/training-programs', (req: Request, res: Response, next: NextFunction) => {
   void trainingProgramAdminController.createTrainingProgram(req, res, next);
 });
 router.put('/training-programs/:id', (req: Request, res: Response, next: NextFunction) => {
   void trainingProgramAdminController.updateTrainingProgram(req, res, next);
+});
+router.patch('/training-programs/:id/publish', (req: Request, res: Response, next: NextFunction) => {
+  void trainingProgramAdminController.publishTrainingProgram(req, res, next);
 });
 router.delete('/training-programs/:id', (req: Request, res: Response, next: NextFunction) => {
   void trainingProgramAdminController.deleteTrainingProgram(req, res, next);

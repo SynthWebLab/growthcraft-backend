@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
-import { TrainingProgram } from '@/database/models';
+import { TrainingProgram, User, MentorProfile } from '@/database/models';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
@@ -19,6 +19,43 @@ const slugify = (text: string): string => {
     .replace(/-+$/, '');
 };
 
+// Helper to resolve mentors
+const resolveMentors = async (mentorIds?: string[], mentorsInput?: any[]): Promise<any[]> => {
+  let resolvedMentors: any[] = [];
+  if (Array.isArray(mentorsInput) && mentorsInput.length > 0) {
+    resolvedMentors = mentorsInput.map((m) => ({
+      userId: m.userId || m.id || undefined,
+      mentorProfileId: m.mentorProfileId || undefined,
+      name: m.name || m.fullName || 'GrowthCraft Mentor',
+      avatar: m.avatar || '',
+      designation: m.designation || m.currentOrganization || m.areaOfExpertise || '',
+      areaOfExpertise: m.areaOfExpertise || '',
+      bio: m.bio || '',
+    }));
+  } else if (Array.isArray(mentorIds) && mentorIds.length > 0) {
+    const validIds = mentorIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validIds.length > 0) {
+      const users = await User.find({ _id: { $in: validIds } }).select('fullName email avatar').exec();
+      const profiles = await MentorProfile.find({ userId: { $in: validIds } }).exec();
+      const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
+
+      resolvedMentors = users.map((u) => {
+        const p = profileMap.get(u._id.toString());
+        return {
+          userId: u._id,
+          mentorProfileId: p?._id,
+          name: u.fullName || u.email,
+          avatar: (u as any).avatar || '',
+          designation: p?.currentOrganization || p?.areaOfExpertise || '',
+          areaOfExpertise: p?.areaOfExpertise || '',
+          bio: p?.bio || '',
+        };
+      });
+    }
+  }
+  return resolvedMentors;
+};
+
 export class TrainingProgramAdminController {
   private static instance: TrainingProgramAdminController;
 
@@ -32,15 +69,46 @@ export class TrainingProgramAdminController {
   }
 
   /**
+   * GET /api/v1/admin/training-programs
+   * List all training programs
+   */
+  public async listTrainingPrograms(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
+      const skip = (page - 1) * limit;
+      const search = req.query.search as string;
+
+      const filter: any = { deletedAt: null };
+      if (search) {
+        filter.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { domain: { $regex: search, $options: 'i' } },
+        ];
+      }
+
+      const [programs, total] = await Promise.all([
+        TrainingProgram.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).exec(),
+        TrainingProgram.countDocuments(filter).exec(),
+      ]);
+
+      SuccessResponseHelper.paginated(res, programs, { page, limit, total }, 'Training programs list retrieved successfully');
+    } catch (error) {
+      logger.error('Error listing training programs:', error);
+      next(error);
+    }
+  }
+
+  /**
    * POST /api/v1/admin/training-programs
    * Create a training program
    */
   public async createTrainingProgram(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { title, description, domain, durationDays, tools, price, ...otherFields } = req.body;
+      const { title, description, domain, durationDays, tools, price, isPublished, isFeatured, mentorIds, mentors: mentorsInput, ...otherFields } = req.body;
 
-      if (!title || !description || !domain || !durationDays || !tools || price === undefined) {
-        throw new ValidationError('Title, description, domain, durationDays, tools, and price are required');
+      if (!title || !description || !domain || !durationDays || price === undefined) {
+        throw new ValidationError('Title, description, domain, durationDays, and price are required');
       }
 
       const slug = otherFields.slug ? slugify(otherFields.slug) : slugify(title);
@@ -50,16 +118,22 @@ export class TrainingProgramAdminController {
         throw new ValidationError(`Training program with slug or title similar to '${slug}' already exists`);
       }
 
+      const resolvedMentors = await resolveMentors(mentorIds, mentorsInput);
+      const toolsArray = Array.isArray(tools) ? tools : typeof tools === 'string' ? tools.split(',').map(t => t.trim()).filter(Boolean) : ['React', 'Node.js'];
+
       const program = await TrainingProgram.create({
-        title,
-        description,
-        domain,
-        durationDays,
-        tools,
-        price,
+        title: title.trim(),
+        description: description.trim(),
+        domain: domain.trim(),
+        durationDays: Number(durationDays),
+        tools: toolsArray.length > 0 ? toolsArray : ['React', 'Node.js'],
+        price: Number(price),
         slug,
-        status: 'draft',
-        isPublished: false,
+        status: Boolean(isPublished) ? 'active' : 'draft',
+        isPublished: Boolean(isPublished),
+        isFeatured: Boolean(isFeatured),
+        mentors: resolvedMentors,
+        level: otherFields.level || 'Beginner',
         ...otherFields,
       });
 
@@ -111,6 +185,14 @@ export class TrainingProgramAdminController {
 
       const oldValues = program.toObject();
 
+      if (updates.mentorIds || updates.mentors) {
+        updates.mentors = await resolveMentors(updates.mentorIds, updates.mentors);
+        delete updates.mentorIds;
+      }
+      if (updates.isPublished !== undefined) {
+        updates.status = updates.isPublished ? 'active' : 'draft';
+      }
+
       Object.assign(program, updates);
       await program.save();
 
@@ -126,6 +208,45 @@ export class TrainingProgramAdminController {
       SuccessResponseHelper.ok(res, { trainingProgram: program }, 'Training program updated successfully');
     } catch (error) {
       logger.error('Error updating training program:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * PATCH /api/v1/admin/training-programs/:id/publish
+   * Toggle publish status of a training program
+   */
+  public async publishTrainingProgram(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ValidationError('Invalid training program ID');
+      }
+
+      const program = await TrainingProgram.findOne({ _id: id, deletedAt: null }).exec();
+      if (!program) {
+        throw new NotFoundError('Training program not found');
+      }
+
+      program.isPublished = !program.isPublished;
+      program.status = program.isPublished ? 'active' : 'draft';
+      await program.save();
+
+      await auditLogService.log(
+        req.user!.userId,
+        program.isPublished ? 'trainingprogram.publish' : 'trainingprogram.unpublish',
+        id,
+        { title: program.title, isPublished: program.isPublished },
+        req.ip
+      );
+
+      SuccessResponseHelper.ok(
+        res,
+        { trainingProgram: program },
+        `Training program ${program.isPublished ? 'published' : 'unpublished'} successfully`
+      );
+    } catch (error) {
+      logger.error('Error publishing training program:', error);
       next(error);
     }
   }

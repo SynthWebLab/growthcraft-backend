@@ -26,6 +26,16 @@ export interface ITrainingProgram extends Document {
   maxSeats?: number;
   enrolledCount?: number;
   isPublished: boolean;
+  isFeatured?: boolean;
+  mentors?: Array<{
+    userId?: mongoose.Types.ObjectId;
+    mentorProfileId?: mongoose.Types.ObjectId;
+    name: string;
+    avatar?: string;
+    designation?: string;
+    areaOfExpertise?: string;
+    bio?: string;
+  }>;
   deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -141,6 +151,22 @@ const trainingProgramSchema = new Schema<ITrainingProgram>(
       default: false,
       index: true,
     },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    mentors: [
+      {
+        userId: { type: Schema.Types.ObjectId, ref: 'User' },
+        mentorProfileId: { type: Schema.Types.ObjectId, ref: 'MentorProfile' },
+        name: { type: String, required: true },
+        avatar: { type: String },
+        designation: { type: String },
+        areaOfExpertise: { type: String },
+        bio: { type: String },
+      },
+    ],
     deletedAt: {
       type: Date,
       default: null,

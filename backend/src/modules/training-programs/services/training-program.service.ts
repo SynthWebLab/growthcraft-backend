@@ -64,8 +64,8 @@ export class TrainingProgramService {
       // Calculate pagination
       const skip = (page - 1) * limit;
 
-      // Build sort
-      const sort: any = {};
+      // Build sort: Featured first, then most recent (updatedAt/createdAt)
+      const sort: any = { isFeatured: -1, updatedAt: -1, createdAt: -1 };
       sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
       // Execute query

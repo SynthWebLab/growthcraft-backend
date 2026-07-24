@@ -25,12 +25,13 @@ export class TrainingProgramDetailsController {
 
       let programDetails = await trainingProgramDetailsService.getProgramDetailsBySlug(slug);
 
-      if (req.user?.userId && programDetails) {
+      // Only check enrollment if we have a real programId (not a fallback null)
+      if (req.user?.userId && programDetails && (programDetails as any).programId) {
         const userId = req.user.userId;
         const { TrainingProgramEnrollment } = await import('@/database/models/TrainingProgramEnrollment.model');
         const { TrainingProgramCallbackRequest } = await import('@/database/models/TrainingProgramCallbackRequest.model');
         
-        const programIdStr = programDetails.programId?.toString();
+        const programIdStr = (programDetails as any).programId?.toString();
         if (programIdStr) {
           const isEnrolled = await TrainingProgramEnrollment.findOne({
             userId,
