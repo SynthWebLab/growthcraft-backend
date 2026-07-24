@@ -27,9 +27,21 @@ export type DifficultyLevel = string;
 export type CourseStatus = 'Active' | 'Coming Soon' | 'Draft'; // Status is computed, not stored
 export type CourseType = string;
 
+export interface ICourseMentor {
+  userId?: mongoose.Types.ObjectId | string;
+  mentorProfileId?: mongoose.Types.ObjectId | string;
+  name: string;
+  avatar?: string;
+  designation?: string;
+  areaOfExpertise?: string;
+  bio?: string;
+}
+
 export interface IInstructor {
   name: string;
   avatar?: string;
+  userId?: mongoose.Types.ObjectId | string;
+  designation?: string;
 }
 
 export interface IBootcampDetails {
@@ -53,6 +65,7 @@ export interface ICourse extends Document {
   totalHours?: number; // Optional - uses duration if not set
   instructorId?: string; // Optional for backward compatibility
   isPublished: boolean;
+  isFeatured?: boolean;
   deletedAt?: Date;
   
   // Legacy/additional fields for backward compatibility
@@ -63,6 +76,7 @@ export interface ICourse extends Document {
   originalPrice?: number; // maps to price in frontend (before discount)
   rating: number; // maps to avgRating in frontend
   instructor: IInstructor;
+  mentors?: ICourseMentor[];
   thumbnail?: string;
   isActive: boolean;
   enrollmentCount: number;
@@ -163,6 +177,11 @@ const courseSchema = new Schema<ICourse>(
       default: false,
       index: true,
     },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     deletedAt: {
       type: Date,
       default: null,
@@ -208,7 +227,25 @@ const courseSchema = new Schema<ICourse>(
         type: String,
         trim: true,
       },
+      userId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      designation: {
+        type: String,
+      },
     },
+    mentors: [
+      {
+        userId: { type: Schema.Types.ObjectId, ref: 'User' },
+        mentorProfileId: { type: Schema.Types.ObjectId, ref: 'MentorProfile' },
+        name: { type: String, required: true },
+        avatar: { type: String },
+        designation: { type: String },
+        areaOfExpertise: { type: String },
+        bio: { type: String },
+      },
+    ],
     thumbnail: {
       type: String,
       trim: true,
@@ -272,6 +309,51 @@ courseSchema.index({ isPublished: 1, category: 1 });
 courseSchema.index({ category: 1, difficultyLevel: 1, isActive: 1 });
 courseSchema.index({ rating: -1, enrollmentCount: -1 });
 courseSchema.index({ isDraft: 1, type: 1, publishedAt: 1 });
+
+// Pre-validate hook to normalize legacy data before schema validation runs
+courseSchema.pre('validate', function (next) {
+  // Normalize legacy category strings to valid enum values
+  if (this.category) {
+    const catMap: Record<string, CourseCategory> = {
+      MERN: CourseCategory.WEB_DEVELOPMENT,
+      'UI/UX': CourseCategory.DESIGN,
+      DataScience: CourseCategory.DATA_SCIENCE,
+      'Data Science': CourseCategory.DATA_SCIENCE,
+      'Web Development': CourseCategory.WEB_DEVELOPMENT,
+      'Mobile Development': CourseCategory.MOBILE_DEVELOPMENT,
+      'Cloud Computing': CourseCategory.CLOUD_COMPUTING,
+      Cybersecurity: CourseCategory.CYBERSECURITY,
+      'AI/ML': CourseCategory.AI_ML,
+      DevOps: CourseCategory.DEVOPS,
+      Design: CourseCategory.DESIGN,
+      Business: CourseCategory.BUSINESS,
+      Programming: CourseCategory.PROGRAMMING,
+      Other: CourseCategory.OTHER,
+    };
+    if (catMap[this.category]) {
+      this.category = catMap[this.category];
+    }
+  }
+
+  // Ensure instructor object is populated
+  if (!this.instructor || !this.instructor.name) {
+    const name = this.instructorId || 'GrowthCraft Team';
+    this.instructor = { name };
+  }
+
+  // Ensure duration & lessonsCount are populated
+  if (!this.duration && this.totalHours) {
+    this.duration = this.totalHours;
+  } else if (!this.duration) {
+    this.duration = 20;
+  }
+
+  if (!this.lessonsCount || this.lessonsCount < 1) {
+    this.lessonsCount = Math.max(1, Math.floor(this.duration * 2));
+  }
+
+  next();
+});
 
 // Pre-save hook to ensure backward compatibility
 courseSchema.pre('save', function (next) {

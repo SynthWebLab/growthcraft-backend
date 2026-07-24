@@ -219,7 +219,7 @@ export class CourseService {
    * Build filter query from query parameters
    */
   private buildFilterQuery(queryParams: CourseQueryParams): FilterQuery<ICourse> {
-    const filter: FilterQuery<ICourse> = { isActive: true };
+    const filter: FilterQuery<ICourse> = { isActive: true, isPublished: true, deletedAt: null };
 
     // Category filter
     if (queryParams.category) {
@@ -272,7 +272,7 @@ export class CourseService {
   private buildSortQuery(queryParams: CourseQueryParams): Record<string, 1 | -1 | any> {
     const sortBy = queryParams.sortBy || 'createdAt';
     const sortOrder = queryParams.sortOrder === 'asc' ? 1 : -1;
-    const sort: Record<string, 1 | -1 | any> = { [sortBy]: sortOrder };
+    const sort: Record<string, 1 | -1 | any> = { isFeatured: -1, [sortBy]: sortOrder };
 
     // If searching, add text score for relevance sorting
     const searchQuery = queryParams.q || queryParams.search;

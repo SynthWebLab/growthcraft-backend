@@ -221,7 +221,7 @@ export class CatalogueService {
 
     this.applyCursorFilter(filter, queryParams.cursor, sortBy, sortOrder);
 
-    const sort: any = { [sortBy]: sortOrder, _id: sortOrder };
+    const sort: any = { isFeatured: -1, [sortBy]: sortOrder, _id: sortOrder };
     if (queryParams.search && queryParams.search.trim()) {
       sort.score = { $meta: 'textScore' };
     }
@@ -272,8 +272,11 @@ export class CatalogueService {
    * Build course filters shared by list and count queries.
    */
   private buildCourseFilter(queryParams: CatalogueQueryParams): any {
-    const filter: any = { isActive: true };
+    const filter: any = { isActive: true, isPublished: true, deletedAt: null };
 
+    if (queryParams.isFeatured !== undefined) {
+      filter.isFeatured = queryParams.isFeatured === true || (queryParams.isFeatured as any) === 'true';
+    }
     if (queryParams.category) filter.category = queryParams.category;
     if (queryParams.level || queryParams.difficultyLevel) {
       filter.difficultyLevel = queryParams.level || queryParams.difficultyLevel;
@@ -356,8 +359,10 @@ export class CatalogueService {
       duration: course.duration,
       lessonsCount: course.lessonsCount,
       instructor: course.instructor,
+      mentors: course.mentors && course.mentors.length > 0 ? (course.mentors as any) : (course.instructor?.name ? [{ name: course.instructor.name, avatar: course.instructor.avatar }] : []),
       enrollmentCount: course.enrollmentCount,
       status: course.getStatus(),
+      isFeatured: Boolean(course.isFeatured),
       canEnroll: course.canEnroll(),
       primaryCTA: course.getPrimaryCTA(),
       secondaryCTA: course.getSecondaryCTA(),
@@ -607,6 +612,18 @@ export class CatalogueService {
       logger.info(`Cached catalogue data with key: ${key} (TTL: ${this.CACHE_TTL}s)`);
     } catch (error: any) {
       logger.warn('Redis set error (non-critical):', error.message);
+    }
+  }
+
+  /**
+   * Clear catalogue cache (called when admin creates, updates, deletes, or publishes courses/bootcamps)
+   */
+  public async clearCatalogueCache(): Promise<void> {
+    try {
+      await redisConfig.delByPattern('public:*');
+      logger.info('Catalogue cache invalidated successfully');
+    } catch (error: any) {
+      logger.warn('Error clearing catalogue cache:', error.message);
     }
   }
 }

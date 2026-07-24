@@ -148,6 +148,9 @@ router.get('/audit-logs', authorize([UserRole.SUPER_ADMIN]), (req: Request, res:
 /**
  * Course Admin CRUD
  */
+router.get('/courses', (req: Request, res: Response, next: NextFunction) => {
+  void courseAdminController.listCourses(req, res, next);
+});
 router.post('/courses', (req: Request, res: Response, next: NextFunction) => {
   void courseAdminController.createCourse(req, res, next);
 });
