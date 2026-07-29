@@ -56,8 +56,12 @@ export class TrainingProgramEnrollmentService {
       });
 
       if (existingEnrollment) {
+        if (existingEnrollment.status === 'pending') {
+          return existingEnrollment;
+        }
         throw new ConflictError('You are already enrolled in this training program');
       }
+
 
       // Create enrollment
       const enrollment = await TrainingProgramEnrollment.create({
@@ -176,7 +180,7 @@ export class TrainingProgramEnrollmentService {
   ): Promise<{ isEnrolled: boolean; hasCallbackRequest: boolean }> {
     try {
       const [enrollment, callbackRequest] = await Promise.all([
-        TrainingProgramEnrollment.findOne({ userId, programId }),
+        TrainingProgramEnrollment.findOne({ userId, programId, status: 'confirmed' }),
         TrainingProgramCallbackRequest.findOne({ userId, programId, status: 'pending' }),
       ]);
 

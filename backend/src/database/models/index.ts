@@ -42,6 +42,13 @@ export { JobPosting, IJobPosting } from './JobPosting.model';
 export { JobApplication, IJobApplication } from './JobApplication.model';
 export { AuditLog, IAuditLog } from './AuditLog.model';
 export { MentorPayout, IMentorPayout } from './MentorPayout.model';
+export {
+  PaymentTransaction,
+  IPaymentTransaction,
+  PaymentStatus,
+  PaymentItemType,
+} from './PaymentTransaction.model';
+
 
 
 

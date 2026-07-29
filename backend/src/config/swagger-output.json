@@ -3542,6 +3542,37 @@
       }
     },
     "/api/v1/admin/events": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
       "post": {
         "description": "",
         "responses": {
@@ -3577,6 +3608,18 @@
                     "example": "any"
                   },
                   "maxSeats": {
+                    "example": "any"
+                  },
+                  "mentorIds": {
+                    "example": "any"
+                  },
+                  "mentors": {
+                    "example": "any"
+                  },
+                  "isPublished": {
+                    "example": "any"
+                  },
+                  "isFeatured": {
                     "example": "any"
                   },
                   "otherFields": {
@@ -3621,6 +3664,27 @@
                   },
                   "slug": {
                     "example": "any"
+                  },
+                  "mentorIds": {
+                    "example": "any"
+                  },
+                  "mentors": {
+                    "example": "any"
+                  },
+                  "mentorNames": {
+                    "example": "any"
+                  },
+                  "isPublished": {
+                    "example": "any"
+                  },
+                  "status": {
+                    "example": "any"
+                  },
+                  "startDate": {
+                    "example": "any"
+                  },
+                  "endDate": {
+                    "example": "any"
                   }
                 }
               }
@@ -3629,6 +3693,26 @@
         }
       },
       "delete": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/events/{id}/publish": {
+      "patch": {
         "description": "",
         "parameters": [
           {
@@ -4920,6 +5004,65 @@
     },
     "/api/v1/notifications/read-all": {
       "patch": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/payments/create-order": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/payments/verify": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/payments/create-link": {
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/payments/webhook": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "x-razorpay-signature",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/payments/my-payments": {
+      "get": {
         "description": "",
         "responses": {
           "401": {

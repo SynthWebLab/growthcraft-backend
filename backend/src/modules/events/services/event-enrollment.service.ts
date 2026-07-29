@@ -104,8 +104,12 @@ export class EventEnrollmentService {
       const existingEnrollment = await EventEnrollment.findOne(duplicateEnrollmentFilter);
 
       if (existingEnrollment) {
+        if (existingEnrollment.status === 'pending') {
+          return existingEnrollment;
+        }
         throw new ConflictError(`You are already registered for this ${data.eventType.toLowerCase()}`);
       }
+
 
       // Create enrollment
       const enrollment = await EventEnrollment.create({
@@ -275,11 +279,12 @@ export class EventEnrollmentService {
   ): Promise<{ isEnrolled: boolean; hasCallbackRequest: boolean }> {
     try {
       // Check enrollment
-      const enrollment = await EventEnrollment.findOne({
+       const enrollment = await EventEnrollment.findOne({
         userId,
         eventId,
-        status: { $in: ['pending', 'confirmed'] },
+        status: 'confirmed',
       });
+
 
       // Check callback request
       const callbackRequest = await EventCallbackRequest.findOne({
@@ -314,8 +319,9 @@ export class EventEnrollmentService {
       const filter: any = {
         userId,
         eventId: { $in: eventIds },
-        status: { $in: ['pending', 'confirmed'] },
+        status: 'confirmed',
       };
+
 
       if (eventType) {
         filter.eventType = eventType;

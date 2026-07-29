@@ -53,6 +53,12 @@ export const config = {
   SWAGGER_ENABLED: process.env.SWAGGER_ENABLED === 'true',
   SWAGGER_PATH: process.env.SWAGGER_PATH || '/api-docs',
   SWAGGER_AUTO_PATH: process.env.SWAGGER_AUTO_PATH || '/api-docs-auto',
+
+  // Razorpay
+  RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',
+  RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || '',
+  RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET || '',
 };
+
 
 export default config;

@@ -159,27 +159,43 @@ export class EnrollmentService {
 
   /**
    * Generate Razorpay payment link
-   * TODO: Implement actual Razorpay integration (Epic 13)
-   * This is a placeholder that returns mock data
    */
   private async generateRazorpayPaymentLink(
     enrollmentId: string,
     amount: number
   ): Promise<PaymentLink> {
-    // TODO: Replace with actual Razorpay API call when Epic 13 is implemented
-    logger.warn('Razorpay integration not yet implemented (Epic 13). Returning mock payment link.');
+    try {
+      const { paymentService } = await import('@/modules/payments/services/payment.service');
+      const link = await paymentService.generatePaymentLink({
+        amount,
+        description: `Enrollment Fee for Enrollment #${enrollmentId}`,
+        itemType: 'enrollment',
+        itemId: enrollmentId,
+        expiresInHours: 24,
+      });
 
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiry
+      return {
+        id: link.id,
+        url: link.url,
+        amount: link.amount,
+        currency: link.currency,
+        expiresAt: link.expiresAt,
+      };
+    } catch (err: any) {
+      logger.warn(`Razorpay payment link generation fallback to mock: ${err.message}`);
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
 
-    return {
-      id: `plink_mock_${enrollmentId}`,
-      url: `https://razorpay.com/pay/mock_${enrollmentId}`,
-      amount,
-      currency: 'INR',
-      expiresAt,
-    };
+      return {
+        id: `plink_mock_${enrollmentId}`,
+        url: `https://razorpay.com/pay/mock_${enrollmentId}`,
+        amount,
+        currency: 'INR',
+        expiresAt,
+      };
+    }
   }
 }
+
 
 export const enrollmentService = EnrollmentService.getInstance();

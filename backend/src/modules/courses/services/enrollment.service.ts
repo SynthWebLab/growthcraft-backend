@@ -86,8 +86,12 @@ export class EnrollmentService {
       const existingEnrollment = await CourseEnrollment.findOne(duplicateEnrollmentFilter);
 
       if (existingEnrollment) {
+        if (existingEnrollment.status === 'pending') {
+          return existingEnrollment;
+        }
         throw new ConflictError('You are already enrolled in this course');
       }
+
 
       // Create enrollment
       const enrollment = await CourseEnrollment.create({
@@ -239,8 +243,9 @@ export class EnrollmentService {
     try {
       const user = await User.findById(userId).select('email').lean().exec();
       const enrollmentFilter = user
-        ? { $or: [{ userId }, { email: user.email }], courseId, status: { $in: ['pending', 'confirmed'] } }
-        : { userId, courseId, status: { $in: ['pending', 'confirmed'] } };
+        ? { $or: [{ userId }, { email: user.email }], courseId, status: 'confirmed' }
+        : { userId, courseId, status: 'confirmed' };
+
 
       const callbackFilter = user
         ? { $or: [{ userId }, { email: user.email }], courseId, status: 'pending' }
@@ -273,8 +278,9 @@ export class EnrollmentService {
 
       const user = await User.findById(userId).select('email').lean().exec();
       const filter = user
-        ? { $or: [{ userId }, { email: user.email }], courseId: { $in: courseIds }, status: { $in: ['pending', 'confirmed'] } }
-        : { userId, courseId: { $in: courseIds }, status: { $in: ['pending', 'confirmed'] } };
+        ? { $or: [{ userId }, { email: user.email }], courseId: { $in: courseIds }, status: 'confirmed' }
+        : { userId, courseId: { $in: courseIds }, status: 'confirmed' };
+
 
       const enrollments = await CourseEnrollment.find(filter)
         .select('courseId')
