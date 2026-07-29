@@ -17,6 +17,7 @@ import { employerAdminController } from '../controllers/employer-admin.controlle
 import { analyticsController } from '../controllers/analytics.controller';
 import { auditLogController } from '../controllers/audit-log.controller';
 import { uploadController } from '../controllers/upload.controller';
+import { enquiryAdminController } from '../controllers/enquiry-admin.controller';
 import metricsJobRoutes from './metrics-job.routes';
 
 const router = Router();
@@ -226,6 +227,19 @@ router.put('/employers/:id', (req: Request, res: Response, next: NextFunction) =
 });
 router.delete('/employers/:id', (req: Request, res: Response, next: NextFunction) => {
   void employerAdminController.deleteEmployer(req, res, next);
+});
+
+/**
+ * Enquiry / Lead management
+ */
+router.get('/enquiries', (req: Request, res: Response, next: NextFunction) => {
+  void enquiryAdminController.listEnquiries(req, res, next);
+});
+router.patch('/enquiries/:id', (req: Request, res: Response, next: NextFunction) => {
+  void enquiryAdminController.updateEnquiry(req, res, next);
+});
+router.delete('/enquiries/:id', (req: Request, res: Response, next: NextFunction) => {
+  void enquiryAdminController.deleteEnquiry(req, res, next);
 });
 
 /**

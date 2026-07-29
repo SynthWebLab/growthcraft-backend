@@ -10,6 +10,7 @@ export interface ILead extends Document {
   organization?: string;
   source?: string;
   status: 'pending' | 'contacted' | 'resolved';
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,6 +59,10 @@ const leadSchema = new Schema<ILead>(
       enum: ['pending', 'contacted', 'resolved'],
       default: 'pending',
       index: true,
+    },
+    notes: {
+      type: String,
+      trim: true,
     },
   },
   {
