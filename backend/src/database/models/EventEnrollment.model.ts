@@ -12,6 +12,7 @@ export interface IEventEnrollment extends Document {
   enrollmentDate: Date;
   status: 'pending' | 'confirmed' | 'cancelled';
   paymentStatus: 'pending' | 'completed' | 'failed';
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -77,6 +78,10 @@ const eventEnrollmentSchema = new Schema<IEventEnrollment>(
       enum: ['pending', 'completed', 'failed'],
       default: 'pending',
       index: true,
+    },
+    notes: {
+      type: String,
+      trim: true,
     },
   },
   {

@@ -18,6 +18,7 @@ import { analyticsController } from '../controllers/analytics.controller';
 import { auditLogController } from '../controllers/audit-log.controller';
 import { uploadController } from '../controllers/upload.controller';
 import { enquiryAdminController } from '../controllers/enquiry-admin.controller';
+import { registrationAdminController } from '../controllers/registration-admin.controller';
 import metricsJobRoutes from './metrics-job.routes';
 
 const router = Router();
@@ -240,6 +241,19 @@ router.patch('/enquiries/:id', (req: Request, res: Response, next: NextFunction)
 });
 router.delete('/enquiries/:id', (req: Request, res: Response, next: NextFunction) => {
   void enquiryAdminController.deleteEnquiry(req, res, next);
+});
+
+/**
+ * Registrations management
+ */
+router.get('/registrations', (req: Request, res: Response, next: NextFunction) => {
+  void registrationAdminController.listRegistrations(req, res, next);
+});
+router.patch('/registrations/:id', (req: Request, res: Response, next: NextFunction) => {
+  void registrationAdminController.updateRegistration(req, res, next);
+});
+router.delete('/registrations/:id', (req: Request, res: Response, next: NextFunction) => {
+  void registrationAdminController.deleteRegistration(req, res, next);
 });
 
 /**

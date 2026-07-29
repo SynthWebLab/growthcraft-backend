@@ -10,6 +10,7 @@ export interface ITrainingProgramEnrollment extends Document {
   enrollmentDate: Date;
   status: 'pending' | 'confirmed' | 'cancelled';
   paymentStatus: 'pending' | 'completed' | 'failed';
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +67,10 @@ const trainingProgramEnrollmentSchema = new Schema<ITrainingProgramEnrollment>(
       enum: ['pending', 'completed', 'failed'],
       default: 'pending',
       index: true,
+    },
+    notes: {
+      type: String,
+      trim: true,
     },
   },
   {
