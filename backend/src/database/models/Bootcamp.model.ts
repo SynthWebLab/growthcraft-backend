@@ -29,6 +29,8 @@ export interface IBootcampMentor {
   designation?: string;
   areaOfExpertise?: string;
   bio?: string;
+  meetingLink?: string;
+  googleMeetUrl?: string;
 }
 
 export interface IBootcamp extends Document {

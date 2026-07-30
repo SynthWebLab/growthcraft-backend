@@ -941,7 +941,7 @@ export class StudentDashboardService {
       const { MentorProfile } = await import('@/database/models/MentorProfile.model');
       const { Batch } = await import('@/database/models/Batch.model');
 
-      let resolvedMentors: Array<{ name: string; designation: string; avatar: string }> = [];
+      let resolvedMentors: Array<{ name: string; designation: string; avatar: string; meetingLink?: string }> = [];
 
       // 1. Check if mentors are directly assigned to the event document by Admin
       if (event && (event as any).mentors && (event as any).mentors.length > 0) {
@@ -951,6 +951,7 @@ export class StudentDashboardService {
               name: m.name,
               designation: m.designation || m.areaOfExpertise || "Admin-Assigned Mentor",
               avatar: m.avatar || "",
+              meetingLink: m.meetingLink || m.googleMeetUrl || "https://meet.google.com/gc-hackathon-room",
             });
           } else if (m.mentorProfileId || m.userId) {
             const profile = await MentorProfile.findById(m.mentorProfileId || m.userId)
@@ -963,6 +964,7 @@ export class StudentDashboardService {
                 name,
                 designation: profile.areaOfExpertise || profile.currentOrganization || "Campus Mentor",
                 avatar: u.avatar || "",
+                meetingLink: "https://meet.google.com/gc-hackathon-room",
               });
             }
           }
@@ -991,6 +993,7 @@ export class StudentDashboardService {
                 name,
                 designation: mp.areaOfExpertise || mp.currentOrganization || "Campus Mentor",
                 avatar: u.avatar || "",
+                meetingLink: "https://meet.google.com/gc-hackathon-room",
               });
             }
           }
@@ -1012,6 +1015,7 @@ export class StudentDashboardService {
               name,
               designation: mp.areaOfExpertise || mp.currentOrganization || 'GrowthCraft Mentor',
               avatar: u?.avatar || '',
+              meetingLink: 'https://meet.google.com/gc-hackathon-room',
             });
           }
         }
@@ -1020,8 +1024,8 @@ export class StudentDashboardService {
       // Default fallback if database has no mentors
       if (resolvedMentors.length === 0) {
         resolvedMentors = [
-          { name: "Prof. R. Sharma", designation: "Full-Stack & Cloud Mentor", avatar: "" },
-          { name: "Ananya Kapoor", designation: "AI & System Design Specialist", avatar: "" },
+          { name: "Prof. R. Sharma", designation: "Full-Stack & Cloud Mentor", avatar: "", meetingLink: "https://meet.google.com/gc-sharma-room" },
+          { name: "Ananya Kapoor", designation: "AI & System Design Specialist", avatar: "", meetingLink: "https://meet.google.com/gc-kapoor-room" },
         ];
       }
 
