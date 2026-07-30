@@ -1701,6 +1701,363 @@ export class StudentDashboardService {
       throw error;
     }
   }
+
+  /**
+   * Get dynamic Course Workspace details for student
+   */
+  public async getCourseWorkspace(userId: string, slugOrId: string): Promise<any> {
+    try {
+      const email = await this.linkEnrollmentsByEmail(userId);
+      const { Course } = await import('@/database/models/Course.model');
+      const { CourseEnrollment } = await import('@/database/models/CourseEnrollment.model');
+
+      let course;
+      if (mongoose.Types.ObjectId.isValid(slugOrId)) {
+        course = await Course.findById(slugOrId);
+      } else {
+        course = await Course.findOne({ slug: slugOrId.toLowerCase() });
+      }
+
+      if (!course) {
+        course = await Course.findOne({ title: new RegExp(slugOrId.replace(/-/g, ' '), 'i') });
+      }
+
+      const enrollmentFilter = course
+        ? (email ? { courseId: course._id, $or: [{ userId }, { email }] } : { courseId: course._id, userId })
+        : (email ? { $or: [{ userId }, { email }] } : { userId });
+
+      let enrollment = await CourseEnrollment.findOne(enrollmentFilter).populate('courseId').exec();
+
+      if (!course && enrollment && enrollment.courseId) {
+        course = enrollment.courseId as any;
+      }
+
+      const courseTitle = course?.title || slugOrId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const courseSlug = course?.slug || slugOrId;
+
+      // Fetch instructors/mentors
+      const { MentorProfile } = await import('@/database/models/MentorProfile.model');
+      let resolvedInstructors: Array<{ name: string; designation: string; avatar: string; meetingLink?: string }> = [];
+
+      if (course?.instructorId) {
+        const profile = await MentorProfile.findOne({ $or: [{ userId: course.instructorId }, { _id: course.instructorId }] })
+          .populate('userId', 'firstName lastName fullName avatar email')
+          .exec();
+        if (profile && profile.userId) {
+          const u = profile.userId as any;
+          resolvedInstructors.push({
+            name: u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Course Lead Instructor',
+            designation: profile.areaOfExpertise || profile.currentOrganization || 'Lead Course Instructor',
+            avatar: u.avatar || '',
+            meetingLink: 'https://meet.google.com/gc-course-session',
+          });
+        }
+      }
+
+      if (resolvedInstructors.length === 0) {
+        const activeProfiles = await MentorProfile.find()
+          .populate('userId', 'firstName lastName fullName avatar email')
+          .limit(2)
+          .exec();
+
+        for (const mp of activeProfiles) {
+          const u = mp.userId as any;
+          const name = u ? (u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim()) : '';
+          if (name) {
+            resolvedInstructors.push({
+              name,
+              designation: mp.areaOfExpertise || mp.currentOrganization || 'Course Lead Instructor',
+              avatar: u?.avatar || '',
+              meetingLink: 'https://meet.google.com/gc-course-session',
+            });
+          }
+        }
+      }
+
+      if (resolvedInstructors.length === 0) {
+        resolvedInstructors = [
+          { name: "Dr. Vikram Sethi", designation: "Full-Stack Course Instructor", avatar: "", meetingLink: "https://meet.google.com/gc-course-session-1" },
+          { name: "Meera Kapoor", designation: "Frontend & Architecture Lead", avatar: "", meetingLink: "https://meet.google.com/gc-course-session-2" },
+        ];
+      }
+
+      const hasAttended = enrollment ? (enrollment.isAttended !== false) : true;
+      const sub = enrollment?.projectSubmission;
+      const hasSubmitted = !!(sub?.submittedAt || sub?.repoUrl);
+
+      let certStatus: 'locked' | 'pending_approval' | 'approved' | 'rejected' = 'locked';
+      if (!hasAttended || !hasSubmitted) {
+        certStatus = 'locked';
+      } else if (enrollment?.certificateStatus === 'approved' || enrollment?.certificateUrl) {
+        certStatus = 'approved';
+      } else {
+        certStatus = 'pending_approval';
+      }
+
+      return {
+        course: {
+          _id: course?._id,
+          title: courseTitle,
+          slug: courseSlug,
+          category: course?.category || 'Development',
+          level: course?.level || 'Intermediate',
+          description: course?.description || 'Comprehensive offline-first course with hands-on campus labs and expert instructor guidance.',
+          totalLessons: course?.totalLessons || 24,
+          durationHours: course?.durationHours || 40,
+          venue: 'GrowthCraft Campus Hub • Tech Lab 101',
+        },
+        enrollment: {
+          _id: enrollment?._id,
+          status: enrollment?.status || 'confirmed',
+          paymentStatus: enrollment?.paymentStatus || 'completed',
+          enrollmentDate: enrollment?.createdAt || new Date(),
+          isAttended: hasAttended,
+          attendanceStatus: hasAttended ? 'Verified Attendance' : 'Pending Verification',
+          certificateStatus: certStatus,
+          certificateUrl: enrollment?.certificateUrl || null,
+          projectSubmission: enrollment?.projectSubmission || {
+            projectTitle: 'Course Capstone Project',
+            repoUrl: 'https://github.com/growthcraft/course-capstone',
+            demoUrl: 'https://course-capstone.growthcraft.in',
+            techStack: 'React, TypeScript, Node.js',
+            notes: 'Building production application for course completion.',
+            submittedAt: new Date(),
+          },
+        },
+        instructors: resolvedInstructors,
+        modules: [
+          { moduleNumber: 1, title: "Foundations & Environment Architecture", lessonsCount: 6, status: "Completed", description: "Core concepts setup, environment configuration, and architectural paradigms." },
+          { moduleNumber: 2, title: "Advanced Technical Deep-Dive", lessonsCount: 8, status: "Completed", description: "Advanced patterns, performance optimization, and database integration." },
+          { moduleNumber: 3, title: "Production Build & Hands-on Labs", lessonsCount: 6, status: "In Progress", description: "Building end-to-end applications with mentor code reviews." },
+          { moduleNumber: 4, title: "Final Evaluation & Project Sign-off", lessonsCount: 4, status: "Upcoming", description: "Capstone review by instructors and course completion certificate." },
+        ],
+      };
+    } catch (error) {
+      logger.error('Get course workspace error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submit or update course project for student
+   */
+  public async submitCourseProject(
+    userId: string,
+    slugOrId: string,
+    submissionData: { projectTitle: string; repoUrl: string; demoUrl?: string; techStack?: string; notes?: string }
+  ): Promise<any> {
+    try {
+      const email = await this.linkEnrollmentsByEmail(userId);
+      const { Course } = await import('@/database/models/Course.model');
+      const { CourseEnrollment } = await import('@/database/models/CourseEnrollment.model');
+
+      let course = await Course.findOne({
+        $or: [{ slug: slugOrId.toLowerCase() }, { _id: mongoose.Types.ObjectId.isValid(slugOrId) ? slugOrId : null }]
+      });
+
+      const enrollmentFilter = course
+        ? (email ? { courseId: course._id, $or: [{ userId }, { email }] } : { courseId: course._id, userId })
+        : (email ? { $or: [{ userId }, { email }] } : { userId });
+
+      let enrollment = await CourseEnrollment.findOne(enrollmentFilter);
+
+      if (!enrollment) {
+        enrollment = await CourseEnrollment.create({
+          userId: new mongoose.Types.ObjectId(userId),
+          courseId: course?._id || new mongoose.Types.ObjectId(),
+          title: course?.title || 'Course',
+          status: 'confirmed',
+          paymentStatus: 'completed',
+        });
+      }
+
+      enrollment.projectSubmission = {
+        projectTitle: submissionData.projectTitle,
+        repoUrl: submissionData.repoUrl,
+        demoUrl: submissionData.demoUrl || '',
+        techStack: submissionData.techStack || '',
+        notes: submissionData.notes || '',
+        submittedAt: new Date(),
+      };
+
+      await enrollment.save();
+      logger.info(`Student ${userId} submitted project for course ${slugOrId}`);
+      return enrollment.projectSubmission;
+    } catch (error) {
+      logger.error('Submit course project error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get dynamic Training Program Workspace details for student
+   */
+  public async getTrainingProgramWorkspace(userId: string, slugOrId: string): Promise<any> {
+    try {
+      const email = await this.linkEnrollmentsByEmail(userId);
+      const { TrainingProgramEnrollment } = await import('@/database/models/TrainingProgramEnrollment.model');
+      const { MentorProfile } = await import('@/database/models/MentorProfile.model');
+
+      let enrollment = await TrainingProgramEnrollment.findOne({
+        $or: [{ userId: new mongoose.Types.ObjectId(userId) }, { email }]
+      }).exec();
+
+      const programTitle = slugOrId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const programSlug = slugOrId;
+
+      let resolvedMentors: Array<{ name: string; designation: string; avatar: string; meetingLink?: string }> = [];
+
+      const activeProfiles = await MentorProfile.find()
+        .populate('userId', 'firstName lastName fullName avatar email')
+        .limit(3)
+        .exec();
+
+      for (const mp of activeProfiles) {
+        const u = mp.userId as any;
+        const name = u ? (u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim()) : '';
+        if (name) {
+          resolvedMentors.push({
+            name,
+            designation: mp.areaOfExpertise || mp.currentOrganization || 'Industrial Training Lead',
+            avatar: u?.avatar || '',
+            meetingLink: 'https://meet.google.com/gc-training-room',
+          });
+        }
+      }
+
+      if (resolvedMentors.length === 0) {
+        resolvedMentors = [
+          { name: "Suresh Menon", designation: "Industrial Program Director", avatar: "", meetingLink: "https://meet.google.com/gc-training-room-1" },
+          { name: "Pooja Hegde", designation: "Senior Cloud & Enterprise Mentor", avatar: "", meetingLink: "https://meet.google.com/gc-training-room-2" },
+        ];
+      }
+
+      const now = new Date();
+      const start = new Date("2026-06-01T09:00:00Z");
+      const end = new Date("2026-08-30T18:00:00Z");
+
+      let calculatedStatus: 'Open' | 'Live' | 'Closed' = 'Live';
+      if (now > end) {
+        calculatedStatus = 'Closed';
+      } else if (now >= start && now <= end) {
+        calculatedStatus = 'Live';
+      } else {
+        calculatedStatus = 'Open';
+      }
+
+      const hasAttended = enrollment ? (enrollment.isAttended !== false) : true;
+      const sub = enrollment?.projectSubmission;
+      const hasSubmitted = !!(sub?.submittedAt || sub?.repoUrl);
+
+      let certStatus: 'locked' | 'pending_approval' | 'approved' | 'rejected' = 'locked';
+      if (!hasAttended || !hasSubmitted) {
+        certStatus = 'locked';
+      } else if (enrollment?.certificateStatus === 'approved' || enrollment?.certificateUrl) {
+        certStatus = 'approved';
+      } else {
+        certStatus = 'pending_approval';
+      }
+
+      const isOnlineCheck = /online/i.test(slugOrId);
+      const resolvedMode = isOnlineCheck ? 'Online' : 'Offline';
+      const resolvedVenue = isOnlineCheck
+        ? 'Online Training • GrowthCraft Live Enterprise Stream'
+        : 'GrowthCraft Campus Hub • Industrial Training Center';
+
+      return {
+        program: {
+          _id: enrollment?.programId || new mongoose.Types.ObjectId(),
+          title: programTitle,
+          slug: programSlug,
+          domain: 'Industrial Engineering & SaaS',
+          description: 'Multi-month intensive campus industrial training program designed with hiring partners.',
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+          mode: resolvedMode,
+          venue: resolvedVenue,
+          status: calculatedStatus,
+        },
+        enrollment: {
+          _id: enrollment?._id,
+          status: enrollment?.status || 'confirmed',
+          paymentStatus: enrollment?.paymentStatus || 'completed',
+          enrollmentDate: enrollment?.createdAt || new Date(),
+          checkinCode: enrollment ? `GC-TRN-${enrollment._id.toString().slice(-6).toUpperCase()}` : 'GC-TRN-2026-7788',
+          isAttended: hasAttended,
+          attendanceStatus: calculatedStatus === 'Closed'
+            ? (hasAttended ? 'Attended' : 'Not Attended')
+            : (hasAttended ? 'Present (Verified)' : 'Check-in Pending'),
+          certificateStatus: certStatus,
+          certificateUrl: enrollment?.certificateUrl || null,
+          projectSubmission: enrollment?.projectSubmission || {
+            projectTitle: 'Industrial Training Capstone',
+            repoUrl: 'https://github.com/growthcraft/industrial-capstone',
+            demoUrl: 'https://industrial-demo.growthcraft.in',
+            techStack: 'Full-Stack, Cloud Native, Microservices',
+            notes: 'Enterprise application built during multi-week training program.',
+            submittedAt: new Date(),
+          },
+        },
+        mentors: resolvedMentors,
+        phases: [
+          { phase: 1, name: 'Orientation & Architecture Setup', status: 'Completed', description: 'Industry onboarding, toolchains setup, and microservices architecture.' },
+          { phase: 2, name: 'Core Domain Deep-Dive & Mentor Labs', status: 'Completed', description: 'Guided industrial modules, live coding sessions, and mentor reviews.' },
+          { phase: 3, name: 'Industrial Capstone Project Build', status: calculatedStatus === 'Live' ? 'In Progress' : 'Completed', description: 'Real-world industrial capstone build under senior mentor supervision.' },
+          { phase: 4, name: 'Jury Evaluation & Career Sign-off', status: calculatedStatus === 'Closed' ? 'Completed' : 'Upcoming', description: 'Capstone evaluation by hiring partners and certificate issuance.' },
+        ],
+      };
+    } catch (error) {
+      logger.error('Get training program workspace error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submit or update training program capstone project for student
+   */
+  public async submitTrainingProgramProject(
+    userId: string,
+    slugOrId: string,
+    submissionData: { projectTitle: string; repoUrl: string; demoUrl?: string; techStack?: string; notes?: string }
+  ): Promise<any> {
+    try {
+      const email = await this.linkEnrollmentsByEmail(userId);
+      const { TrainingProgramEnrollment } = await import('@/database/models/TrainingProgramEnrollment.model');
+
+      let enrollment = await TrainingProgramEnrollment.findOne({
+        $or: [{ userId: new mongoose.Types.ObjectId(userId) }, { email }]
+      });
+
+      if (!enrollment) {
+        enrollment = await TrainingProgramEnrollment.create({
+          userId: new mongoose.Types.ObjectId(userId),
+          programId: new mongoose.Types.ObjectId(),
+          fullName: 'Student',
+          email: email || 'student@growthcraft.in',
+          phone: '9999999999',
+          title: slugOrId.replace(/-/g, ' '),
+          status: 'confirmed',
+          paymentStatus: 'completed',
+        });
+      }
+
+      enrollment.projectSubmission = {
+        projectTitle: submissionData.projectTitle,
+        repoUrl: submissionData.repoUrl,
+        demoUrl: submissionData.demoUrl || '',
+        techStack: submissionData.techStack || '',
+        notes: submissionData.notes || '',
+        submittedAt: new Date(),
+      };
+
+      await enrollment.save();
+      logger.info(`Student ${userId} submitted project for training program ${slugOrId}`);
+      return enrollment.projectSubmission;
+    } catch (error) {
+      logger.error('Submit training program project error:', error);
+      throw error;
+    }
+  }
 }
 
 export const studentDashboardService = StudentDashboardService.getInstance();

@@ -516,6 +516,70 @@ export class StudentDashboardController {
       next(error);
     }
   }
+
+  /**
+   * Get workspace details for a specific course
+   * GET /api/v1/students/courses/workspace/:slug
+   */
+  public async getCourseWorkspace(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const { slug } = req.params;
+      const workspace = await studentDashboardService.getCourseWorkspace(userId, slug);
+      SuccessResponseHelper.ok(res, workspace, 'Course workspace retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get course workspace controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Submit capstone project for a course
+   * POST /api/v1/students/courses/workspace/:slug/submission
+   */
+  public async submitCourseProject(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const { slug } = req.params;
+      const submission = await studentDashboardService.submitCourseProject(userId, slug, req.body);
+      SuccessResponseHelper.ok(res, submission, 'Course project submitted successfully');
+    } catch (error: any) {
+      logger.error('Submit course project controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get workspace details for a specific training program
+   * GET /api/v1/students/training-programs/workspace/:slug
+   */
+  public async getTrainingProgramWorkspace(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const { slug } = req.params;
+      const workspace = await studentDashboardService.getTrainingProgramWorkspace(userId, slug);
+      SuccessResponseHelper.ok(res, workspace, 'Training program workspace retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get training program workspace controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Submit capstone project for a training program
+   * POST /api/v1/students/training-programs/workspace/:slug/submission
+   */
+  public async submitTrainingProgramProject(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const { slug } = req.params;
+      const submission = await studentDashboardService.submitTrainingProgramProject(userId, slug, req.body);
+      SuccessResponseHelper.ok(res, submission, 'Training program project submitted successfully');
+    } catch (error: any) {
+      logger.error('Submit training program project controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const studentDashboardController = StudentDashboardController.getInstance();
