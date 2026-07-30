@@ -13,6 +13,14 @@ export interface IEventEnrollment extends Document {
   status: 'pending' | 'confirmed' | 'cancelled';
   paymentStatus: 'pending' | 'completed' | 'failed';
   notes?: string;
+  projectSubmission?: {
+    projectTitle?: string;
+    repoUrl?: string;
+    demoUrl?: string;
+    techStack?: string;
+    notes?: string;
+    submittedAt?: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -82,6 +90,14 @@ const eventEnrollmentSchema = new Schema<IEventEnrollment>(
     notes: {
       type: String,
       trim: true,
+    },
+    projectSubmission: {
+      projectTitle: { type: String, trim: true },
+      repoUrl: { type: String, trim: true },
+      demoUrl: { type: String, trim: true },
+      techStack: { type: String, trim: true },
+      notes: { type: String, trim: true },
+      submittedAt: { type: Date },
     },
   },
   {

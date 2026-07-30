@@ -420,6 +420,38 @@ export class StudentDashboardController {
       next(error);
     }
   }
+
+  /**
+   * Get workspace details for a specific hackathon/event
+   * GET /api/v1/students/hackathons/workspace/:slug
+   */
+  public async getHackathonWorkspace(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const { slug } = req.params;
+      const workspace = await studentDashboardService.getHackathonWorkspace(userId, slug);
+      SuccessResponseHelper.ok(res, workspace, 'Hackathon workspace retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get hackathon workspace controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Submit project for a hackathon
+   * POST /api/v1/students/hackathons/workspace/:slug/submission
+   */
+  public async submitHackathonProject(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const { slug } = req.params;
+      const submission = await studentDashboardService.submitHackathonProject(userId, slug, req.body);
+      SuccessResponseHelper.ok(res, submission, 'Project submitted successfully');
+    } catch (error: any) {
+      logger.error('Submit hackathon project controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const studentDashboardController = StudentDashboardController.getInstance();

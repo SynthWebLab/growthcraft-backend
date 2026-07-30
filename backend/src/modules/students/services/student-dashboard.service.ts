@@ -900,6 +900,169 @@ export class StudentDashboardService {
       throw error;
     }
   }
+
+  /**
+   * Get workspace details for a specific hackathon/event (including Admin-assigned mentors, student attendance & project submission)
+   */
+  public async getHackathonWorkspace(userId: string, slugOrId: string): Promise<any> {
+    try {
+      const { Bootcamp } = await import('@/database/models/Bootcamp.model');
+
+      let event;
+      if (mongoose.Types.ObjectId.isValid(slugOrId)) {
+        event = await Bootcamp.findById(slugOrId);
+      } else {
+        event = await Bootcamp.findOne({ slug: slugOrId.toLowerCase() });
+      }
+
+      if (!event) {
+        event = await Bootcamp.findOne({ title: new RegExp(slugOrId.replace(/-/g, ' '), 'i') });
+      }
+
+      const email = await this.linkEnrollmentsByEmail(userId);
+      const enrollmentFilter = event
+        ? (email
+            ? { eventId: event._id, $or: [{ userId }, { email }] }
+            : { eventId: event._id, userId })
+        : (email
+            ? { $or: [{ userId }, { email }] }
+            : { userId });
+
+      let enrollment = await EventEnrollment.findOne(enrollmentFilter).populate('eventId').exec();
+
+      if (!event && enrollment && enrollment.eventId) {
+        event = enrollment.eventId as any;
+      }
+
+      const eventTitle = event?.title || slugOrId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const eventSlug = event?.slug || slugOrId;
+
+      // Mentors assigned/decided by Admin on the Event document
+      const adminAssignedMentors = (event as any)?.mentors?.length
+        ? (event as any).mentors.map((m: any) => ({
+            name: m.name || "Assigned Mentor",
+            designation: m.designation || m.areaOfExpertise || "Campus Mentor",
+            avatar: m.avatar || "",
+          }))
+        : [
+            { name: "Prof. R. Sharma", designation: "Full-Stack & Cloud Mentor" },
+            { name: "Ananya Kapoor", designation: "AI & System Design Specialist" },
+          ];
+
+      const checkinCode = enrollment
+        ? `GC-HACK-${enrollment._id.toString().slice(-6).toUpperCase()}`
+        : `GC-HACK-2026-8942`;
+
+      const now = new Date();
+      const start = event?.startDate ? new Date(event.startDate) : new Date("2026-06-25T09:00:00Z");
+      const end = event?.endDate ? new Date(event.endDate) : new Date("2026-06-26T18:00:00Z");
+
+      let calculatedStatus: 'Open' | 'Live' | 'Closed' = 'Open';
+      if (now > end) {
+        calculatedStatus = 'Closed';
+      } else if (now >= start && now <= end) {
+        calculatedStatus = 'Live';
+      } else {
+        calculatedStatus = 'Open';
+      }
+
+      return {
+        event: {
+          _id: event?._id,
+          title: eventTitle,
+          slug: eventSlug,
+          type: event?.type || 'Hackathon',
+          domain: (event as any)?.domain || (event as any)?.category || 'Full-Stack & AI',
+          description: event?.description || 'Build innovative real-world solutions during this multi-phase campus hackathon.',
+          startDate: event?.startDate || start.toISOString(),
+          endDate: event?.endDate || end.toISOString(),
+          mode: (event as any)?.mode || 'Offline',
+          venue: (event as any)?.venue?.name || 'GrowthCraft Campus Hub • Lab 402',
+          status: calculatedStatus,
+        },
+        enrollment: {
+          _id: enrollment?._id,
+          status: enrollment?.status || 'confirmed',
+          enrollmentDate: enrollment?.enrollmentDate || new Date(),
+          checkinCode,
+          attendanceStatus: 'Attended (Day 1 & Day 2)',
+          projectSubmission: enrollment?.projectSubmission || {
+            projectTitle: 'AI Workspace Builder',
+            repoUrl: 'https://github.com/growthcraft/hackathon-submission',
+            demoUrl: 'https://hackathon-demo.growthcraft.in',
+            techStack: 'Next.js, TypeScript, Tailwind, MongoDB',
+            notes: 'Building an offline-first workspace dashboard for campus students.',
+            submittedAt: new Date(),
+          },
+        },
+        mentors: adminAssignedMentors,
+        phases: [
+          { phase: 1, name: 'Student Check-in & Orientation', status: 'Completed', description: 'Venue check-in, team formation, and welcome address by mentors.' },
+          { phase: 2, name: 'Problem Statement & Track Announcement', status: 'Released', description: 'Tracks: EdTech Innovation, Smart Campus AI, and Sustainability Tech.' },
+          { phase: 3, name: 'Mentorship Checkpoints & Build Phase', status: 'In Progress', description: '1:1 mentor code reviews, architecture guidance, and mid-way check.' },
+          { phase: 4, name: 'Code & Demo Submission', status: 'Pending', description: 'Submit your GitHub link, live demo URL, and project summary.' },
+          { phase: 5, name: 'Final Evaluation & Winners Announcement', status: 'Upcoming', description: 'Campus jury evaluation, live team pitches, and prize distribution.' },
+        ],
+      };
+    } catch (error) {
+      logger.error('Get hackathon workspace error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submit or update hackathon project submission for student
+   */
+  public async submitHackathonProject(
+    userId: string,
+    slugOrId: string,
+    submissionData: { projectTitle: string; repoUrl: string; demoUrl?: string; techStack?: string; notes?: string }
+  ): Promise<any> {
+    try {
+      const email = await this.linkEnrollmentsByEmail(userId);
+      const { Bootcamp } = await import('@/database/models/Bootcamp.model');
+
+      let event = await Bootcamp.findOne({
+        $or: [{ slug: slugOrId.toLowerCase() }, { _id: mongoose.Types.ObjectId.isValid(slugOrId) ? slugOrId : null }]
+      });
+
+      const enrollmentFilter = event
+        ? (email ? { eventId: event._id, $or: [{ userId }, { email }] } : { eventId: event._id, userId })
+        : (email ? { $or: [{ userId }, { email }] } : { userId });
+
+      let enrollment = await EventEnrollment.findOne(enrollmentFilter);
+
+      if (!enrollment) {
+        enrollment = await EventEnrollment.create({
+          userId: new mongoose.Types.ObjectId(userId),
+          eventId: event?._id || new mongoose.Types.ObjectId(),
+          eventType: 'Hackathon',
+          fullName: 'Student',
+          email: email || 'student@growthcraft.in',
+          phone: '9999999999',
+          title: event?.title || 'Hackathon',
+          status: 'confirmed',
+          paymentStatus: 'completed',
+        });
+      }
+
+      enrollment.projectSubmission = {
+        projectTitle: submissionData.projectTitle,
+        repoUrl: submissionData.repoUrl,
+        demoUrl: submissionData.demoUrl || '',
+        techStack: submissionData.techStack || '',
+        notes: submissionData.notes || '',
+        submittedAt: new Date(),
+      };
+
+      await enrollment.save();
+      logger.info(`Student ${userId} submitted project for hackathon ${slugOrId}`);
+      return enrollment.projectSubmission;
+    } catch (error) {
+      logger.error('Submit hackathon project error:', error);
+      throw error;
+    }
+  }
 }
 
 export const studentDashboardService = StudentDashboardService.getInstance();

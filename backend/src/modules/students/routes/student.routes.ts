@@ -189,6 +189,14 @@ router.get('/hackathons', (req: Request, res: Response, next: NextFunction) => {
   void studentDashboardController.getHackathons(req, res, next);
 });
 
+router.get('/hackathons/workspace/:slug', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.getHackathonWorkspace(req, res, next);
+});
+
+router.post('/hackathons/workspace/:slug/submission', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.submitHackathonProject(req, res, next);
+});
+
 /**
  * @swagger
  * /students/events:
