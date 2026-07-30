@@ -212,7 +212,6 @@ router.get('/bootcamps/workspace/:slug', (req: Request, res: Response, next: Nex
 router.post('/bootcamps/workspace/:slug/submission', (req: Request, res: Response, next: NextFunction) => {
   void studentDashboardController.submitBootcampProject(req, res, next);
 });
-
 /**
  * @swagger
  * /students/events:
