@@ -197,6 +197,22 @@ router.post('/hackathons/workspace/:slug/submission', (req: Request, res: Respon
   void studentDashboardController.submitHackathonProject(req, res, next);
 });
 
+router.get('/workshops/workspace/:slug', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.getWorkshopWorkspace(req, res, next);
+});
+
+router.post('/workshops/workspace/:slug/submission', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.submitWorkshopAssignment(req, res, next);
+});
+
+router.get('/bootcamps/workspace/:slug', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.getBootcampWorkspace(req, res, next);
+});
+
+router.post('/bootcamps/workspace/:slug/submission', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.submitBootcampProject(req, res, next);
+});
+
 /**
  * @swagger
  * /students/events:

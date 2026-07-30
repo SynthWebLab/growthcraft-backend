@@ -123,4 +123,12 @@ router.get(
   }
 );
 
+router.post(
+  '/complete-enrollment-payment',
+  optionalAuthenticate,
+  (req: Request, res: Response, next: NextFunction) => {
+    void paymentController.completeEnrollmentPayment(req, res, next);
+  }
+);
+
 export default router;

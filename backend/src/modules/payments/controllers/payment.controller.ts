@@ -113,6 +113,33 @@ export class PaymentController {
       next(error);
     }
   }
+
+  /**
+   * POST /api/v1/payments/complete-enrollment-payment
+   */
+  public async completeEnrollmentPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const studentUserId = (req as any).user?.userId;
+      const { enrollmentId, itemId, itemType, amount, paymentMethod } = req.body;
+
+      const result = await paymentService.completeEnrollmentPayment({
+        enrollmentId,
+        itemId,
+        itemType,
+        studentUserId,
+        amount,
+        paymentMethod,
+      });
+
+      res.status(HttpStatus.OK).json({
+        success: true,
+        message: result.message,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const paymentController = new PaymentController();
