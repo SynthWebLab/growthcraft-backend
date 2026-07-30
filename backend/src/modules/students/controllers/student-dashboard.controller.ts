@@ -452,6 +452,38 @@ export class StudentDashboardController {
       next(error);
     }
   }
+
+  /**
+   * Get workspace details for a specific workshop
+   * GET /api/v1/students/workshops/workspace/:slug
+   */
+  public async getWorkshopWorkspace(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const { slug } = req.params;
+      const workspace = await studentDashboardService.getWorkshopWorkspace(userId, slug);
+      SuccessResponseHelper.ok(res, workspace, 'Workshop workspace retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get workshop workspace controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Submit assignment for a workshop
+   * POST /api/v1/students/workshops/workspace/:slug/submission
+   */
+  public async submitWorkshopAssignment(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const { slug } = req.params;
+      const submission = await studentDashboardService.submitWorkshopAssignment(userId, slug, req.body);
+      SuccessResponseHelper.ok(res, submission, 'Assignment submitted successfully');
+    } catch (error: any) {
+      logger.error('Submit workshop assignment controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const studentDashboardController = StudentDashboardController.getInstance();
