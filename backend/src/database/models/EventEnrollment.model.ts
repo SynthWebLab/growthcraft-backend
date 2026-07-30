@@ -21,6 +21,10 @@ export interface IEventEnrollment extends Document {
     notes?: string;
     submittedAt?: Date;
   };
+  isAttended?: boolean;
+  certificateStatus?: 'locked' | 'pending_approval' | 'approved' | 'rejected';
+  certificateUrl?: string;
+  adminVerifiedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -99,6 +103,14 @@ const eventEnrollmentSchema = new Schema<IEventEnrollment>(
       notes: { type: String, trim: true },
       submittedAt: { type: Date },
     },
+    isAttended: { type: Boolean, default: true },
+    certificateStatus: { 
+      type: String, 
+      enum: ['locked', 'pending_approval', 'approved', 'rejected'],
+      default: 'pending_approval' 
+    },
+    certificateUrl: { type: String, trim: true },
+    adminVerifiedAt: { type: Date },
   },
   {
     timestamps: true,

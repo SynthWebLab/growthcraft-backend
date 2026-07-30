@@ -937,17 +937,95 @@ export class StudentDashboardService {
       const eventTitle = event?.title || slugOrId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       const eventSlug = event?.slug || slugOrId;
 
-      // Mentors assigned/decided by Admin on the Event document
-      const adminAssignedMentors = (event as any)?.mentors?.length
-        ? (event as any).mentors.map((m: any) => ({
-            name: m.name || "Assigned Mentor",
-            designation: m.designation || m.areaOfExpertise || "Campus Mentor",
-            avatar: m.avatar || "",
-          }))
-        : [
-            { name: "Prof. R. Sharma", designation: "Full-Stack & Cloud Mentor" },
-            { name: "Ananya Kapoor", designation: "AI & System Design Specialist" },
-          ];
+      // Fetch real Admin-assigned mentors from DB
+      const { MentorProfile } = await import('@/database/models/MentorProfile.model');
+      const { Batch } = await import('@/database/models/Batch.model');
+
+      let resolvedMentors: Array<{ name: string; designation: string; avatar: string }> = [];
+
+      // 1. Check if mentors are directly assigned to the event document by Admin
+      if (event && (event as any).mentors && (event as any).mentors.length > 0) {
+        for (const m of (event as any).mentors) {
+          if (m.name) {
+            resolvedMentors.push({
+              name: m.name,
+              designation: m.designation || m.areaOfExpertise || "Admin-Assigned Mentor",
+              avatar: m.avatar || "",
+            });
+          } else if (m.mentorProfileId || m.userId) {
+            const profile = await MentorProfile.findById(m.mentorProfileId || m.userId)
+              .populate('userId', 'firstName lastName fullName avatar email')
+              .exec();
+            if (profile && profile.userId) {
+              const u = profile.userId as any;
+              const name = u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Admin Mentor';
+              resolvedMentors.push({
+                name,
+                designation: profile.areaOfExpertise || profile.currentOrganization || "Campus Mentor",
+                avatar: u.avatar || "",
+              });
+            }
+          }
+        }
+      }
+
+      // 2. If no event mentors, check operational batches assigned to this event by Admin
+      if (resolvedMentors.length === 0 && event?._id) {
+        const eventBatches = await Batch.find({ bootcampId: event._id }).exec();
+        const batchMentorIds = new Set<string>();
+        for (const b of eventBatches) {
+          if (b.assignedMentorId) batchMentorIds.add(b.assignedMentorId.toString());
+          if (b.assignedMentorIds) {
+            b.assignedMentorIds.forEach(id => batchMentorIds.add(id.toString()));
+          }
+        }
+        if (batchMentorIds.size > 0) {
+          const mentorProfiles = await MentorProfile.find({ _id: { $in: Array.from(batchMentorIds) } })
+            .populate('userId', 'firstName lastName fullName avatar email')
+            .exec();
+          for (const mp of mentorProfiles) {
+            const u = mp.userId as any;
+            if (u) {
+              const name = u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Admin Mentor';
+              resolvedMentors.push({
+                name,
+                designation: mp.areaOfExpertise || mp.currentOrganization || "Campus Mentor",
+                avatar: u.avatar || "",
+              });
+            }
+          }
+        }
+      }
+
+      // 3. Fallback: Query active mentor profiles from database created by Admin
+      if (resolvedMentors.length === 0) {
+        const activeProfiles = await MentorProfile.find()
+          .populate('userId', 'firstName lastName fullName avatar email')
+          .limit(3)
+          .exec();
+
+        for (const mp of activeProfiles) {
+          const u = mp.userId as any;
+          const name = u ? (u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim()) : '';
+          if (name) {
+            resolvedMentors.push({
+              name,
+              designation: mp.areaOfExpertise || mp.currentOrganization || 'GrowthCraft Mentor',
+              avatar: u?.avatar || '',
+            });
+          }
+        }
+      }
+
+      // Default fallback if database has no mentors
+      if (resolvedMentors.length === 0) {
+        resolvedMentors = [
+          { name: "Prof. R. Sharma", designation: "Full-Stack & Cloud Mentor", avatar: "" },
+          { name: "Ananya Kapoor", designation: "AI & System Design Specialist", avatar: "" },
+        ];
+      }
+
+      const adminAssignedMentors = resolvedMentors;
 
       const checkinCode = enrollment
         ? `GC-HACK-${enrollment._id.toString().slice(-6).toUpperCase()}`
@@ -964,6 +1042,19 @@ export class StudentDashboardService {
         calculatedStatus = 'Live';
       } else {
         calculatedStatus = 'Open';
+      }
+
+      const hasAttended = enrollment ? (enrollment.isAttended !== false) : true;
+      const sub = enrollment?.projectSubmission;
+      const hasSubmitted = !!(sub?.submittedAt || sub?.repoUrl);
+      
+      let certStatus: 'locked' | 'pending_approval' | 'approved' | 'rejected' = 'locked';
+      if (!hasAttended || !hasSubmitted) {
+        certStatus = 'locked';
+      } else if (enrollment?.certificateStatus === 'approved' || enrollment?.certificateUrl) {
+        certStatus = 'approved';
+      } else {
+        certStatus = 'pending_approval';
       }
 
       return {
@@ -985,7 +1076,12 @@ export class StudentDashboardService {
           status: enrollment?.status || 'confirmed',
           enrollmentDate: enrollment?.enrollmentDate || new Date(),
           checkinCode,
-          attendanceStatus: 'Attended (Day 1 & Day 2)',
+          isAttended: hasAttended,
+          attendanceStatus: calculatedStatus === 'Closed'
+            ? (hasAttended ? 'Attended' : 'Not Attended')
+            : (hasAttended ? 'Present (Verified)' : 'Check-in Pending'),
+          certificateStatus: certStatus,
+          certificateUrl: enrollment?.certificateUrl || null,
           projectSubmission: enrollment?.projectSubmission || {
             projectTitle: 'AI Workspace Builder',
             repoUrl: 'https://github.com/growthcraft/hackathon-submission',
@@ -997,11 +1093,11 @@ export class StudentDashboardService {
         },
         mentors: adminAssignedMentors,
         phases: [
-          { phase: 1, name: 'Student Check-in & Orientation', status: 'Completed', description: 'Venue check-in, team formation, and welcome address by mentors.' },
-          { phase: 2, name: 'Problem Statement & Track Announcement', status: 'Released', description: 'Tracks: EdTech Innovation, Smart Campus AI, and Sustainability Tech.' },
-          { phase: 3, name: 'Mentorship Checkpoints & Build Phase', status: 'In Progress', description: '1:1 mentor code reviews, architecture guidance, and mid-way check.' },
-          { phase: 4, name: 'Code & Demo Submission', status: 'Pending', description: 'Submit your GitHub link, live demo URL, and project summary.' },
-          { phase: 5, name: 'Final Evaluation & Winners Announcement', status: 'Upcoming', description: 'Campus jury evaluation, live team pitches, and prize distribution.' },
+          { phase: 1, name: 'Mentor Orientation & Team Registration', status: calculatedStatus === 'Closed' ? 'Completed' : (calculatedStatus === 'Live' ? 'Completed' : 'In Progress'), description: 'Assigned Campus Mentor verifies team roster and completes student check-in.' },
+          { phase: 2, name: 'Mentor Problem Briefing & Track Allocation', status: calculatedStatus === 'Closed' ? 'Completed' : (calculatedStatus === 'Live' ? 'Completed' : 'Upcoming'), description: 'Mentor releases track problem statements and conducts technical brief.' },
+          { phase: 3, name: 'Mentor Architecture Review (Checkpoint 1)', status: calculatedStatus === 'Closed' ? 'Completed' : (calculatedStatus === 'Live' ? 'In Progress' : 'Upcoming'), description: '1:1 mentor code review, database schema evaluation, and tech stack approval.' },
+          { phase: 4, name: 'Mentor Mid-way Demo & Code Audit (Checkpoint 2)', status: calculatedStatus === 'Closed' ? 'Completed' : 'Upcoming', description: 'Campus mentor audits progress, reviews GitHub commits, and provides feedback.' },
+          { phase: 5, name: 'Mentor Final Pitch & Project Evaluation', status: calculatedStatus === 'Closed' ? 'Completed' : 'Upcoming', description: 'Campus mentor & Admin jury evaluate final submission and sign off for certificate.' },
         ],
       };
     } catch (error) {
