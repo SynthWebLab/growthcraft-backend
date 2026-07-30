@@ -404,6 +404,22 @@ export class StudentDashboardController {
       next(error);
     }
   }
+
+  /**
+   * Get workspace details for a specific course
+   * GET /api/v1/students/courses/workspace/:courseSlug
+   */
+  public async getCourseWorkspace(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = this.getUserId(req);
+      const { courseSlug } = req.params;
+      const workspace = await studentDashboardService.getCourseWorkspace(userId, courseSlug);
+      SuccessResponseHelper.ok(res, workspace, 'Course workspace retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get course workspace controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const studentDashboardController = StudentDashboardController.getInstance();

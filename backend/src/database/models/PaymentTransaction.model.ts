@@ -11,6 +11,8 @@ export enum PaymentStatus {
 export enum PaymentItemType {
   COURSE = 'course',
   BOOTCAMP = 'bootcamp',
+  WORKSHOP = 'workshop',
+  HACKATHON = 'hackathon',
   TRAINING_PROGRAM = 'training-program',
   ENROLLMENT = 'enrollment',
   RESERVATION = 'reservation',

@@ -15,19 +15,10 @@ export class EventEnrollmentValidator {
       .trim();
   }
 
-  /**
-   * Validate event ID parameter
-   */
   static validateEventId(): ValidationChain {
     return param('eventId')
       .isString()
       .withMessage('Event ID must be a string')
-      .custom((value) => {
-        if (!mongoose.Types.ObjectId.isValid(value)) {
-          throw new Error('Invalid event ID format');
-        }
-        return true;
-      })
       .trim();
   }
 

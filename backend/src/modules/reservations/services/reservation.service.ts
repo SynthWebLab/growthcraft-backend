@@ -267,23 +267,25 @@ export class ReservationService {
     }
   }
 
-  /**
-   * Expire old reservations (cron job)
-   */
   public async expireOldReservations(): Promise<number> {
     try {
-      const result = await Reservation.updateMany(
-        {
-          status: 'Pending',
-          expiresAt: { $lt: new Date() },
-        },
-        {
-          $set: { status: 'Expired' },
-        }
-      );
+      const expiredList = await Reservation.find({
+        status: 'Pending',
+        expiresAt: { $lt: new Date() },
+      });
 
-      logger.info(`Expired ${result.modifiedCount} old reservations`);
-      return result.modifiedCount;
+      if (expiredList.length === 0) return 0;
+
+      let count = 0;
+      for (const res of expiredList) {
+        res.status = 'Expired';
+        await res.save();
+        await this.decrementReservedCount(res.itemType, res.itemId.toString());
+        count++;
+      }
+
+      logger.info(`Expired and released seat count for ${count} reservations`);
+      return count;
     } catch (error: any) {
       logger.error('Expire old reservations error:', error);
       throw error;

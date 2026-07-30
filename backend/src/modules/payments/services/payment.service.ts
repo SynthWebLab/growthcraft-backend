@@ -14,6 +14,8 @@ import {
   EnrollmentStatus,
   Reservation,
   CourseEnrollment,
+  TrainingProgramEnrollment,
+  EventEnrollment,
 } from '@/database/models';
 
 
@@ -186,7 +188,7 @@ class PaymentService {
       const { itemType, itemId, amount, studentUserId } = transaction;
 
       if (itemType === PaymentItemType.ENROLLMENT) {
-        // If itemId is an Enrollment ID
+        // Legacy Enrollment model (used by older Batch enrollment flow)
         if (mongoose.Types.ObjectId.isValid(itemId)) {
           const enrollment = await Enrollment.findById(itemId);
           if (enrollment) {
@@ -195,19 +197,36 @@ class PaymentService {
             await enrollment.save(); // Pre-save hook triggers referral commission calculation!
           }
         }
-      } else if (
-        itemType === PaymentItemType.COURSE ||
-        itemType === PaymentItemType.BOOTCAMP ||
-        itemType === PaymentItemType.TRAINING_PROGRAM
-      ) {
-        // If itemId is a CourseEnrollment ID
+      } else if (itemType === PaymentItemType.COURSE) {
+        // Course enrollment — CourseEnrollment model
         if (mongoose.Types.ObjectId.isValid(itemId)) {
-          const courseEnrollment = await CourseEnrollment.findById(itemId);
-          if (courseEnrollment) {
-            courseEnrollment.status = 'confirmed';
-            courseEnrollment.paymentStatus = 'completed';
-            await courseEnrollment.save();
-          }
+          await CourseEnrollment.findByIdAndUpdate(itemId, {
+            status: 'confirmed',
+            paymentStatus: 'completed',
+          });
+          logger.info(`[Payment] Fulfilled CourseEnrollment ${itemId}`);
+        }
+      } else if (itemType === PaymentItemType.TRAINING_PROGRAM) {
+        // Training program enrollment — TrainingProgramEnrollment model
+        if (mongoose.Types.ObjectId.isValid(itemId)) {
+          await TrainingProgramEnrollment.findByIdAndUpdate(itemId, {
+            status: 'confirmed',
+            paymentStatus: 'completed',
+          });
+          logger.info(`[Payment] Fulfilled TrainingProgramEnrollment ${itemId}`);
+        }
+      } else if (
+        itemType === PaymentItemType.BOOTCAMP ||
+        itemType === PaymentItemType.WORKSHOP ||
+        itemType === PaymentItemType.HACKATHON
+      ) {
+        // Event enrollment (bootcamp, workshop, hackathon) — EventEnrollment model
+        if (mongoose.Types.ObjectId.isValid(itemId)) {
+          await EventEnrollment.findByIdAndUpdate(itemId, {
+            status: 'confirmed',
+            paymentStatus: 'completed',
+          });
+          logger.info(`[Payment] Fulfilled EventEnrollment ${itemId} (type: ${itemType})`);
         }
       } else if (itemType === PaymentItemType.RESERVATION) {
         if (mongoose.Types.ObjectId.isValid(itemId)) {
@@ -217,8 +236,11 @@ class PaymentService {
             reservation.paymentStatus = 'Completed';
             reservation.paymentId = transaction.paymentId;
             await reservation.save();
+            logger.info(`[Payment] Fulfilled Reservation ${itemId}`);
           }
         }
+      } else {
+        logger.warn(`[Payment] Unknown itemType '${itemType}' for transaction ${transaction._id} — skipping fulfillment`);
       }
 
     } catch (err) {

@@ -127,6 +127,10 @@ router.get('/courses', (req: Request, res: Response, next: NextFunction) => {
   void studentDashboardController.getCourses(req, res, next);
 });
 
+router.get('/courses/workspace/:courseSlug', (req: Request, res: Response, next: NextFunction) => {
+  void studentDashboardController.getCourseWorkspace(req, res, next);
+});
+
 /**
  * @swagger
  * /students/bootcamps:

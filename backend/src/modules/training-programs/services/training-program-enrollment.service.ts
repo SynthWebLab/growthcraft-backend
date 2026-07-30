@@ -56,7 +56,11 @@ export class TrainingProgramEnrollmentService {
       });
 
       if (existingEnrollment) {
-        if (existingEnrollment.status === 'pending') {
+        // Allow retry if payment was never completed
+        if (
+          existingEnrollment.paymentStatus === 'pending' ||
+          existingEnrollment.status === 'pending'
+        ) {
           return existingEnrollment;
         }
         throw new ConflictError('You are already enrolled in this training program');

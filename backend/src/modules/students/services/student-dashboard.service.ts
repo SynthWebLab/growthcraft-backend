@@ -813,6 +813,93 @@ export class StudentDashboardService {
       throw error;
     }
   }
+
+  /**
+   * Get workspace progress, attendance, and mentor remarks for a course
+   */
+  public async getCourseWorkspace(userId: string, slugOrId: string): Promise<any> {
+    try {
+      const { Course } = await import('@/database/models/Course.model');
+      const { Attendance } = await import('@/database/models/Attendance.model');
+
+      let course;
+      if (mongoose.Types.ObjectId.isValid(slugOrId)) {
+        course = await Course.findById(slugOrId);
+      } else {
+        course = await Course.findOne({ slug: slugOrId.toLowerCase() });
+      }
+
+      if (!course) {
+        throw new NotFoundError('Course not found');
+      }
+
+      // Find the student's CourseEnrollment
+      const email = await this.linkEnrollmentsByEmail(userId);
+      const enrollmentFilter = email
+        ? { courseId: course._id, $or: [{ userId }, { email }] }
+        : { courseId: course._id, userId };
+
+      const courseEnrollment = await CourseEnrollment.findOne(enrollmentFilter).exec();
+      if (!courseEnrollment) {
+        throw new NotFoundError('You are not registered for this course');
+      }
+
+      // Look up operational cohort batches for this course
+      const batches = await Batch.find({ courseId: course._id }).exec();
+      const batchIds = batches.map(b => b._id);
+
+      // Find progress from active batch enrollments
+      const batchEnrollment = await Enrollment.findOne({
+        studentUserId: userId,
+        batchId: { $in: batchIds }
+      }).exec();
+
+      let attendanceLogs: any[] = [];
+      if (batchEnrollment) {
+        attendanceLogs = await Attendance.find({
+          studentUserId: userId,
+          batchId: batchEnrollment.batchId
+        })
+        .sort({ attendanceDate: -1 })
+        .exec();
+      }
+
+      // Return unified progress payload
+      return {
+        course: {
+          _id: course._id,
+          title: course.title,
+          slug: course.slug,
+          category: course.category,
+          totalLessons: (course as any).totalLessons,
+          curriculum: (course as any).curriculum,
+        },
+        enrollment: {
+          _id: courseEnrollment._id,
+          status: courseEnrollment.status,
+          paymentStatus: courseEnrollment.paymentStatus,
+          enrollmentDate: courseEnrollment.enrollmentDate,
+          notes: courseEnrollment.notes || "No mentor remarks added yet.",
+        },
+        progress: batchEnrollment ? {
+          batchId: batchEnrollment.batchId,
+          batchCode: batches.find(b => b._id.toString() === batchEnrollment.batchId.toString())?.code || 'GC-BATCH',
+          attendancePercent: batchEnrollment.attendancePercent || 0,
+          avgRubricScore: batchEnrollment.avgRubricScore || 0,
+          status: batchEnrollment.status,
+          completedAt: batchEnrollment.completedAt,
+        } : null,
+        attendance: attendanceLogs.map(a => ({
+          _id: a._id,
+          attendanceDate: a.attendanceDate,
+          status: a.status,
+        })),
+      };
+    } catch (error) {
+      logger.error('Get course workspace error:', error);
+      throw error;
+    }
+  }
 }
 
 export const studentDashboardService = StudentDashboardService.getInstance();

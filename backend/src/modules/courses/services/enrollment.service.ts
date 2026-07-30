@@ -86,10 +86,10 @@ export class EnrollmentService {
       const existingEnrollment = await CourseEnrollment.findOne(duplicateEnrollmentFilter);
 
       if (existingEnrollment) {
-        if (existingEnrollment.status === 'pending') {
+        if (existingEnrollment.paymentStatus !== 'completed') {
           return existingEnrollment;
         }
-        throw new ConflictError('You are already enrolled in this course');
+        throw new ConflictError('You are already enrolled and paid for this course');
       }
 
 
