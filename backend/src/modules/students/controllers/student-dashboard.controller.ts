@@ -412,8 +412,8 @@ export class StudentDashboardController {
   public async getCourseWorkspace(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = this.getUserId(req);
-      const { courseSlug } = req.params;
-      const workspace = await studentDashboardService.getCourseWorkspace(userId, courseSlug);
+      const slug = req.params.courseSlug || req.params.slug;
+      const workspace = await studentDashboardService.getCourseWorkspace(userId, slug);
       SuccessResponseHelper.ok(res, workspace, 'Course workspace retrieved successfully');
     } catch (error: any) {
       logger.error('Get course workspace controller error:', error);
@@ -517,21 +517,7 @@ export class StudentDashboardController {
     }
   }
 
-  /**
-   * Get workspace details for a specific course
-   * GET /api/v1/students/courses/workspace/:slug
-   */
-  public async getCourseWorkspace(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const userId = this.getUserId(req);
-      const { slug } = req.params;
-      const workspace = await studentDashboardService.getCourseWorkspace(userId, slug);
-      SuccessResponseHelper.ok(res, workspace, 'Course workspace retrieved successfully');
-    } catch (error: any) {
-      logger.error('Get course workspace controller error:', error);
-      next(error);
-    }
-  }
+
 
   /**
    * Submit capstone project for a course

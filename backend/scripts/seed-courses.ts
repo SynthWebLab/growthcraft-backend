@@ -30,6 +30,7 @@ const courseSchema = new mongoose.Schema({
   tags: [String],
   enrollmentCount: Number,
   isActive: Boolean,
+  isPublished: Boolean,
   isDraft: Boolean,
   publishedAt: Date,
   type: String,
@@ -258,8 +259,12 @@ async function seedCourses() {
     await Course.deleteMany({});
     logger.info('Cleared existing courses');
 
-    // Insert sample courses
-    const insertedCourses = await Course.insertMany(sampleCourses);
+    // Insert sample courses with isPublished: true
+    const coursesToInsert = sampleCourses.map((c) => ({
+      ...c,
+      isPublished: true,
+    }));
+    const insertedCourses = await Course.insertMany(coursesToInsert);
     logger.info(`Successfully seeded ${insertedCourses.length} courses`);
 
     // Display summary

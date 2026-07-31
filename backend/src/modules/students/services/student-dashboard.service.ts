@@ -814,92 +814,7 @@ export class StudentDashboardService {
     }
   }
 
-  /**
-   * Get workspace progress, attendance, and mentor remarks for a course
-   */
-  public async getCourseWorkspace(userId: string, slugOrId: string): Promise<any> {
-    try {
-      const { Course } = await import('@/database/models/Course.model');
-      const { Attendance } = await import('@/database/models/Attendance.model');
 
-      let course;
-      if (mongoose.Types.ObjectId.isValid(slugOrId)) {
-        course = await Course.findById(slugOrId);
-      } else {
-        course = await Course.findOne({ slug: slugOrId.toLowerCase() });
-      }
-
-      if (!course) {
-        throw new NotFoundError('Course not found');
-      }
-
-      // Find the student's CourseEnrollment
-      const email = await this.linkEnrollmentsByEmail(userId);
-      const enrollmentFilter = email
-        ? { courseId: course._id, $or: [{ userId }, { email }] }
-        : { courseId: course._id, userId };
-
-      const courseEnrollment = await CourseEnrollment.findOne(enrollmentFilter).exec();
-      if (!courseEnrollment) {
-        throw new NotFoundError('You are not registered for this course');
-      }
-
-      // Look up operational cohort batches for this course
-      const batches = await Batch.find({ courseId: course._id }).exec();
-      const batchIds = batches.map(b => b._id);
-
-      // Find progress from active batch enrollments
-      const batchEnrollment = await Enrollment.findOne({
-        studentUserId: userId,
-        batchId: { $in: batchIds }
-      }).exec();
-
-      let attendanceLogs: any[] = [];
-      if (batchEnrollment) {
-        attendanceLogs = await Attendance.find({
-          studentUserId: userId,
-          batchId: batchEnrollment.batchId
-        })
-        .sort({ attendanceDate: -1 })
-        .exec();
-      }
-
-      // Return unified progress payload
-      return {
-        course: {
-          _id: course._id,
-          title: course.title,
-          slug: course.slug,
-          category: course.category,
-          totalLessons: (course as any).totalLessons,
-          curriculum: (course as any).curriculum,
-        },
-        enrollment: {
-          _id: courseEnrollment._id,
-          status: courseEnrollment.status,
-          paymentStatus: courseEnrollment.paymentStatus,
-          enrollmentDate: courseEnrollment.enrollmentDate,
-          notes: courseEnrollment.notes || "No mentor remarks added yet.",
-        },
-        progress: batchEnrollment ? {
-          batchId: batchEnrollment.batchId,
-          batchCode: batches.find(b => b._id.toString() === batchEnrollment.batchId.toString())?.code || 'GC-BATCH',
-          attendancePercent: batchEnrollment.attendancePercent || 0,
-          avgRubricScore: batchEnrollment.avgRubricScore || 0,
-          status: batchEnrollment.status,
-          completedAt: batchEnrollment.completedAt,
-        } : null,
-        attendance: attendanceLogs.map(a => ({
-          _id: a._id,
-          attendanceDate: a.attendanceDate,
-          status: a.status,
-        })),
-      };
-    } catch (error) {
-      logger.error('Get course workspace error:', error);
-      throw error;
-    }
-  }
 
   /**
    * Get workspace details for a specific hackathon/event (including Admin-assigned mentors, student attendance & project submission)
@@ -1781,14 +1696,15 @@ export class StudentDashboardService {
         ];
       }
 
-      const hasAttended = enrollment ? (enrollment.isAttended !== false) : true;
-      const sub = enrollment?.projectSubmission;
+      const enr = enrollment as any;
+      const hasAttended = enr ? (enr.isAttended !== false) : true;
+      const sub = enr?.projectSubmission;
       const hasSubmitted = !!(sub?.submittedAt || sub?.repoUrl);
 
       let certStatus: 'locked' | 'pending_approval' | 'approved' | 'rejected' = 'locked';
       if (!hasAttended || !hasSubmitted) {
         certStatus = 'locked';
-      } else if (enrollment?.certificateStatus === 'approved' || enrollment?.certificateUrl) {
+      } else if (enr?.certificateStatus === 'approved' || enr?.certificateUrl) {
         certStatus = 'approved';
       } else {
         certStatus = 'pending_approval';
@@ -1814,8 +1730,8 @@ export class StudentDashboardService {
           isAttended: hasAttended,
           attendanceStatus: hasAttended ? 'Verified Attendance' : 'Pending Verification',
           certificateStatus: certStatus,
-          certificateUrl: enrollment?.certificateUrl || null,
-          projectSubmission: enrollment?.projectSubmission || {
+          certificateUrl: enr?.certificateUrl || null,
+          projectSubmission: enr?.projectSubmission || {
             projectTitle: 'Course Capstone Project',
             repoUrl: 'https://github.com/growthcraft/course-capstone',
             demoUrl: 'https://course-capstone.growthcraft.in',
@@ -1871,7 +1787,7 @@ export class StudentDashboardService {
         });
       }
 
-      enrollment.projectSubmission = {
+      (enrollment as any).projectSubmission = {
         projectTitle: submissionData.projectTitle,
         repoUrl: submissionData.repoUrl,
         demoUrl: submissionData.demoUrl || '',
@@ -1882,7 +1798,7 @@ export class StudentDashboardService {
 
       await enrollment.save();
       logger.info(`Student ${userId} submitted project for course ${slugOrId}`);
-      return enrollment.projectSubmission;
+      return (enrollment as any).projectSubmission;
     } catch (error) {
       logger.error('Submit course project error:', error);
       throw error;
@@ -1945,14 +1861,15 @@ export class StudentDashboardService {
         calculatedStatus = 'Open';
       }
 
-      const hasAttended = enrollment ? (enrollment.isAttended !== false) : true;
-      const sub = enrollment?.projectSubmission;
+      const enr = enrollment as any;
+      const hasAttended = enr ? (enr.isAttended !== false) : true;
+      const sub = enr?.projectSubmission;
       const hasSubmitted = !!(sub?.submittedAt || sub?.repoUrl);
 
       let certStatus: 'locked' | 'pending_approval' | 'approved' | 'rejected' = 'locked';
       if (!hasAttended || !hasSubmitted) {
         certStatus = 'locked';
-      } else if (enrollment?.certificateStatus === 'approved' || enrollment?.certificateUrl) {
+      } else if (enr?.certificateStatus === 'approved' || enr?.certificateUrl) {
         certStatus = 'approved';
       } else {
         certStatus = 'pending_approval';
@@ -1988,8 +1905,8 @@ export class StudentDashboardService {
             ? (hasAttended ? 'Attended' : 'Not Attended')
             : (hasAttended ? 'Present (Verified)' : 'Check-in Pending'),
           certificateStatus: certStatus,
-          certificateUrl: enrollment?.certificateUrl || null,
-          projectSubmission: enrollment?.projectSubmission || {
+          certificateUrl: enr?.certificateUrl || null,
+          projectSubmission: enr?.projectSubmission || {
             projectTitle: 'Industrial Training Capstone',
             repoUrl: 'https://github.com/growthcraft/industrial-capstone',
             demoUrl: 'https://industrial-demo.growthcraft.in',
@@ -2041,7 +1958,7 @@ export class StudentDashboardService {
         });
       }
 
-      enrollment.projectSubmission = {
+      (enrollment as any).projectSubmission = {
         projectTitle: submissionData.projectTitle,
         repoUrl: submissionData.repoUrl,
         demoUrl: submissionData.demoUrl || '',
@@ -2052,7 +1969,7 @@ export class StudentDashboardService {
 
       await enrollment.save();
       logger.info(`Student ${userId} submitted project for training program ${slugOrId}`);
-      return enrollment.projectSubmission;
+      return (enrollment as any).projectSubmission;
     } catch (error) {
       logger.error('Submit training program project error:', error);
       throw error;

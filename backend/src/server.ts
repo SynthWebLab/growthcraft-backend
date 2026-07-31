@@ -107,6 +107,9 @@ const startServer = async () => {
     process.on('SIGINT', () => {
       gracefulShutdown('SIGINT');
     });
+    process.once('SIGUSR2', () => {
+      gracefulShutdown('SIGUSR2');
+    });
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);
