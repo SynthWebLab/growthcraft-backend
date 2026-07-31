@@ -180,6 +180,7 @@ export class EventEnrollmentService {
 
 
       // Create enrollment
+      const isFreeEvent = (event as any).price === 0;
       const enrollment = await EventEnrollment.create({
         ...(data.userId ? { userId: data.userId } : {}),
         eventId: data.eventId,
@@ -189,8 +190,8 @@ export class EventEnrollmentService {
         phone: data.phone,
         title: event.title, // Save event title
         enrollmentDate: new Date(),
-        status: 'pending',
-        paymentStatus: 'pending',
+        status: isFreeEvent ? 'confirmed' : 'pending',
+        paymentStatus: isFreeEvent ? 'completed' : 'pending',
       });
 
       // Update event enrollment count and decrease available seats
@@ -422,7 +423,10 @@ export class EventEnrollmentService {
       const filter: any = {
         userId,
         eventId: { $in: eventIds },
-        status: 'confirmed',
+        $or: [
+          { status: 'confirmed' },
+          { paymentStatus: 'completed' },
+        ],
       };
 
 
