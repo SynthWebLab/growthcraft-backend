@@ -292,9 +292,14 @@ const seedEvents = async () => {
   try {
     logger.info('Starting event seeding...');
 
-    // Clear existing workshops and hackathons (optional - comment out if you want to keep existing data)
+    // Clear existing workshops, hackathons, and any duplicate slugs
+    const workshopSlugs = workshopSeeds.map((s) => s.slug);
+    const hackathonSlugs = hackathonSeeds.map((s) => s.slug);
     const deleteResult = await Bootcamp.deleteMany({
-      type: { $in: [EventType.WORKSHOP, EventType.HACKATHON] },
+      $or: [
+        { type: { $in: [EventType.WORKSHOP, EventType.HACKATHON] } },
+        { slug: { $in: [...workshopSlugs, ...hackathonSlugs] } },
+      ],
     });
     logger.info(`Deleted ${deleteResult.deletedCount} existing workshops and hackathons`);
 
