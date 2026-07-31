@@ -29,11 +29,16 @@ export class EventDetailsService {
         }
         eventDetails = this.buildFallbackEventDetails(event);
       } else if (eventDetails.eventId) {
-        // Merge base event fields if populated
         const baseEvent = eventDetails.eventId as any;
-        if (baseEvent.mentors && baseEvent.mentors.length > 0) {
-          (eventDetails as any).mentors = baseEvent.mentors;
+        if (typeof baseEvent === 'object' && baseEvent !== null && baseEvent.title) {
+          if (baseEvent.mentors && baseEvent.mentors.length > 0) {
+            (eventDetails as any).mentors = baseEvent.mentors;
+          }
+        } else if (event) {
+          (eventDetails as any).eventId = event;
         }
+      } else if (event) {
+        (eventDetails as any).eventId = event;
       }
 
       if (event && (event as any).mentors && (event as any).mentors.length > 0) {
@@ -222,7 +227,7 @@ export class EventDetailsService {
   private buildFallbackEventDetails(event: any): any {
     return {
       _id: null,
-      eventId: event._id,
+      eventId: event,
       slug: event.slug,
       type: event.type || 'Bootcamp',
       overview: {
@@ -247,19 +252,29 @@ export class EventDetailsService {
    */
   private serializeEventDetails(eventDetails: any): Record<string, unknown> {
     const rawObj = typeof eventDetails.toObject === 'function' ? eventDetails.toObject() : eventDetails;
+    const baseEvent = typeof rawObj.eventId === 'object' && rawObj.eventId !== null ? rawObj.eventId : {};
 
     return {
       _id: rawObj._id,
       eventId: rawObj.eventId,
+      event: baseEvent,
+      title: baseEvent.title || rawObj.title,
+      price: baseEvent.price ?? rawObj.price ?? 0,
+      originalPrice: baseEvent.originalPrice ?? rawObj.originalPrice ?? 0,
+      maxSeats: baseEvent.maxSeats ?? rawObj.maxSeats ?? 50,
+      enrolledCount: baseEvent.enrolledCount ?? rawObj.enrolledCount ?? 0,
+      startDate: baseEvent.startDate || rawObj.startDate,
+      endDate: baseEvent.endDate || rawObj.endDate,
+      status: baseEvent.status || rawObj.status || 'Open',
       slug: rawObj.slug,
-      type: rawObj.type,
-      overview: rawObj.overview || { aboutEvent: '', whatYouWillLearn: [], prerequisites: [], targetAudience: [] },
+      type: rawObj.type || baseEvent.type,
+      overview: rawObj.overview || { aboutEvent: baseEvent.description || '', whatYouWillLearn: baseEvent.skillsCovered || [], prerequisites: [], targetAudience: [] },
       agenda: rawObj.agenda || [],
-      venue: rawObj.venue || { mode: 'Online' },
-      mentors: rawObj.mentors || [],
+      venue: rawObj.venue || { mode: baseEvent.mode || 'Online' },
+      mentors: (rawObj.mentors && rawObj.mentors.length > 0) ? rawObj.mentors : (baseEvent.mentors || []),
       faqs: rawObj.faqs || [],
-      createdAt: rawObj.createdAt,
-      updatedAt: rawObj.updatedAt,
+      createdAt: rawObj.createdAt || baseEvent.createdAt,
+      updatedAt: rawObj.updatedAt || baseEvent.updatedAt,
     };
   }
 }

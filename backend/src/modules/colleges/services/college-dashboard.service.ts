@@ -27,6 +27,8 @@ import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { CohortLimitError } from '@/common/errors/CohortLimitError';
 import { logger } from '@/common/utils/logger.util';
+import { paymentService } from '@/modules/payments/services/payment.service';
+import { PaymentItemType } from '@/database/models/PaymentTransaction.model';
 
 /**
  * Enrollment statuses that count as "active" for a student. The CourseEnrollment
@@ -1754,6 +1756,78 @@ export class CollegeDashboardService {
       return profile;
     } catch (error: any) {
       logger.error('Deactivate college ambassador error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Creates a Razorpay payment order for purchasing an event for a college cohort.
+   */
+  public async createEventOrder(
+    collegeUserId: string,
+    eventId: string,
+    batchId?: string,
+    customAmount?: number
+  ) {
+    try {
+      const college = await CollegeProfile.findOne({ userId: collegeUserId }).exec();
+      if (!college) {
+        throw new NotFoundError('College profile not found');
+      }
+
+      const bootcamp = await Bootcamp.findById(eventId).exec();
+      if (!bootcamp) {
+        throw new NotFoundError('Event/Bootcamp not found');
+      }
+
+      const amount = customAmount || (bootcamp as any).discountedPrice || bootcamp.price || 4999;
+
+      const orderData = await paymentService.createOrder({
+        amount,
+        currency: 'INR',
+        itemType: PaymentItemType.COLLEGE_EVENT_PURCHASE,
+        itemId: eventId,
+        receipt: `clg_ev_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        notes: {
+          collegeUserId,
+          eventId,
+          batchId: batchId || '',
+          collegeName: college.collegeName,
+          eventTitle: bootcamp.title,
+        },
+      });
+
+      return orderData;
+    } catch (error: any) {
+      logger.error('Create college event order error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verifies Razorpay payment signature & unlocks event access for college students.
+   */
+  public async verifyEventPayment(
+    collegeUserId: string,
+    razorpayOrderId: string,
+    razorpayPaymentId: string,
+    razorpaySignature?: string
+  ) {
+    try {
+      const college = await CollegeProfile.findOne({ userId: collegeUserId }).exec();
+      if (!college) {
+        throw new NotFoundError('College profile not found');
+      }
+
+      const result = await paymentService.verifyPayment({
+        razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature,
+      });
+
+      return result;
+    } catch (error: any) {
+      logger.error('Verify college event payment error:', error);
       throw error;
     }
   }

@@ -485,4 +485,12 @@ router.delete('/ambassadors/:studentUserId', (req: Request, res: Response, next:
   void collegeDashboardController.deactivateAmbassador(req, res, next);
 });
 
+router.post('/events/:eventId/buy', (req: Request, res: Response, next: NextFunction) => {
+  void collegeDashboardController.createEventOrder(req, res, next);
+});
+
+router.post('/events/verify-payment', (req: Request, res: Response, next: NextFunction) => {
+  void collegeDashboardController.verifyEventPayment(req, res, next);
+});
+
 export default router;

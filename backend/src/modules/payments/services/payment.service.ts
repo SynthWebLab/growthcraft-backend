@@ -218,10 +218,54 @@ class PaymentService {
       } else if (
         itemType === PaymentItemType.BOOTCAMP ||
         itemType === PaymentItemType.WORKSHOP ||
-        itemType === PaymentItemType.HACKATHON
+        itemType === PaymentItemType.HACKATHON ||
+        itemType === PaymentItemType.COLLEGE_EVENT_PURCHASE
       ) {
-        // Event enrollment (bootcamp, workshop, hackathon) — EventEnrollment model
-        if (mongoose.Types.ObjectId.isValid(itemId)) {
+        // Event enrollment (bootcamp, workshop, hackathon, college event purchase)
+        const { notes } = transaction;
+        if (notes && notes.collegeUserId && notes.eventId) {
+          const CollegeProfile = mongoose.model('CollegeProfile');
+          const StudentProfile = mongoose.model('StudentProfile');
+          const Bootcamp = mongoose.model('Bootcamp');
+          const User = mongoose.model('User');
+          const EventEnrollmentModel = mongoose.model('EventEnrollment');
+
+          const college = await CollegeProfile.findOne({ userId: notes.collegeUserId }).exec();
+          if (college) {
+            let targetStudentProfiles = [];
+            if (notes.batchId && mongoose.Types.ObjectId.isValid(notes.batchId)) {
+              targetStudentProfiles = await StudentProfile.find({ batchId: notes.batchId }).exec();
+            } else {
+              targetStudentProfiles = await StudentProfile.find({ collegeName: (college as any).collegeName }).exec();
+            }
+
+            const bootcamp = await Bootcamp.findById(notes.eventId).exec();
+            const title = (bootcamp as any)?.title || 'College Event / Bootcamp';
+            const eventType = (bootcamp as any)?.type || 'Bootcamp';
+
+            for (const sp of targetStudentProfiles) {
+              const user = await User.findById((sp as any).userId).exec();
+              if (user) {
+                await EventEnrollmentModel.findOneAndUpdate(
+                  { userId: user._id, eventId: notes.eventId },
+                  {
+                    userId: user._id,
+                    eventId: notes.eventId,
+                    eventType,
+                    fullName: (user as any).fullName || `${(user as any).firstName || ''} ${(user as any).lastName || ''}`.trim() || 'Student',
+                    email: (user as any).email,
+                    phone: (user as any).phone || 'N/A',
+                    title,
+                    status: 'confirmed',
+                    paymentStatus: 'completed',
+                  },
+                  { upsert: true, new: true }
+                );
+              }
+            }
+            logger.info(`[Payment] Fulfilled College Event Purchase for college ${(college as any).collegeName}, event ${notes.eventId}`);
+          }
+        } else if (mongoose.Types.ObjectId.isValid(itemId)) {
           await EventEnrollment.findByIdAndUpdate(itemId, {
             status: 'confirmed',
             paymentStatus: 'completed',

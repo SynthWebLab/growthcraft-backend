@@ -16,6 +16,7 @@ export enum PaymentItemType {
   TRAINING_PROGRAM = 'training-program',
   ENROLLMENT = 'enrollment',
   RESERVATION = 'reservation',
+  COLLEGE_EVENT_PURCHASE = 'college_event_purchase',
 }
 
 export interface IPaymentTransaction extends Document {

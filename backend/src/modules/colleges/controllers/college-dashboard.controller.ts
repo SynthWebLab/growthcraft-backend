@@ -468,6 +468,53 @@ export class CollegeDashboardController {
       next(error);
     }
   }
+
+  /**
+   * POST /api/v1/colleges/events/:eventId/buy
+   */
+  public async createEventOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const collegeUserId = this.getUserId(req);
+      const { eventId } = req.params;
+      const { batchId, amount } = req.body;
+
+      if (!eventId) {
+        throw new ValidationError('eventId parameter is required');
+      }
+
+      const order = await collegeDashboardService.createEventOrder(collegeUserId, eventId, batchId, amount);
+      SuccessResponseHelper.created(res, order, 'Razorpay order created successfully for event');
+    } catch (error: any) {
+      logger.error('Create college event order controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/colleges/events/verify-payment
+   */
+  public async verifyEventPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const collegeUserId = this.getUserId(req);
+      const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+
+      if (!razorpayOrderId || !razorpayPaymentId) {
+        throw new ValidationError('razorpayOrderId and razorpayPaymentId are required');
+      }
+
+      const result = await collegeDashboardService.verifyEventPayment(
+        collegeUserId,
+        razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature
+      );
+
+      SuccessResponseHelper.ok(res, result, 'Payment verified successfully and event access unlocked');
+    } catch (error: any) {
+      logger.error('Verify college event payment controller error:', error);
+      next(error);
+    }
+  }
 }
 
 export const collegeDashboardController = CollegeDashboardController.getInstance();

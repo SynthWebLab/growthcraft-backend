@@ -33,6 +33,10 @@ router.get('/:slug/details', optionalAuthenticate, (req: Request, res: Response,
   void eventDetailsController.getAllDetails(req, res, next);
 });
 
+router.get('/slug/:slug', optionalAuthenticate, (req: Request, res: Response, next: NextFunction) => {
+  void eventDetailsController.getAllDetails(req, res, next);
+});
+
 /**
  * @swagger
  * /events/{slug}/overview:
