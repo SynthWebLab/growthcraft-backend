@@ -116,9 +116,6 @@ export class MentorDashboardController {
     try {
       const userId = this.getUserId(req);
       const { batchId, notes } = req.body;
-      if (!batchId) {
-        throw new ValidationError('Batch ID is required for check-out');
-      }
 
       const checkOut = await mentorDashboardService.checkOut(userId, batchId, notes);
       SuccessResponseHelper.ok(res, { checkOut }, 'Checked out successfully');

@@ -7,6 +7,9 @@ import {
   User,
   Course,
   EnrollmentStatus,
+  PaymentTransaction,
+  PaymentStatus,
+  PaymentItemType,
 } from '@/database/models';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
@@ -64,8 +67,8 @@ export class AnalyticsController {
     try {
       const { month, batchType } = req.query;
 
-      let enrollmentFilter: any = {
-        status: { $in: [EnrollmentStatus.CONFIRMED, EnrollmentStatus.COMPLETED] },
+      let transactionFilter: any = {
+        status: PaymentStatus.CAPTURED,
       };
       let payoutFilter: any = {
         status: 'processed',
@@ -74,24 +77,28 @@ export class AnalyticsController {
       // 1. Date Range filtering
       if (month) {
         const { start, end } = parseMonthToDateRange(month as string);
-        enrollmentFilter.enrolledAt = { $gte: start, $lt: end };
+        transactionFilter.createdAt = { $gte: start, $lt: end };
         payoutFilter.processedAt = { $gte: start, $lt: end };
       }
 
       // 2. Batch Type filtering
       if (batchType) {
+        if (batchType === 'Course') {
+          transactionFilter.itemType = PaymentItemType.COURSE;
+        } else if (batchType === 'TrainingProgram') {
+          transactionFilter.itemType = PaymentItemType.TRAINING_PROGRAM;
+        } else if (batchType === 'Bootcamp') {
+          transactionFilter.itemType = { $in: [PaymentItemType.BOOTCAMP, PaymentItemType.WORKSHOP, PaymentItemType.HACKATHON] };
+        }
+
         // Find batches matching batchType
         const batches = await Batch.find({ batchType }).distinct('_id');
-        enrollmentFilter.batchId = { $in: batches };
         payoutFilter.batchIds = { $in: batches };
       }
 
       // Calculate total collected
-      const enrollments = await Enrollment.find(enrollmentFilter).select('feeCollected').exec();
-      const totalCollected = enrollments.reduce((sum, item) => {
-        const amt = item.feeCollected ? parseFloat(item.feeCollected.toString()) : 0;
-        return sum + amt;
-      }, 0);
+      const transactions = await PaymentTransaction.find(transactionFilter).select('amount').exec();
+      const totalCollected = transactions.reduce((sum, item) => sum + (item.amount || 0), 0);
 
       // Calculate total payouts
       const payouts = await MentorPayout.find(payoutFilter).select('amount').exec();

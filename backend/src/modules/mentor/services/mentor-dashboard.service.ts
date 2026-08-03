@@ -145,14 +145,14 @@ export class MentorDashboardService {
         date: n.noteDate ? new Date(n.noteDate).toLocaleDateString() : 'Recent',
       }));
 
-      // 5. Total earnings
-      const totalEarnings = (mentorProfile.totalPayouts || 0) + (mentorProfile.pendingPayout || 0);
+      // 5. Total earnings (only show actual processed payouts)
+      const totalEarnings = mentorProfile.totalPayouts || 0;
 
       return {
         counts: {
           sessionsDelivered,
           totalEarnings,
-          avgRating: mentorProfile.rating || 4.8,
+          avgRating: mentorProfile.rating && mentorProfile.rating > 0 ? mentorProfile.rating : 5,
           todaySessionsCount: todaySessions.length,
         },
         todaySessions,
@@ -355,21 +355,31 @@ export class MentorDashboardService {
   /**
    * Check out mentor
    */
-  public async checkOut(userId: string, batchId: string, notes?: string): Promise<IMentorCheckIn> {
+  public async checkOut(userId: string, batchId?: string, notes?: string): Promise<IMentorCheckIn> {
     try {
       const mentorProfile = await MentorProfile.findOne({ userId });
       if (!mentorProfile) {
         throw new NotFoundError('Mentor profile not found');
       }
 
-      const active = await MentorCheckIn.findOne({
-        mentorId: userId,
-        batchId,
-        status: 'checked-in',
-      }).exec();
+      let active;
+      if (batchId) {
+        active = await MentorCheckIn.findOne({
+          mentorId: userId,
+          batchId,
+          status: 'checked-in',
+        }).exec();
+      }
 
       if (!active) {
-        throw new ValidationError('No active check-in session found for this batch');
+        active = await MentorCheckIn.findOne({
+          mentorId: userId,
+          status: 'checked-in',
+        }).exec();
+      }
+
+      if (!active) {
+        throw new ValidationError('No active check-in session found');
       }
 
       const checkOutTime = new Date();
@@ -384,20 +394,7 @@ export class MentorDashboardService {
       active.notes = notes;
       await active.save();
 
-      // Accumulate pending payout based on hourly rate
-      const rate = mentorProfile.hourlyRate || 1500;
-      const earnings = hoursWorked * rate;
-      await MentorProfile.updateOne(
-        { userId },
-        {
-          $inc: {
-            totalHoursMentored: hoursWorked,
-            pendingPayout: earnings,
-          },
-        }
-      );
-
-      logger.info(`Mentor ${userId} checked out batch ${batchId}. Hours worked: ${hoursWorked}`);
+      logger.info(`Mentor ${userId} checked out batch ${active.batchId || batchId}. Hours worked: ${hoursWorked}`);
       return active;
     } catch (error: any) {
       logger.error('Check out error:', error);
@@ -447,8 +444,22 @@ export class MentorDashboardService {
         MentorCheckIn.countDocuments(filter),
       ]);
 
+      const mentorProfile = await MentorProfile.findOne({ userId });
+      const hourlyRate = mentorProfile?.hourlyRate || 1500;
+
+      const formattedCheckIns = checkIns.map((c) => ({
+        id: c._id.toString(),
+        batchId: c.batchId,
+        checkedInAt: c.checkInTime,
+        checkedOutAt: c.checkOutTime,
+        hoursBilled: c.hoursWorked,
+        payoutAmount: c.hoursWorked * hourlyRate,
+        sessionNotes: c.notes,
+        status: c.status,
+      }));
+
       return {
-        checkIns,
+        checkIns: formattedCheckIns,
         pagination: {
           total,
           page,
@@ -645,17 +656,27 @@ export class MentorDashboardService {
       const payouts = payoutDocs.map((p) => ({
         date: p.processedAt ? p.processedAt.toISOString().split('T')[0] : p.createdAt.toISOString().split('T')[0],
         amount: p.amount,
-        status: p.status === 'processed' ? ('completed' as const) : ('pending' as const),
-        txnId: p._id.toString(),
+        status: p.status === 'processed' ? ('completed' as const) : p.status === 'processing' ? ('processing' as const) : p.status === 'failed' ? ('failed' as const) : ('pending' as const),
+        txnId: p.razorpayPaymentId || p.razorpayLinkId || p._id.toString(),
+        razorpayLinkUrl: p.razorpayLinkUrl,
       }));
 
       const pendingPayout = mentorProfile.pendingPayout || 0;
-      const lifetime = (mentorProfile.totalPayouts || 0) + pendingPayout;
+      const lifetime = mentorProfile.totalPayouts || 0;
+
+      // Calculate how much is locked in pending/processing requests
+      const activePayouts = await MentorPayout.find({
+        mentorId: userId,
+        status: { $in: ['pending', 'processing'] },
+      }).exec();
+      const lockedAmount = activePayouts.reduce((sum, p) => sum + p.amount, 0);
+      const withdrawablePayout = Math.max(0, pendingPayout - lockedAmount);
 
       return {
         summary: {
           thisMonth: thisMonthAmount,
           pendingPayout,
+          withdrawablePayout,
           lifetime,
         },
         monthlyData,
@@ -698,9 +719,6 @@ export class MentorDashboardService {
         status: 'pending',
         notes: notesStr,
       });
-
-      mentorProfile.pendingPayout = Math.max(0, currentPending - requestedAmount);
-      await mentorProfile.save();
 
       // Record audit log
       await auditLogService.log(

@@ -383,6 +383,44 @@ class PaymentService {
       const orderId = paymentEntity.order_id;
       const paymentId = paymentEntity.id;
 
+      // Check if it's a mentor payout link payment
+      const notes = paymentEntity.notes;
+      if (notes && notes.type === 'mentor_payout' && notes.payoutId) {
+        try {
+          const { MentorPayout, MentorProfile } = await import('@/database/models');
+          const { notificationService } = await import('@/modules/notifications/services/notification.service');
+
+          const payout = await MentorPayout.findById(notes.payoutId).exec();
+          if (payout && payout.status !== 'processed') {
+            const profile = await MentorProfile.findOne({ userId: payout.mentorId }).exec();
+            if (profile) {
+              payout.status = 'processed';
+              payout.processedAt = new Date();
+              payout.razorpayPaymentId = paymentId;
+              await payout.save();
+
+              profile.totalPayouts = (profile.totalPayouts || 0) + payout.amount;
+              profile.pendingPayout = Math.max(0, (profile.pendingPayout || 0) - payout.amount);
+              await profile.save();
+
+              logger.info(`[Razorpay Webhook] Auto-confirmed mentor payout ${payout._id} via payment ${paymentId}`);
+
+              try {
+                await notificationService.createNotification(
+                  payout.mentorId.toString(),
+                  'mentor.payout.completed',
+                  { amount: payout.amount, period: payout.period, paymentId }
+                );
+              } catch (err) {
+                logger.warn('Failed to send payout confirmation notification via webhook:', err);
+              }
+            }
+          }
+        } catch (err) {
+          logger.error('Error handling mentor payout via webhook:', err);
+        }
+      }
+
       if (orderId) {
         const transaction = await PaymentTransaction.findOne({ orderId });
         if (transaction && transaction.status !== PaymentStatus.CAPTURED) {
@@ -501,6 +539,161 @@ class PaymentService {
       orderId: mockOrderId,
       enrollment: updatedEnrollment,
       transaction,
+    };
+  }
+
+  /**
+   * Create a Razorpay Payment Link for a mentor payout disbursal.
+   * The admin opens this link to pay the mentor via UPI/bank transfer.
+   */
+  public async createMentorPayoutLink(input: {
+    payoutId: string;
+    amount: number;
+    mentorName: string;
+    mentorEmail?: string;
+    mentorPhone?: string;
+    period: string;
+    notes?: string;
+  }): Promise<{ linkId: string; linkUrl: string; expiresAt: Date }> {
+    const razorpay = this.getRazorpay();
+
+    const amountInPaise = Math.round(input.amount * 100);
+    const expiresInHours = 72; // Link valid for 72 hours
+    const expireBy = Math.floor(Date.now() / 1000) + expiresInHours * 3600;
+
+    try {
+      const payload: any = {
+        amount: amountInPaise,
+        currency: 'INR',
+        accept_partial: false,
+        description: `GrowthCraft Mentor Payout — ${input.mentorName} — ${input.period}`,
+        customer: {
+          name: input.mentorName,
+          email: input.mentorEmail || '',
+          contact: input.mentorPhone || '',
+        },
+        notify: {
+          sms: !!input.mentorPhone,
+          email: !!input.mentorEmail,
+        },
+        reminder_enable: false,
+        notes: {
+          payoutId: input.payoutId,
+          period: input.period,
+          type: 'mentor_payout',
+          notes: input.notes || '',
+        },
+        expire_by: expireBy,
+      };
+
+      const link = await razorpay.paymentLink.create(payload);
+
+      logger.info(`[Razorpay] Mentor payout link created: ${link.id} for payoutId ${input.payoutId}`);
+
+      return {
+        linkId: link.id as string,
+        linkUrl: (link.short_url || link.id) as string,
+        expiresAt: new Date(expireBy * 1000),
+      };
+    } catch (error: any) {
+      logger.error('[Razorpay] createMentorPayoutLink error:', error);
+      throw new ValidationError(
+        `Failed to create Razorpay payment link: ${error?.error?.description || error?.message || 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * Disburse payout directly to mentor via Razorpay X API or UPI
+   */
+  public async createMentorDirectPayout(input: {
+    payoutId: string;
+    amount: number;
+    mentorName: string;
+    mentorEmail?: string;
+    mentorPhone?: string;
+    period: string;
+    notes?: string;
+  }): Promise<{ status: string; razorpayPayoutId?: string; utr?: string; upiUri?: string; message: string }> {
+    const keyId = config.RAZORPAY_KEY_ID;
+    const keySecret = config.RAZORPAY_KEY_SECRET;
+    const accountNumber = process.env.RAZORPAYX_ACCOUNT_NUMBER || '7878787878787878';
+
+    // Parse UPI ID if present in notes (e.g. "UPI: 6000100424@kotak")
+    let upiAddress = '';
+    if (input.notes) {
+      const match = input.notes.match(/([a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+)/);
+      if (match) {
+        upiAddress = match[1];
+      }
+    }
+
+    const upiUri = upiAddress
+      ? `upi://pay?pa=${encodeURIComponent(upiAddress)}&pn=${encodeURIComponent(input.mentorName)}&am=${input.amount}&cu=INR&tn=${encodeURIComponent(`GrowthCraft Payout ${input.period}`)}`
+      : '';
+
+    if (keyId && keySecret && upiAddress) {
+      try {
+        const amountInPaise = Math.round(input.amount * 100);
+        const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+
+        const payload = {
+          account_number: accountNumber,
+          amount: amountInPaise,
+          currency: 'INR',
+          mode: 'UPI',
+          purpose: 'payout',
+          fund_account: {
+            account_type: 'vpa',
+            vpa: {
+              address: upiAddress,
+            },
+            contact: {
+              name: input.mentorName,
+              email: input.mentorEmail || 'mentor@growthcraft.com',
+              contact: input.mentorPhone || '9876543210',
+              type: 'employee',
+            },
+          },
+          queue_if_low_balance: true,
+          notes: {
+            payoutId: input.payoutId,
+            period: input.period,
+            type: 'mentor_payout',
+          },
+        };
+
+        const response = await fetch('https://api.razorpay.com/v1/payouts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: authHeader,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data: any = await response.json();
+        if (response.ok && data?.id) {
+          logger.info(`[RazorpayX] Direct Payout initiated successfully: ${data.id}`);
+          return {
+            status: data.status || 'processing',
+            razorpayPayoutId: data.id,
+            utr: data.utr || '',
+            upiUri,
+            message: 'Direct Razorpay X Payout initiated to mentor UPI',
+          };
+        } else {
+          logger.warn('[RazorpayX] Direct Payout API notice:', data?.error?.description || data?.message || data);
+        }
+      } catch (err: any) {
+        logger.error('[RazorpayX] Error calling direct payout API:', err);
+      }
+    }
+
+    return {
+      status: 'processing',
+      upiUri,
+      message: 'Payout created for mentor. Use UPI app or Razorpay X portal to complete transfer.',
     };
   }
 }

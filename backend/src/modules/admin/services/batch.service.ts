@@ -179,7 +179,7 @@ export class BatchService {
       .populate('courseId', 'title slug')
       .populate('trainingProgramId', 'title slug')
       .populate('bootcampId', 'title slug')
-      .populate('assignedMentorId', 'firstName lastName email')
+      .populate({ path: 'assignedMentorId', populate: { path: 'userId', select: 'fullName email phone' } })
       .exec();
 
     if (!batch) {
@@ -281,7 +281,7 @@ export class BatchService {
         .populate('courseId', 'title slug')
         .populate('trainingProgramId', 'title slug')
         .populate('bootcampId', 'title slug')
-        .populate('assignedMentorId', 'firstName lastName email')
+        .populate({ path: 'assignedMentorId', populate: { path: 'userId', select: 'fullName email phone' } })
         .exec(),
       Batch.countDocuments(filter).exec(),
     ]);
@@ -385,7 +385,7 @@ export class BatchService {
         .populate('courseId', 'title slug banner')
         .populate('trainingProgramId', 'title slug banner')
         .populate('bootcampId', 'title slug banner')
-        .populate('assignedMentorId', 'firstName lastName email')
+        .populate({ path: 'assignedMentorId', populate: { path: 'userId', select: 'fullName email phone' } })
         .exec(),
       Batch.countDocuments(filter).exec(),
     ]);

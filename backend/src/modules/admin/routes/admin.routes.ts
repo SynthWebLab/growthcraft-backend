@@ -119,6 +119,9 @@ router.post('/mentors/:mentorId/payout', authorize([UserRole.SUPER_ADMIN]), (req
 router.patch('/mentor-payouts/:payoutId/approve', authorize([UserRole.SUPER_ADMIN]), (req: Request, res: Response, next: NextFunction) => {
   void mentorPayoutController.approvePayout(req, res, next);
 });
+router.patch('/mentor-payouts/:payoutId/confirm', authorize([UserRole.SUPER_ADMIN]), (req: Request, res: Response, next: NextFunction) => {
+  void mentorPayoutController.confirmPayout(req, res, next);
+});
 
 /**
  * Student Attendance Management

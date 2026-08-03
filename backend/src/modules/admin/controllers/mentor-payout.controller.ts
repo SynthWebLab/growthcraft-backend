@@ -12,6 +12,7 @@ import { NotFoundError } from '@/common/errors/NotFoundError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
 import { auditLogService } from '../services/audit-log.service';
 import { notificationService } from '@/modules/notifications/services/notification.service';
+import { paymentService } from '@/modules/payments/services/payment.service';
 import { logger } from '@/common/utils/logger.util';
 
 export class MentorPayoutController {
@@ -258,7 +259,7 @@ export class MentorPayoutController {
       await checkIn.save();
 
       // Accumulate payout details
-      const hourlyRate = profile.hourlyRate || 0;
+      const hourlyRate = profile.hourlyRate || 1500;
       const earned = checkIn.hoursWorked * hourlyRate;
 
       profile.pendingPayout = (profile.pendingPayout || 0) + earned;
@@ -339,26 +340,42 @@ export class MentorPayoutController {
         hoursForPeriod,
         hourlyRate,
         batchIds,
-        status: 'processed',
+        status: 'pending',
         processedBy: req.user!.userId,
         notes,
-        processedAt: new Date(),
       });
 
-      profile.pendingPayout = Math.max(0, (profile.pendingPayout || 0) - parsedAmount);
-      profile.totalPayouts = (profile.totalPayouts || 0) + parsedAmount;
-      await profile.save();
+      // Generate Razorpay Payment Link
+      const mentorUser = await User.findById(mentorId).select('fullName email phone').exec();
+      // Attempt direct Razorpay X / UPI Payout
+      const directPayout = await paymentService.createMentorDirectPayout({
+        payoutId: payout._id.toString(),
+        amount: payout.amount,
+        mentorName: mentorUser?.fullName || 'Mentor',
+        mentorEmail: mentorUser?.email,
+        mentorPhone: mentorUser?.phone,
+        period: payout.period,
+        notes: payout.notes,
+      });
+
+      // Update payout to 'processing' status
+      payout.status = 'processing';
+      await payout.save();
 
       // Write AuditLog
       await auditLogService.log(
         req.user!.userId,
-        'mentor.payout.record',
+        'mentor.payout.disbursal_initiated',
         mentorId,
-        { payoutId: payout._id, amount: parsedAmount, period },
+        { payoutId: payout._id, amount: parsedAmount },
         req.ip
       );
 
-      SuccessResponseHelper.created(res, { payout, profile }, 'Payout recorded successfully');
+      SuccessResponseHelper.created(res, {
+        payout,
+        directPayout,
+        profile
+      }, 'Mentor payout request created successfully');
     } catch (error) {
       logger.error('Error recording payout:', error);
       next(error);
@@ -367,7 +384,8 @@ export class MentorPayoutController {
 
   /**
    * PATCH /api/v1/admin/mentor-payouts/:payoutId/approve
-   * Approve a pending mentor withdrawal request → moves it from pending → processed
+   * Generates a Razorpay Payment Link for admin to disburse the mentor payout.
+   * Sets status to 'processing' until admin confirms via /confirm endpoint.
    */
   public async approvePayout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -381,8 +399,79 @@ export class MentorPayoutController {
         throw new NotFoundError('Payout request not found');
       }
 
-      if (payout.status === 'processed') {
+      if (payout.status === 'processed' || payout.status === 'processing') {
+        // Already has a link — return existing link
+        if (payout.razorpayLinkUrl) {
+          SuccessResponseHelper.ok(res, {
+            payout,
+            razorpayLinkId: payout.razorpayLinkId,
+            razorpayLinkUrl: payout.razorpayLinkUrl,
+            alreadyProcessing: true,
+          }, 'Payout already has a Razorpay payment link generated');
+          return;
+        }
         throw new ValidationError('This payout has already been processed');
+      }
+
+      // Look up mentor user details for the payment link
+      const mentorUser = await User.findById(payout.mentorId).select('fullName email phone').exec();
+
+      // Generate Razorpay Payment Link
+      // Attempt direct Razorpay X / UPI Payout
+      const directPayout = await paymentService.createMentorDirectPayout({
+        payoutId: payout._id.toString(),
+        amount: payout.amount,
+        mentorName: mentorUser?.fullName || 'Mentor',
+        mentorEmail: mentorUser?.email,
+        mentorPhone: mentorUser?.phone,
+        period: payout.period,
+        notes: payout.notes,
+      });
+
+      // Update payout to 'processing' status
+      payout.status = 'processing';
+      payout.processedBy = new mongoose.Types.ObjectId(req.user!.userId);
+      await payout.save();
+
+      // Write AuditLog
+      await auditLogService.log(
+        req.user!.userId,
+        'mentor.payout.disbursal_initiated',
+        payout.mentorId.toString(),
+        { payoutId: payout._id, amount: payout.amount },
+        req.ip
+      );
+
+      SuccessResponseHelper.ok(res, {
+        payout,
+        directPayout,
+      }, `Payout initiated for INR ${payout.amount}. Complete payment via UPI or Razorpay X.`);
+    } catch (error) {
+      logger.error('Error generating Razorpay payout link:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * PATCH /api/v1/admin/mentor-payouts/:payoutId/confirm
+   * Admin confirms the Razorpay payment was completed → marks payout as processed.
+   */
+  public async confirmPayout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { payoutId } = req.params;
+      const { razorpayPaymentId } = req.body;
+
+      if (!mongoose.Types.ObjectId.isValid(payoutId)) {
+        throw new ValidationError('Invalid payout ID');
+      }
+
+      const payout = await MentorPayout.findById(payoutId).exec();
+      if (!payout) {
+        throw new NotFoundError('Payout request not found');
+      }
+
+      if (payout.status === 'processed') {
+        throw new ValidationError('This payout has already been marked as processed');
       }
 
       const profile = await MentorProfile.findOne({ userId: payout.mentorId }).exec();
@@ -390,29 +479,40 @@ export class MentorPayoutController {
         throw new NotFoundError('Mentor profile not found');
       }
 
-      // Mark payout as processed
+      // Mark as processed with Razorpay payment reference
       payout.status = 'processed';
-      payout.processedBy = new mongoose.Types.ObjectId(req.user!.userId);
       payout.processedAt = new Date();
-      if (req.body?.notes) payout.notes = req.body.notes;
+      if (razorpayPaymentId) payout.razorpayPaymentId = razorpayPaymentId;
       await payout.save();
 
-      // Add to totalPayouts (pendingPayout was already deducted at request time)
+      // Add to mentor's totalPayouts and decrement from pendingPayout
       profile.totalPayouts = (profile.totalPayouts || 0) + payout.amount;
+      profile.pendingPayout = Math.max(0, (profile.pendingPayout || 0) - payout.amount);
       await profile.save();
+
+      // Notify mentor
+      try {
+        await notificationService.createNotification(
+          payout.mentorId.toString(),
+          'mentor.payout.completed',
+          { amount: payout.amount, period: payout.period, paymentId: razorpayPaymentId }
+        );
+      } catch (err) {
+        logger.warn('Failed to send payout confirmation notification:', err);
+      }
 
       // Write AuditLog
       await auditLogService.log(
         req.user!.userId,
-        'mentor.payout.approve',
+        'mentor.payout.confirm',
         payout.mentorId.toString(),
-        { payoutId: payout._id, amount: payout.amount },
+        { payoutId: payout._id, amount: payout.amount, razorpayPaymentId },
         req.ip
       );
 
-      SuccessResponseHelper.ok(res, { payout }, `Payout of INR ${payout.amount} approved successfully`);
+      SuccessResponseHelper.ok(res, { payout }, `Payout of INR ${payout.amount} confirmed and marked as processed`);
     } catch (error) {
-      logger.error('Error approving payout:', error);
+      logger.error('Error confirming payout:', error);
       next(error);
     }
   }

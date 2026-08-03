@@ -7,10 +7,14 @@ export interface IMentorPayout extends Document {
   hoursForPeriod: number;
   hourlyRate: number; // snapshot at time of payout
   batchIds: mongoose.Types.ObjectId[]; // which batches this payout covers
-  status: 'pending' | 'processed' | 'disputed' | 'failed';
+  status: 'pending' | 'processing' | 'processed' | 'disputed' | 'failed';
   processedBy?: mongoose.Types.ObjectId;
   notes?: string;
   processedAt?: Date;
+  // Razorpay payout fields
+  razorpayLinkId?: string;    // Payment Link ID (rzplink_xxx)
+  razorpayLinkUrl?: string;   // Short URL for admin to open & pay
+  razorpayPaymentId?: string; // Confirmed Razorpay payment ID after admin confirms
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,18 +52,16 @@ const mentorPayoutSchema = new Schema<IMentorPayout>(
       type: [Schema.Types.ObjectId],
       ref: 'Batch',
       default: [],
-      index: true,
     },
     status: {
       type: String,
-      enum: ['pending', 'processed', 'disputed', 'failed'],
+      enum: ['pending', 'processing', 'processed', 'disputed', 'failed'],
       default: 'pending',
       index: true,
     },
     processedBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      index: true,
     },
     notes: {
       type: String,
@@ -67,7 +69,18 @@ const mentorPayoutSchema = new Schema<IMentorPayout>(
     },
     processedAt: {
       type: Date,
-      index: true,
+    },
+    razorpayLinkId: {
+      type: String,
+      trim: true,
+    },
+    razorpayLinkUrl: {
+      type: String,
+      trim: true,
+    },
+    razorpayPaymentId: {
+      type: String,
+      trim: true,
     },
   },
   {
@@ -75,10 +88,8 @@ const mentorPayoutSchema = new Schema<IMentorPayout>(
   }
 );
 
-// Indexes
 mentorPayoutSchema.index({ mentorId: 1, createdAt: -1 });
 
-// Remove __v from JSON response
 mentorPayoutSchema.methods.toJSON = function (): Record<string, unknown> {
   const obj = this.toObject() as Record<string, unknown>;
   delete obj.__v;
