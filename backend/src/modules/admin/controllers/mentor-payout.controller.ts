@@ -366,6 +366,58 @@ export class MentorPayoutController {
   }
 
   /**
+   * PATCH /api/v1/admin/mentor-payouts/:payoutId/approve
+   * Approve a pending mentor withdrawal request → moves it from pending → processed
+   */
+  public async approvePayout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { payoutId } = req.params;
+      if (!mongoose.Types.ObjectId.isValid(payoutId)) {
+        throw new ValidationError('Invalid payout ID');
+      }
+
+      const payout = await MentorPayout.findById(payoutId).exec();
+      if (!payout) {
+        throw new NotFoundError('Payout request not found');
+      }
+
+      if (payout.status === 'processed') {
+        throw new ValidationError('This payout has already been processed');
+      }
+
+      const profile = await MentorProfile.findOne({ userId: payout.mentorId }).exec();
+      if (!profile) {
+        throw new NotFoundError('Mentor profile not found');
+      }
+
+      // Mark payout as processed
+      payout.status = 'processed';
+      payout.processedBy = new mongoose.Types.ObjectId(req.user!.userId);
+      payout.processedAt = new Date();
+      if (req.body?.notes) payout.notes = req.body.notes;
+      await payout.save();
+
+      // Add to totalPayouts (pendingPayout was already deducted at request time)
+      profile.totalPayouts = (profile.totalPayouts || 0) + payout.amount;
+      await profile.save();
+
+      // Write AuditLog
+      await auditLogService.log(
+        req.user!.userId,
+        'mentor.payout.approve',
+        payout.mentorId.toString(),
+        { payoutId: payout._id, amount: payout.amount },
+        req.ip
+      );
+
+      SuccessResponseHelper.ok(res, { payout }, `Payout of INR ${payout.amount} approved successfully`);
+    } catch (error) {
+      logger.error('Error approving payout:', error);
+      next(error);
+    }
+  }
+
+  /**
    * GET /api/v1/admin/mentors/:mentorId/payouts
    * Payout history for a single mentor
    */
@@ -377,7 +429,7 @@ export class MentorPayoutController {
       }
 
       const payouts = await MentorPayout.find({ mentorId })
-        .sort({ processedAt: -1 })
+        .sort({ createdAt: -1 })
         .populate('processedBy', 'fullName email')
         .exec();
 

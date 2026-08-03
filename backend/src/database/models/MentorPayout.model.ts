@@ -7,10 +7,10 @@ export interface IMentorPayout extends Document {
   hoursForPeriod: number;
   hourlyRate: number; // snapshot at time of payout
   batchIds: mongoose.Types.ObjectId[]; // which batches this payout covers
-  status: 'processed' | 'disputed';
-  processedBy: mongoose.Types.ObjectId;
+  status: 'pending' | 'processed' | 'disputed' | 'failed';
+  processedBy?: mongoose.Types.ObjectId;
   notes?: string;
-  processedAt: Date;
+  processedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,12 +36,12 @@ const mentorPayoutSchema = new Schema<IMentorPayout>(
     },
     hoursForPeriod: {
       type: Number,
-      required: [true, 'Hours for period is required'],
+      default: 0,
       min: [0, 'Hours cannot be negative'],
     },
     hourlyRate: {
       type: Number,
-      required: [true, 'Hourly rate snapshot is required'],
+      default: 0,
       min: [0, 'Hourly rate cannot be negative'],
     },
     batchIds: {
@@ -52,14 +52,13 @@ const mentorPayoutSchema = new Schema<IMentorPayout>(
     },
     status: {
       type: String,
-      enum: ['processed', 'disputed'],
-      default: 'processed',
+      enum: ['pending', 'processed', 'disputed', 'failed'],
+      default: 'pending',
       index: true,
     },
     processedBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Processed by admin ID is required'],
       index: true,
     },
     notes: {
@@ -68,8 +67,6 @@ const mentorPayoutSchema = new Schema<IMentorPayout>(
     },
     processedAt: {
       type: Date,
-      default: Date.now,
-      required: true,
       index: true,
     },
   },
@@ -79,7 +76,7 @@ const mentorPayoutSchema = new Schema<IMentorPayout>(
 );
 
 // Indexes
-mentorPayoutSchema.index({ mentorId: 1, period: 1 }, { unique: true });
+mentorPayoutSchema.index({ mentorId: 1, createdAt: -1 });
 
 // Remove __v from JSON response
 mentorPayoutSchema.methods.toJSON = function (): Record<string, unknown> {

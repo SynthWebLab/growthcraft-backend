@@ -235,21 +235,40 @@ async function testMentorAPIs() {
     });
   }
 
-  // Step 9: Get Mentor Sessions
+  // Step 9: Get Mentor Batches (Cohorts)
   try {
-    console.log('\n🎬 Step 9: Fetching mentor sessions...');
-    const res = await client.get('/mentor/sessions');
+    console.log('\n🎬 Step 9: Fetching mentor assigned batches...');
+    const res = await client.get('/mentor/batches');
     logResult({
-      name: 'Get Mentor Sessions',
+      name: 'Get Mentor Batches',
       success: true,
-      message: 'Successfully retrieved list of all sessions',
+      message: 'Successfully retrieved list of assigned cohorts/batches',
       response: { status: res.status, data: res.data }
     });
   } catch (error: any) {
     logResult({
-      name: 'Get Mentor Sessions',
+      name: 'Get Mentor Batches',
       success: false,
-      message: 'Failed to retrieve sessions list',
+      message: 'Failed to retrieve batches list',
+      error
+    });
+  }
+
+  // Step 9b: Submit Earnings Withdrawal Request
+  try {
+    console.log('\n💸 Step 9b: Submitting earnings withdrawal request...');
+    const res = await client.post('/mentor/earnings/withdraw');
+    logResult({
+      name: 'Withdraw Earnings Request',
+      success: true,
+      message: 'Successfully submitted withdrawal request for pending payouts',
+      response: { status: res.status, data: res.data }
+    });
+  } catch (error: any) {
+    logResult({
+      name: 'Withdraw Earnings Request',
+      success: false,
+      message: 'Failed to submit withdrawal request',
       error
     });
   }

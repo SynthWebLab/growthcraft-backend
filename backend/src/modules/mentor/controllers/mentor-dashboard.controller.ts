@@ -230,8 +230,9 @@ export class MentorDashboardController {
    */
   public async withdrawEarnings(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Simulate submission of withdrawal request
-      SuccessResponseHelper.ok(res, null, 'Withdrawal request submitted successfully');
+      const userId = this.getUserId(req);
+      const result = await mentorDashboardService.withdrawEarnings(userId, req.body);
+      SuccessResponseHelper.ok(res, result, `Withdrawal request for INR ${result.amountRequested} submitted successfully`);
     } catch (error: any) {
       logger.error('Withdraw earnings controller error:', error);
       next(error);

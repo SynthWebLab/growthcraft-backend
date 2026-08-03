@@ -46,7 +46,9 @@ const seedTestMentor = async () => {
       });
       console.log('✅ Created mentor user:', MENTOR.email);
     } else {
-      console.log('ℹ️  Mentor user already exists:', MENTOR.email);
+      user.password = MENTOR.password;
+      await user.save();
+      console.log('ℹ️  Mentor user password updated:', MENTOR.email);
     }
 
     // 2) Mentor profile (upsert) with availability so booking slots appear
