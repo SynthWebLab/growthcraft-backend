@@ -106,12 +106,15 @@ class PaymentService {
       notes: input.notes || {},
     });
 
+    const isMock = !this.razorpayClient || !config.RAZORPAY_KEY_ID || config.RAZORPAY_KEY_ID === 'rzp_test_GrowthCraftKey' || !config.RAZORPAY_KEY_SECRET;
+
     return {
       orderId: razorpayOrderId,
       amount: amountInPaise,
       currency,
       keyId,
       transactionId: transaction._id,
+      isMock,
     };
   }
 
