@@ -364,7 +364,10 @@ export class EventEnrollmentService {
       const enrollment = await EventEnrollment.findOne({
         userId,
         eventId,
-        status: { $in: ['pending', 'confirmed'] },
+        $or: [
+          { status: 'confirmed' },
+          { paymentStatus: 'completed' },
+        ],
       });
 
       return !!enrollment;
@@ -383,10 +386,13 @@ export class EventEnrollmentService {
   ): Promise<{ isEnrolled: boolean; hasCallbackRequest: boolean }> {
     try {
       // Check enrollment
-       const enrollment = await EventEnrollment.findOne({
+      const enrollment = await EventEnrollment.findOne({
         userId,
         eventId,
-        status: 'confirmed',
+        $or: [
+          { status: 'confirmed' },
+          { paymentStatus: 'completed' },
+        ],
       });
 
 

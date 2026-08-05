@@ -220,9 +220,12 @@ export class EnrollmentService {
   public async isUserEnrolled(userId: string, courseId: string): Promise<boolean> {
     try {
       const user = await User.findById(userId).select('email').lean().exec();
-      const filter = user
-        ? { $or: [{ userId }, { email: user.email }], courseId, status: { $in: ['pending', 'confirmed'] } }
-        : { userId, courseId, status: { $in: ['pending', 'confirmed'] } };
+      const statusCondition = { $or: [{ status: 'confirmed' }, { paymentStatus: 'completed' }] };
+      const userCondition = user ? { $or: [{ userId }, { email: user.email }] } : { userId };
+      const filter = {
+        courseId,
+        $and: [userCondition, statusCondition],
+      };
 
       const enrollment = await CourseEnrollment.findOne(filter);
 
