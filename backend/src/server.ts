@@ -68,6 +68,10 @@ const startServer = async () => {
     const gracefulShutdown = (signal: string) => {
       logger.info(`${signal} received. Starting graceful shutdown...`);
 
+      if (typeof server.closeAllConnections === 'function') {
+        server.closeAllConnections();
+      }
+
       server.close(async () => {
         logger.info('HTTP server closed');
 
@@ -86,18 +90,22 @@ const startServer = async () => {
           await databaseConfig.disconnect();
           logger.info('Database disconnected');
 
-          process.exit(0);
+          if (signal === 'SIGUSR2') {
+            process.kill(process.pid, 'SIGUSR2');
+          } else {
+            process.exit(0);
+          }
         } catch (error) {
           logger.error('Error during shutdown:', error);
           process.exit(1);
         }
       });
 
-      // Force shutdown after 10 seconds
+      // Force shutdown after 5 seconds
       setTimeout(() => {
         logger.error('Forced shutdown after timeout');
         process.exit(1);
-      }, 10000);
+      }, 5000);
     };
 
     // Listen for termination signals
