@@ -29,6 +29,7 @@ import { CohortLimitError } from '@/common/errors/CohortLimitError';
 import { logger } from '@/common/utils/logger.util';
 import { paymentService } from '@/modules/payments/services/payment.service';
 import { PaymentItemType } from '@/database/models/PaymentTransaction.model';
+import { notificationService } from '@/modules/notifications/services/notification.service';
 
 /**
  * Enrollment statuses that count as "active" for a student. The CourseEnrollment
@@ -1681,6 +1682,13 @@ export class CollegeDashboardService {
             }
             await profile.save();
             activated++;
+
+            // Real-time socket & persistent notification push to the student
+            void notificationService.createNotification(studentId, 'ambassador.activated', {
+              collegeName: college.collegeName,
+              referralCode: profile.referralCode,
+              message: `Congratulations! Your campus ${college.collegeName} has activated you as a Campus Ambassador.`,
+            });
           }
         }
       }
@@ -1757,6 +1765,12 @@ export class CollegeDashboardService {
 
       profile.isAmbassador = false;
       await profile.save();
+
+      // Real-time socket & persistent notification push to the student
+      void notificationService.createNotification(studentUserId, 'ambassador.deactivated', {
+        collegeName: college.collegeName,
+        message: `Your Campus Ambassador status has been updated by ${college.collegeName}.`,
+      });
 
       logger.info(
         `College ${college.collegeName} deactivated student ${studentUserId} ambassador status`
