@@ -261,10 +261,12 @@ export class CollegeDashboardService {
 
       const avgProgress = enrolled > 0 ? Math.round((completed / enrolled) * 100) : 0;
 
+      const isAmbassador = (profile as any)?.isAmbassador ?? false;
+
       let status: StudentStatus;
       if (enrolled > 0 && completed >= enrolled) {
         status = 'completed';
-      } else if (totalEnrollmentCount > 0 || enrolled > 0) {
+      } else if (totalEnrollmentCount > 0 || enrolled > 0 || isAmbassador) {
         status = 'active';
       } else {
         status = 'pending';
@@ -278,7 +280,7 @@ export class CollegeDashboardService {
         avgProgress,
         status,
         lastActive: (user as unknown as IUser).updatedAt,
-        isAmbassador: (profile as any)?.isAmbassador ?? false,
+        isAmbassador,
       };
     });
   }
@@ -296,7 +298,13 @@ export class CollegeDashboardService {
       let rows = await this.buildStudentRows(userIds);
 
       if (options.status) {
-        rows = rows.filter((r) => r.status === options.status);
+        if (options.status === 'active') {
+          rows = rows.filter((r) => r.status === 'active' || r.isAmbassador);
+        } else if (options.status === 'pending') {
+          rows = rows.filter((r) => r.status === 'pending' && !r.isAmbassador);
+        } else {
+          rows = rows.filter((r) => r.status === options.status);
+        }
       }
       if (options.search) {
         const q = options.search.toLowerCase();
