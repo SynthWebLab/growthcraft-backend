@@ -69,7 +69,7 @@ export interface StudentDashboardSummary {
   certificates: StudentCertification[];
 }
 
-const ACTIVE_STATUSES = ['confirmed'];
+const ACTIVE_STATUSES = ['pending', 'confirmed', 'active', 'completed', 'enrolled'];
 
 export class StudentDashboardService {
   private static instance: StudentDashboardService;

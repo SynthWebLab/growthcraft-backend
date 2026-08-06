@@ -29,6 +29,7 @@ import { CohortLimitError } from '@/common/errors/CohortLimitError';
 import { logger } from '@/common/utils/logger.util';
 import { paymentService } from '@/modules/payments/services/payment.service';
 import { PaymentItemType } from '@/database/models/PaymentTransaction.model';
+import { notificationService } from '@/modules/notifications/services/notification.service';
 
 /**
  * Enrollment statuses that count as "active" for a student. The CourseEnrollment
@@ -42,6 +43,11 @@ export interface CollegeStudentRow {
   userId: string;
   name: string;
   email: string;
+  phone?: string;
+  enrollmentNumber?: string;
+  degree?: string;
+  branch?: string;
+  yearOfStudy?: number;
   courses: number;
   avgProgress: number;
   status: StudentStatus;
@@ -66,6 +72,8 @@ export interface CollegeDashboardSummary {
     cohortLimit: number | null;
     cohortRemaining: number | null;
   };
+  activeEventIds?: string[];
+  activeCourseIds?: string[];
   enrollmentTrend: {
     weekly: { label: string; students: number }[];
     monthly: { label: string; students: number }[];
@@ -196,8 +204,10 @@ export class CollegeDashboardService {
   public async resolveStudentUserIds(
     college: ICollegeProfile
   ): Promise<mongoose.Types.ObjectId[]> {
+    const idSet = new Set<string>();
+
     if (college.registeredStudents && college.registeredStudents.length > 0) {
-      return college.registeredStudents;
+      college.registeredStudents.forEach((id) => idSet.add(String(id)));
     }
 
     if (college.collegeName) {
@@ -205,10 +215,10 @@ export class CollegeDashboardService {
         .select('userId')
         .lean()
         .exec();
-      return profiles.map((p) => p.userId);
+      profiles.forEach((p) => idSet.add(String(p.userId)));
     }
 
-    return [];
+    return Array.from(idSet).map((id) => new mongoose.Types.ObjectId(id));
   }
 
   /**
@@ -222,12 +232,12 @@ export class CollegeDashboardService {
     }
 
     const [users, profiles, courseEnrollmentCounts, eventEnrollmentCounts] = await Promise.all([
-      User.find({ _id: { $in: userIds }, role: UserRole.STUDENT })
-        .select('fullName email updatedAt')
+      User.find({ _id: { $in: userIds } })
+        .select('fullName email phone updatedAt role')
         .lean()
         .exec(),
       StudentProfile.find({ userId: { $in: userIds } })
-        .select('userId enrolledCourses completedCourses isAmbassador')
+        .select('userId enrolledCourses completedCourses isAmbassador enrollmentNumber degree branch yearOfStudy')
         .lean()
         .exec(),
       CourseEnrollment.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
@@ -240,14 +250,26 @@ export class CollegeDashboardService {
       ]),
     ]);
 
-    const profileByUser = new Map<string, IStudentProfile>(
-      profiles.map((p) => [String(p.userId), p as unknown as IStudentProfile])
-    );
+    const getUserIdStr = (val: any): string => {
+      if (!val) return '';
+      if (typeof val === 'string') return val;
+      if (val._id) return String(val._id);
+      return String(val);
+    };
+
+    const profileByUser = new Map<string, any>();
+    for (const p of profiles) {
+      const uId = getUserIdStr((p as any).userId);
+      if (uId) {
+        profileByUser.set(uId, p);
+      }
+    }
+
     const courseCountByUser = new Map<string, number>(
-      courseEnrollmentCounts.map((c) => [String(c._id), c.count])
+      courseEnrollmentCounts.map((c) => [getUserIdStr(c._id), c.count])
     );
     const eventCountByUser = new Map<string, number>(
-      eventEnrollmentCounts.map((c) => [String(c._id), c.count])
+      eventEnrollmentCounts.map((c) => [getUserIdStr(c._id), c.count])
     );
 
     return users.map((user) => {
@@ -261,10 +283,12 @@ export class CollegeDashboardService {
 
       const avgProgress = enrolled > 0 ? Math.round((completed / enrolled) * 100) : 0;
 
+      const isAmbassador = (profile as any)?.isAmbassador ?? false;
+
       let status: StudentStatus;
       if (enrolled > 0 && completed >= enrolled) {
         status = 'completed';
-      } else if (totalEnrollmentCount > 0 || enrolled > 0) {
+      } else if (totalEnrollmentCount > 0 || enrolled > 0 || isAmbassador) {
         status = 'active';
       } else {
         status = 'pending';
@@ -274,11 +298,16 @@ export class CollegeDashboardService {
         userId: idStr,
         name: user.fullName,
         email: user.email,
+        phone: (user as any).phone || '',
+        enrollmentNumber: profile?.enrollmentNumber || '',
+        degree: profile?.degree || '',
+        branch: profile?.branch || '',
+        yearOfStudy: profile?.yearOfStudy || null,
         courses: totalEnrollmentCount,
         avgProgress,
         status,
         lastActive: (user as unknown as IUser).updatedAt,
-        isAmbassador: (profile as any)?.isAmbassador ?? false,
+        isAmbassador,
       };
     });
   }
@@ -296,7 +325,13 @@ export class CollegeDashboardService {
       let rows = await this.buildStudentRows(userIds);
 
       if (options.status) {
-        rows = rows.filter((r) => r.status === options.status);
+        if (options.status === 'active') {
+          rows = rows.filter((r) => r.status === 'active' || r.isAmbassador);
+        } else if (options.status === 'pending') {
+          rows = rows.filter((r) => r.status === 'pending' && !r.isAmbassador);
+        } else {
+          rows = rows.filter((r) => r.status === options.status);
+        }
       }
       if (options.search) {
         const q = options.search.toLowerCase();
@@ -383,6 +418,8 @@ export class CollegeDashboardService {
           cohortLimit: cohort.limit,
           cohortRemaining: cohort.remaining,
         },
+        activeEventIds: activeEventIds.map((id) => String(id)),
+        activeCourseIds: activeCourseIds.map((id) => String(id)),
         enrollmentTrend: {
           weekly: weeklyTrend,
           monthly: monthlyTrend,
@@ -993,30 +1030,32 @@ export class CollegeDashboardService {
     const aliasMap: Record<string, keyof ImportStudentInput> = {
       name: 'fullName',
       fullname: 'fullName',
-      'full name': 'fullName',
-      'student name': 'fullName',
+      studentname: 'fullName',
       email: 'email',
-      'email address': 'email',
-      'e-mail': 'email',
+      emailaddress: 'email',
       mail: 'email',
       phone: 'phone',
       mobile: 'phone',
-      'mobile number': 'phone',
-      'phone number': 'phone',
-      'phone no': 'phone',
+      mobilenumber: 'phone',
+      phonenumber: 'phone',
+      phoneno: 'phone',
       contact: 'phone',
-      'contact number': 'phone',
+      contactnumber: 'phone',
       enrollmentnumber: 'enrollmentNumber',
-      'enrollment number': 'enrollmentNumber',
       enrollment: 'enrollmentNumber',
       roll: 'enrollmentNumber',
-      'roll number': 'enrollmentNumber',
-      'roll no': 'enrollmentNumber',
+      rollnumber: 'enrollmentNumber',
+      rollno: 'enrollmentNumber',
+      regno: 'enrollmentNumber',
+      registrationnumber: 'enrollmentNumber',
+      studentid: 'enrollmentNumber',
       degree: 'degree',
       branch: 'branch',
+      stream: 'branch',
+      department: 'branch',
       yearofstudy: 'yearOfStudy',
-      'year of study': 'yearOfStudy',
       year: 'yearOfStudy',
+      classyear: 'yearOfStudy',
     };
 
     return records.map((record) => {
@@ -1025,7 +1064,7 @@ export class CollegeDashboardService {
         const normalizedKey = key
           .toLowerCase()
           .replace(/^["']|["']$/g, '')
-          .replace(/\s+/g, ' ')
+          .replace(/[\s_-]+/g, '')
           .trim();
         const field = aliasMap[normalizedKey];
         if (field) {
@@ -1092,10 +1131,10 @@ export class CollegeDashboardService {
       const valid: ImportStudentInput[] = [];
       for (const row of rows) {
         const email = (row.email ?? '').toLowerCase().trim();
-        if (!row.fullName || !email || !row.phone) {
+        if (!row.fullName || !email) {
           skipped.push({
             email: email || '(missing)',
-            reason: 'Missing fullName, email, or phone',
+            reason: 'Missing fullName or email',
           });
           continue;
         }
@@ -1118,18 +1157,21 @@ export class CollegeDashboardService {
           .join('; ');
         throw new ValidationError(
           `No valid student rows to import. Every row was skipped${reasons ? ` — ${reasons}` : ''}. ` +
-            `Each row needs a non-empty fullName, email, and phone.`
+            `Each row needs a non-empty fullName and email.`
         );
       }
 
       // 3. Map existing users; determine which rows are NEW to the cohort.
-      const existingUsers = await User.find({ email: { $in: valid.map((v) => v.email) } })
+      const emailRegexes = valid.map(
+        (v) => new RegExp('^' + v.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i')
+      );
+      const existingUsers = await User.find({ email: { $in: emailRegexes } })
         .select('email role')
         .session(session)
         .lean()
         .exec();
       const userByEmail = new Map<string, { _id: mongoose.Types.ObjectId; role?: string }>(
-        existingUsers.map((u) => [u.email, { _id: u._id as any, role: u.role }])
+        existingUsers.map((u) => [u.email.toLowerCase().trim(), { _id: u._id as any, role: u.role }])
       );
       const cohortSet = new Set((college.registeredStudents ?? []).map((id) => String(id)));
 
@@ -1194,7 +1236,7 @@ export class CollegeDashboardService {
             {
               fullName: row.fullName,
               email: row.email,
-              phone: row.phone,
+              phone: row.phone || '',
               password: input.defaultPassword || crypto.randomBytes(12).toString('base64url'),
               role: UserRole.STUDENT,
               isEmailVerified: false,
@@ -1216,12 +1258,27 @@ export class CollegeDashboardService {
           userByEmail.set(row.email, { _id: user._id, role: UserRole.STUDENT });
           created++;
         } else {
-          // Existing student: ensure a profile exists and is tagged to this college.
+          // Existing student: ensure profile is updated with the latest CSV attributes
+          const profileUpdate: Record<string, any> = { collegeName: college.collegeName };
+          if (row.enrollmentNumber) profileUpdate.enrollmentNumber = row.enrollmentNumber;
+          if (row.degree) profileUpdate.degree = row.degree;
+          if (row.branch) profileUpdate.branch = row.branch;
+          if (row.yearOfStudy) profileUpdate.yearOfStudy = row.yearOfStudy;
+
           await StudentProfile.updateOne(
             { userId: user._id },
-            { $setOnInsert: { userId: user._id }, $set: { collegeName: college.collegeName } },
+            { $setOnInsert: { userId: user._id }, $set: profileUpdate },
             { upsert: true, runValidators: true, session }
           ).exec();
+
+          const userUpdate: Record<string, any> = {};
+          if (row.fullName) userUpdate.fullName = row.fullName;
+          if (row.phone) userUpdate.phone = row.phone;
+
+          if (Object.keys(userUpdate).length > 0) {
+            await User.updateOne({ _id: user._id }, { $set: userUpdate }, { session }).exec();
+          }
+
           if (cohortSet.has(String(user._id))) {
             alreadyInCohort++;
           } else {
@@ -1329,6 +1386,13 @@ export class CollegeDashboardService {
   ): Promise<{ userId: string; name: string; email: string; phone: string; hasAccess: boolean }[]> {
     try {
       const college = await this.getProfileOrThrow(userId);
+      if (!college.partnershipActive) {
+        throw new AppError(
+          'No active subscription. Activate a partnership plan before managing event access.',
+          403,
+          'SUBSCRIPTION_REQUIRED'
+        );
+      }
       const studentUserIds = await this.resolveStudentUserIds(college);
       if (studentUserIds.length === 0) {
         return [];
@@ -1375,6 +1439,13 @@ export class CollegeDashboardService {
   ): Promise<{ success: boolean; modifiedCount: number }> {
     try {
       const college = await this.getProfileOrThrow(userId);
+      if (!college.partnershipActive) {
+        throw new AppError(
+          'No active subscription. Activate a partnership plan before granting event access.',
+          403,
+          'SUBSCRIPTION_REQUIRED'
+        );
+      }
       const collegeStudentIds = await this.resolveStudentUserIds(college);
       const collegeStudentIdStrings = new Set(collegeStudentIds.map((id) => String(id)));
 
@@ -1673,6 +1744,13 @@ export class CollegeDashboardService {
             }
             await profile.save();
             activated++;
+
+            // Real-time socket & persistent notification push to the student
+            void notificationService.createNotification(studentId, 'ambassador.activated', {
+              collegeName: college.collegeName,
+              referralCode: profile.referralCode,
+              message: `Congratulations! Your campus ${college.collegeName} has activated you as a Campus Ambassador.`,
+            });
           }
         }
       }
@@ -1749,6 +1827,12 @@ export class CollegeDashboardService {
 
       profile.isAmbassador = false;
       await profile.save();
+
+      // Real-time socket & persistent notification push to the student
+      void notificationService.createNotification(studentUserId, 'ambassador.deactivated', {
+        collegeName: college.collegeName,
+        message: `Your Campus Ambassador status has been updated by ${college.collegeName}.`,
+      });
 
       logger.info(
         `College ${college.collegeName} deactivated student ${studentUserId} ambassador status`
