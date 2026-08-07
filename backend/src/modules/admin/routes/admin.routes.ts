@@ -206,6 +206,9 @@ router.put('/events/:id', (req: Request, res: Response, next: NextFunction) => {
 router.patch('/events/:id/publish', (req: Request, res: Response, next: NextFunction) => {
   void eventAdminController.publishEvent(req, res, next);
 });
+router.patch('/events/:id/status', (req: Request, res: Response, next: NextFunction) => {
+  void eventAdminController.toggleEventStatus(req, res, next);
+});
 router.delete('/events/:id', (req: Request, res: Response, next: NextFunction) => {
   void eventAdminController.deleteEvent(req, res, next);
 });

@@ -333,25 +333,18 @@ bootcampSchema.methods.getAvailableSeats = function (): number {
 
 // Method to check if registration is possible
 bootcampSchema.methods.canRegister = function (): boolean {
-  const now = new Date();
-  
   // Can only register if status is Open
   if (this.status !== 'Open') {
     return false;
   }
-  
-  // Check registration deadline
-  if (this.registrationDeadline && now > new Date(this.registrationDeadline)) {
+
+  // Check if bootcamp has ended
+  if (this.hasEnded()) {
     return false;
   }
   
   // Check if seats available
   if (this.isFull()) {
-    return false;
-  }
-  
-  // Check if bootcamp has started
-  if (this.hasStarted()) {
     return false;
   }
   
@@ -364,15 +357,15 @@ bootcampSchema.methods.getCTAState = function (): IBootcampCTA {
 
   switch (this.status) {
     case 'Open':
-      if (this.hasStarted()) {
+      if (this.hasEnded()) {
         return {
           status: this.status,
-          condition: 'hasStarted === true',
+          condition: 'hasEnded === true',
           seatsAvailable,
           primaryCTA: 'Request Callback',
           secondaryCTA: null,
           disabled: false,
-          codeLocation: 'if (hasStarted)',
+          codeLocation: 'if (hasEnded)',
         };
       }
 
@@ -402,9 +395,9 @@ bootcampSchema.methods.getCTAState = function (): IBootcampCTA {
         status: this.status,
         condition: '-',
         seatsAvailable,
-        primaryCTA: 'Request Callback',
-        secondaryCTA: null,
-        disabled: false,
+        primaryCTA: 'Closed',
+        secondaryCTA: 'Request Callback',
+        disabled: true,
         codeLocation: 'case "Closed"',
       };
     case 'Completed':

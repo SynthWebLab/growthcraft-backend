@@ -4047,16 +4047,19 @@
                   "mentorNames": {
                     "example": "any"
                   },
-                  "isPublished": {
+                  "startDate": {
+                    "example": "any"
+                  },
+                  "endDate": {
+                    "example": "any"
+                  },
+                  "registrationDeadline": {
                     "example": "any"
                   },
                   "status": {
                     "example": "any"
                   },
-                  "startDate": {
-                    "example": "any"
-                  },
-                  "endDate": {
+                  "isPublished": {
                     "example": "any"
                   }
                 }
@@ -4100,6 +4103,40 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/events/{id}/status": {
+      "patch": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
           }
         }
       }

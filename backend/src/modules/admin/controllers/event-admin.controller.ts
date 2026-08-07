@@ -6,6 +6,7 @@ import { NotFoundError } from '@/common/errors/NotFoundError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
 import { auditLogService } from '../services/audit-log.service';
 import { catalogueService } from '@/modules/public/services/catalogue.service';
+import { socketService } from '@/modules/notifications/services/socket.service';
 import { logger } from '@/common/utils/logger.util';
 
 // Helper to slugify title
@@ -212,12 +213,27 @@ export class EventAdminController {
         delete updates.mentorIds;
       }
 
-      if (updates.isPublished !== undefined) {
-        updates.status = updates.isPublished ? 'Open' : 'Draft';
-      }
-
       if (updates.startDate) updates.startDate = new Date(updates.startDate);
       if (updates.endDate) updates.endDate = new Date(updates.endDate);
+
+      // Reset stale registrationDeadline if start date is updated to future date
+      if (updates.startDate && new Date(updates.startDate) > new Date()) {
+        if (!updates.registrationDeadline || new Date(updates.registrationDeadline) < new Date()) {
+          updates.registrationDeadline = updates.startDate;
+        }
+      }
+
+      // Status handling:
+      // 1. If explicit status provided, use it.
+      // 2. If dates updated to future and event is published, auto-open unless explicit status was passed as 'Closed' or 'Draft'.
+      // 3. Otherwise if isPublished was changed without explicit status, set status based on isPublished.
+      if (updates.status && ['Open', 'Closed', 'Draft', 'Completed'].includes(updates.status)) {
+        // keep explicit status
+      } else if (updates.startDate && new Date(updates.startDate) > new Date() && (updates.isPublished ?? event.isPublished)) {
+        updates.status = 'Open';
+      } else if (updates.isPublished !== undefined) {
+        updates.status = updates.isPublished ? 'Open' : 'Draft';
+      }
 
       const oldValues = event.toObject();
 
@@ -236,9 +252,62 @@ export class EventAdminController {
       // Invalidate catalogue cache
       await catalogueService.clearCatalogueCache();
 
+      // Real-time broadcast
+      socketService.emitToAll('event.updated', { id, eventId: id, status: event.status, title: event.title, isPublished: event.isPublished });
+
       SuccessResponseHelper.ok(res, { event }, 'Event updated successfully');
     } catch (error) {
       logger.error('Error updating event:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * PATCH /api/v1/admin/events/:id/status
+   * Toggle or update registration status (Open / Closed)
+   */
+  public async toggleEventStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ValidationError('Invalid event ID');
+      }
+
+      const event = await Bootcamp.findOne({ _id: id, deletedAt: null }).exec();
+      if (!event) {
+        throw new NotFoundError('Event not found');
+      }
+
+      if (status && ['Open', 'Closed', 'Draft', 'Completed'].includes(status)) {
+        event.status = status;
+      } else {
+        event.status = event.status === 'Open' ? 'Closed' : 'Open';
+      }
+
+      await event.save();
+
+      await auditLogService.log(
+        req.user!.userId,
+        'event.status.update',
+        id,
+        { title: event.title, status: event.status },
+        req.ip
+      );
+
+      // Invalidate catalogue cache
+      await catalogueService.clearCatalogueCache();
+
+      // Real-time broadcast
+      socketService.emitToAll('event.updated', { id, eventId: id, status: event.status, title: event.title });
+
+      SuccessResponseHelper.ok(
+        res,
+        { event },
+        `Event registration status updated to ${event.status}`
+      );
+    } catch (error) {
+      logger.error('Error toggling event status:', error);
       next(error);
     }
   }
@@ -277,6 +346,9 @@ export class EventAdminController {
 
       // Invalidate catalogue cache
       await catalogueService.clearCatalogueCache();
+
+      // Real-time broadcast
+      socketService.emitToAll('event.updated', { id, eventId: id, status: event.status, isPublished: event.isPublished, title: event.title });
 
       SuccessResponseHelper.ok(
         res,

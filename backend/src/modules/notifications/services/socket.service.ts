@@ -90,6 +90,15 @@ export class SocketService {
     logger.info(`Emitting event '${eventName}' to User room: ${userId}`);
     this.io.to(userId).emit(eventName, data);
   }
+
+  public emitToAll(eventName: string, data: any): void {
+    if (!this.io) {
+      logger.warn('Socket.io server not initialized; message not emitted');
+      return;
+    }
+    logger.info(`Emitting event '${eventName}' to all connected clients`);
+    this.io.emit(eventName, data);
+  }
 }
 
 export const socketService = SocketService.getInstance();
