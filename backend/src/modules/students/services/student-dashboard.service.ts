@@ -781,7 +781,7 @@ export class StudentDashboardService {
 
         let mentorName = 'Not Assigned';
         let mentorEmail = '';
-        if (b.assignedMentorId) {
+        if (b.assignedMentorId && mongoose.Types.ObjectId.isValid(b.assignedMentorId)) {
           const MentorProfile = mongoose.model('MentorProfile');
           const mentorProfileObj = await MentorProfile.findById(b.assignedMentorId).populate('userId', 'firstName lastName email').exec();
           if (mentorProfileObj && mentorProfileObj.userId) {
@@ -1663,6 +1663,14 @@ export class StudentDashboardService {
           profile = await MentorProfile.findOne({ $or: [{ userId: course.instructorId }, { _id: course.instructorId }] })
             .populate('userId', 'firstName lastName fullName avatar email')
             .exec();
+        } else {
+          // If instructorId is a string but not a valid ObjectId (e.g. name of the instructor), check if we can query by User's fullName
+          const user = await User.findOne({ fullName: course.instructorId }).exec();
+          if (user) {
+            profile = await MentorProfile.findOne({ userId: user._id })
+              .populate('userId', 'firstName lastName fullName avatar email')
+              .exec();
+          }
         }
         if (profile && profile.userId) {
           const u = profile.userId as any;
@@ -1673,10 +1681,11 @@ export class StudentDashboardService {
             meetingLink: 'https://meet.google.com/gc-course-session',
           });
         } else {
+          // If not found in DB or not an ObjectId, fallback using the string directly
           resolvedInstructors.push({
-            name: course.instructorId,
-            designation: 'Lead Course Instructor',
-            avatar: '',
+            name: course.instructor?.name || course.instructorId,
+            designation: course.instructor?.designation || 'Lead Course Instructor',
+            avatar: course.instructor?.avatar || '',
             meetingLink: 'https://meet.google.com/gc-course-session',
           });
         }

@@ -36,7 +36,7 @@ export const config = {
   SMTP_PASS: process.env.SMTP_PASS,
 
   // Frontend
-  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://192.168.1.17:3000',
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
