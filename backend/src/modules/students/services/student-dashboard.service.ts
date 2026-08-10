@@ -868,22 +868,20 @@ export class StudentDashboardService {
               avatar: m.avatar || "",
               meetingLink: m.meetingLink || m.googleMeetUrl || "https://meet.google.com/gc-hackathon-room",
             });
-          } else if (m.mentorProfileId || m.userId) {
-            const targetId = m.mentorProfileId || m.userId;
-            if (mongoose.Types.ObjectId.isValid(targetId)) {
-              const profile = await MentorProfile.findById(targetId)
-                .populate('userId', 'firstName lastName fullName avatar email')
-                .exec();
-              if (profile && profile.userId) {
-                const u = profile.userId as any;
-                const name = u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Admin Mentor';
-                resolvedMentors.push({
-                  name,
-                  designation: profile.areaOfExpertise || profile.currentOrganization || "Campus Mentor",
-                  avatar: u.avatar || "",
-                  meetingLink: "https://meet.google.com/gc-hackathon-room",
-                });
-              }
+          } else if ((m.mentorProfileId && mongoose.Types.ObjectId.isValid(m.mentorProfileId)) || (m.userId && mongoose.Types.ObjectId.isValid(m.userId))) {
+            const lookupId = (m.mentorProfileId && mongoose.Types.ObjectId.isValid(m.mentorProfileId)) ? m.mentorProfileId : m.userId;
+            const profile = await MentorProfile.findById(lookupId)
+              .populate('userId', 'firstName lastName fullName avatar email')
+              .exec();
+            if (profile && profile.userId) {
+              const u = profile.userId as any;
+              const name = u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Admin Mentor';
+              resolvedMentors.push({
+                name,
+                designation: profile.areaOfExpertise || profile.currentOrganization || "Campus Mentor",
+                avatar: u.avatar || "",
+                meetingLink: "https://meet.google.com/gc-hackathon-room",
+              });
             }
           }
         }
@@ -1133,22 +1131,20 @@ export class StudentDashboardService {
               avatar: m.avatar || "",
               meetingLink: m.meetingLink || m.googleMeetUrl || "https://meet.google.com/gc-workshop-room",
             });
-          } else if (m.mentorProfileId || m.userId) {
-            const targetId = m.mentorProfileId || m.userId;
-            if (mongoose.Types.ObjectId.isValid(targetId)) {
-              const profile = await MentorProfile.findById(targetId)
-                .populate('userId', 'firstName lastName fullName avatar email')
-                .exec();
-              if (profile && profile.userId) {
-                const u = profile.userId as any;
-                const name = u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Workshop Instructor';
-                resolvedMentors.push({
-                  name,
-                  designation: profile.areaOfExpertise || profile.currentOrganization || "Workshop Mentor",
-                  avatar: u.avatar || "",
-                  meetingLink: "https://meet.google.com/gc-workshop-room",
-                });
-              }
+          } else if ((m.mentorProfileId && mongoose.Types.ObjectId.isValid(m.mentorProfileId)) || (m.userId && mongoose.Types.ObjectId.isValid(m.userId))) {
+            const lookupId = (m.mentorProfileId && mongoose.Types.ObjectId.isValid(m.mentorProfileId)) ? m.mentorProfileId : m.userId;
+            const profile = await MentorProfile.findById(lookupId)
+              .populate('userId', 'firstName lastName fullName avatar email')
+              .exec();
+            if (profile && profile.userId) {
+              const u = profile.userId as any;
+              const name = u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Workshop Instructor';
+              resolvedMentors.push({
+                name,
+                designation: profile.areaOfExpertise || profile.currentOrganization || "Workshop Mentor",
+                avatar: u.avatar || "",
+                meetingLink: "https://meet.google.com/gc-workshop-room",
+              });
             }
           }
         }
@@ -1403,22 +1399,20 @@ export class StudentDashboardService {
               avatar: m.avatar || "",
               meetingLink: m.meetingLink || m.googleMeetUrl || "https://meet.google.com/gc-bootcamp-room",
             });
-          } else if (m.mentorProfileId || m.userId) {
-            const targetId = m.mentorProfileId || m.userId;
-            if (mongoose.Types.ObjectId.isValid(targetId)) {
-              const profile = await MentorProfile.findById(targetId)
-                .populate('userId', 'firstName lastName fullName avatar email')
-                .exec();
-              if (profile && profile.userId) {
-                const u = profile.userId as any;
-                const name = u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Bootcamp Mentor';
-                resolvedMentors.push({
-                  name,
-                  designation: profile.areaOfExpertise || profile.currentOrganization || "Bootcamp Lead Mentor",
-                  avatar: u.avatar || "",
-                  meetingLink: "https://meet.google.com/gc-bootcamp-room",
-                });
-              }
+          } else if ((m.mentorProfileId && mongoose.Types.ObjectId.isValid(m.mentorProfileId)) || (m.userId && mongoose.Types.ObjectId.isValid(m.userId))) {
+            const lookupId = (m.mentorProfileId && mongoose.Types.ObjectId.isValid(m.mentorProfileId)) ? m.mentorProfileId : m.userId;
+            const profile = await MentorProfile.findById(lookupId)
+              .populate('userId', 'firstName lastName fullName avatar email')
+              .exec();
+            if (profile && profile.userId) {
+              const u = profile.userId as any;
+              const name = u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Bootcamp Mentor';
+              resolvedMentors.push({
+                name,
+                designation: profile.areaOfExpertise || profile.currentOrganization || "Bootcamp Lead Mentor",
+                avatar: u.avatar || "",
+                meetingLink: "https://meet.google.com/gc-bootcamp-room",
+              });
             }
           }
         }
@@ -1678,7 +1672,6 @@ export class StudentDashboardService {
               .exec();
           }
         }
-
         if (profile && profile.userId) {
           const u = profile.userId as any;
           resolvedInstructors.push({
