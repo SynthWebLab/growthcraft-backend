@@ -868,8 +868,9 @@ export class StudentDashboardService {
               avatar: m.avatar || "",
               meetingLink: m.meetingLink || m.googleMeetUrl || "https://meet.google.com/gc-hackathon-room",
             });
-          } else if (m.mentorProfileId || m.userId) {
-            const profile = await MentorProfile.findById(m.mentorProfileId || m.userId)
+          } else if ((m.mentorProfileId && mongoose.Types.ObjectId.isValid(m.mentorProfileId)) || (m.userId && mongoose.Types.ObjectId.isValid(m.userId))) {
+            const lookupId = (m.mentorProfileId && mongoose.Types.ObjectId.isValid(m.mentorProfileId)) ? m.mentorProfileId : m.userId;
+            const profile = await MentorProfile.findById(lookupId)
               .populate('userId', 'firstName lastName fullName avatar email')
               .exec();
             if (profile && profile.userId) {
@@ -1130,8 +1131,9 @@ export class StudentDashboardService {
               avatar: m.avatar || "",
               meetingLink: m.meetingLink || m.googleMeetUrl || "https://meet.google.com/gc-workshop-room",
             });
-          } else if (m.mentorProfileId || m.userId) {
-            const profile = await MentorProfile.findById(m.mentorProfileId || m.userId)
+          } else if ((m.mentorProfileId && mongoose.Types.ObjectId.isValid(m.mentorProfileId)) || (m.userId && mongoose.Types.ObjectId.isValid(m.userId))) {
+            const lookupId = (m.mentorProfileId && mongoose.Types.ObjectId.isValid(m.mentorProfileId)) ? m.mentorProfileId : m.userId;
+            const profile = await MentorProfile.findById(lookupId)
               .populate('userId', 'firstName lastName fullName avatar email')
               .exec();
             if (profile && profile.userId) {
@@ -1397,8 +1399,9 @@ export class StudentDashboardService {
               avatar: m.avatar || "",
               meetingLink: m.meetingLink || m.googleMeetUrl || "https://meet.google.com/gc-bootcamp-room",
             });
-          } else if (m.mentorProfileId || m.userId) {
-            const profile = await MentorProfile.findById(m.mentorProfileId || m.userId)
+          } else if ((m.mentorProfileId && mongoose.Types.ObjectId.isValid(m.mentorProfileId)) || (m.userId && mongoose.Types.ObjectId.isValid(m.userId))) {
+            const lookupId = (m.mentorProfileId && mongoose.Types.ObjectId.isValid(m.mentorProfileId)) ? m.mentorProfileId : m.userId;
+            const profile = await MentorProfile.findById(lookupId)
               .populate('userId', 'firstName lastName fullName avatar email')
               .exec();
             if (profile && profile.userId) {
@@ -1655,15 +1658,25 @@ export class StudentDashboardService {
       let resolvedInstructors: Array<{ name: string; designation: string; avatar: string; meetingLink?: string }> = [];
 
       if (course?.instructorId) {
-        const profile = await MentorProfile.findOne({ $or: [{ userId: course.instructorId }, { _id: course.instructorId }] })
-          .populate('userId', 'firstName lastName fullName avatar email')
-          .exec();
+        let profile = null;
+        if (mongoose.Types.ObjectId.isValid(course.instructorId)) {
+          profile = await MentorProfile.findOne({ $or: [{ userId: course.instructorId }, { _id: course.instructorId }] })
+            .populate('userId', 'firstName lastName fullName avatar email')
+            .exec();
+        }
         if (profile && profile.userId) {
           const u = profile.userId as any;
           resolvedInstructors.push({
             name: u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Course Lead Instructor',
             designation: profile.areaOfExpertise || profile.currentOrganization || 'Lead Course Instructor',
             avatar: u.avatar || '',
+            meetingLink: 'https://meet.google.com/gc-course-session',
+          });
+        } else {
+          resolvedInstructors.push({
+            name: course.instructorId,
+            designation: 'Lead Course Instructor',
+            avatar: '',
             meetingLink: 'https://meet.google.com/gc-course-session',
           });
         }
