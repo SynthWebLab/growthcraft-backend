@@ -62,7 +62,7 @@ export class StudentValidator {
       body('resume')
         .optional()
         .trim()
-        .isURL()
+        .isURL({ require_tld: false })
         .withMessage('Resume must be a valid URL'),
 
       body('portfolio')
@@ -152,7 +152,7 @@ export class StudentValidator {
         .trim()
         .notEmpty()
         .withMessage('Resume URL is required')
-        .isURL()
+        .isURL({ require_tld: false })
         .withMessage('Resume URL must be a valid URL'),
       body('coverLetter')
         .optional()
