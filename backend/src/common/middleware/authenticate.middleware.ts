@@ -60,6 +60,20 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const token = extractToken(req);
 
     if (!token) {
+      console.log("[Authenticate Middleware] Missing access token. Cookies in request:", req.cookies);
+      // Check if refresh token is present, in which case the access token is merely missing/expired
+      if (req.cookies?.refreshToken) {
+        logger.debug('Authentication failed: Access token missing but refresh token present');
+        res.status(401).json({
+          success: false,
+          error: {
+            message: 'Access token has expired or is missing. Please refresh.',
+            code: 'TOKEN_EXPIRED',
+          },
+        });
+        return;
+      }
+
       logger.debug('Authentication failed: No token provided');
       res.status(401).json({
         success: false,
