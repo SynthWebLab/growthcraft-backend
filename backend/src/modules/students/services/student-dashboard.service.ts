@@ -314,10 +314,11 @@ export class StudentDashboardService {
   }
 
   /**
-   * Get mentors assigned to the student's enrolled batches, optionally filtered by area of expertise.
+   * Get mentors assigned to the student's enrolled batches and registered courses, optionally filtered by area of expertise.
    */
   public async getMentors(studentUserId: string, areaOfExpertise?: string): Promise<IMentorProfile[]> {
     try {
+      // 1. Get mentors assigned to cohort batches
       const enrollments = await Enrollment.find({ studentUserId }).exec();
       const batchIds = enrollments.map((e) => e.batchId);
 
@@ -335,9 +336,48 @@ export class StudentDashboardService {
         }
       }
 
-      const filter: Record<string, unknown> = {
-        _id: { $in: Array.from(mentorProfileIds) },
+      // 2. Get mentors assigned to registered courses
+      const email = await this.linkEnrollmentsByEmail(studentUserId);
+      const courseFilter = email
+        ? { $or: [{ userId: studentUserId }, { email }], status: { $in: ACTIVE_STATUSES } }
+        : { userId: studentUserId, status: { $in: ACTIVE_STATUSES } };
+
+      const courseEnrollments = await CourseEnrollment.find(courseFilter)
+        .populate('courseId')
+        .exec();
+
+      const mentorUserIds = new Set<string>();
+      for (const ce of courseEnrollments) {
+        const course = ce.courseId as any;
+        if (course && course.mentors && Array.isArray(course.mentors)) {
+          for (const m of course.mentors) {
+            if (m.mentorProfileId) {
+              mentorProfileIds.add(m.mentorProfileId.toString());
+            }
+            if (m.userId) {
+              mentorUserIds.add(m.userId.toString());
+            }
+          }
+        }
+      }
+
+      // 3. Query all unique MentorProfiles
+      const conditions: any[] = [];
+      if (mentorProfileIds.size > 0) {
+        conditions.push({ _id: { $in: Array.from(mentorProfileIds) } });
+      }
+      if (mentorUserIds.size > 0) {
+        conditions.push({ userId: { $in: Array.from(mentorUserIds) } });
+      }
+
+      if (conditions.length === 0) {
+        return [];
+      }
+
+      const filter: Record<string, any> = {
+        $or: conditions,
       };
+
       if (areaOfExpertise) {
         filter.areaOfExpertise = areaOfExpertise;
       }
@@ -783,10 +823,10 @@ export class StudentDashboardService {
         let mentorEmail = '';
         if (b.assignedMentorId && mongoose.Types.ObjectId.isValid(b.assignedMentorId)) {
           const MentorProfile = mongoose.model('MentorProfile');
-          const mentorProfileObj = await MentorProfile.findById(b.assignedMentorId).populate('userId', 'firstName lastName email').exec();
+          const mentorProfileObj = await MentorProfile.findById(b.assignedMentorId).populate('userId', 'firstName lastName fullName email').exec();
           if (mentorProfileObj && mentorProfileObj.userId) {
             const mUser = mentorProfileObj.userId as any;
-            mentorName = `${mUser.firstName} ${mUser.lastName}`;
+            mentorName = mUser.fullName || `${mUser.firstName || ''} ${mUser.lastName || ''}`.trim() || 'Not Assigned';
             mentorEmail = mUser.email;
           }
         }
