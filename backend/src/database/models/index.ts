@@ -48,6 +48,7 @@ export {
   PaymentStatus,
   PaymentItemType,
 } from './PaymentTransaction.model';
+export { ChatMessage, IChatMessage } from './ChatMessage.model';
 
 
 

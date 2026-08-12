@@ -5670,6 +5670,53 @@
         }
       }
     },
+    "/api/v1/chats/messages/{receiverId}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "receiverId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/chats/messages": {
+      "post": {
+        "description": "",
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "receiverId": {
+                    "example": "any"
+                  },
+                  "message": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/courses": {
       "get": {
         "description": "",
