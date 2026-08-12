@@ -89,7 +89,7 @@ export class EventAdminController {
       }
 
       const [items, total] = await Promise.all([
-        Bootcamp.find(query).sort({ isFeatured: -1, updatedAt: -1, createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
+        Bootcamp.find(query).sort({ isFeatured: -1, createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
         Bootcamp.countDocuments(query),
       ]);
 
