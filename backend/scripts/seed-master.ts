@@ -62,8 +62,8 @@ async function seedMaster() {
     
     // SuperAdmin
     const superAdmin = await User.create({
-      firstName: 'Super',
-      lastName: 'Admin',
+      fullName: 'Super Admin',
+      phone: '1234567890',
       email: 'admin@growthcraft.com',
       password: defaultPasswordHash,
       role: 'super_admin',
@@ -74,8 +74,8 @@ async function seedMaster() {
 
     // Ops
     const ops = await User.create({
-      firstName: 'Operations',
-      lastName: 'Manager',
+      fullName: 'Operations Manager',
+      phone: '1234567891',
       email: 'ops@growthcraft.com',
       password: defaultPasswordHash,
       role: 'ops',
@@ -86,8 +86,8 @@ async function seedMaster() {
 
     // Mentor
     const mentorUser = await User.create({
-      firstName: 'Siddharth',
-      lastName: 'Sharma',
+      fullName: 'Siddharth Sharma',
+      phone: '1234567892',
       email: 'mentor@growthcraft.com',
       password: defaultPasswordHash,
       role: 'mentor',
@@ -118,8 +118,8 @@ async function seedMaster() {
 
     // College Manager
     const collegeUser = await User.create({
-      firstName: 'College',
-      lastName: 'Coordinator',
+      fullName: 'College Coordinator',
+      phone: '1234567893',
       email: 'college@growthcraft.com',
       password: defaultPasswordHash,
       role: 'college',
@@ -131,29 +131,45 @@ async function seedMaster() {
       collegeName: 'IIT Bombay',
       partnershipTier: 'Gold',
       partnershipActive: true,
-      registeredStudents: 0,
-      address: 'IIT Area, Powai, Mumbai, Maharashtra 400076',
-      contactPerson: 'IITB Placement Cell',
+      registeredStudents: [],
+      address: {
+        street: 'IIT Area, Powai',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        country: 'India',
+        pincode: '400076',
+      },
+      contactPerson: {
+        name: 'IITB Placement Officer',
+        designation: 'Placement Coordinator',
+        email: 'placement@iitb.ac.in',
+        phone: '1234567890',
+      },
     });
     logger.info(`✓ College coordinator created: ${collegeUser.email}`);
 
     // Hiring Partner (Employer)
     const employerUser = await User.create({
-      firstName: 'Hiring',
-      lastName: 'Partner',
+      fullName: 'Hiring Partner',
+      phone: '1234567894',
       email: 'employer@growthcraft.com',
       password: defaultPasswordHash,
-      role: 'hiring_partner',
+      role: 'employer',
       isEmailVerified: true,
       isActive: true,
     });
     const employerProfile = await EmployerProfile.create({
       userId: employerUser._id,
       companyName: 'SynthWeb',
-      industry: 'Software Development',
+      contactPerson: {
+        name: 'HR Team',
+        email: 'hr@synthweb.in',
+        phone: '1234567894',
+      },
+      industry: 'IT/Software',
+      companySize: '1-50',
       website: 'https://synthweb.com',
-      status: 'approved',
-      bio: 'Next-generation agentic AI building tools.',
+      isVerified: true,
     });
     logger.info(`✓ Employer created: ${employerUser.email}`);
 
@@ -180,7 +196,7 @@ async function seedMaster() {
       price: 59999,
       discountedPrice: 29999,
       level: 'Advanced',
-      category: 'Data Science & AI',
+      category: 'Data Science',
       isPublished: true,
     });
 
@@ -227,17 +243,18 @@ async function seedMaster() {
     logger.info('Seeding students & enrollments...');
     
     const studentsData = [
-      { first: 'Aarav', last: 'Mehta', email: 'aarav@student.com' },
-      { first: 'Ananya', last: 'Iyer', email: 'ananya@student.com' },
-      { first: 'Kabir', last: 'Singh', email: 'kabir@student.com' },
-      { first: 'Diya', last: 'Patel', email: 'diya@student.com' },
-      { first: 'Vihaan', last: 'Sharma', email: 'vihaan@student.com' },
+      { first: 'Aarav', last: 'Mehta', email: 'aarav@student.com', phone: '1234567895' },
+      { first: 'Ananya', last: 'Iyer', email: 'ananya@student.com', phone: '1234567896' },
+      { first: 'Kabir', last: 'Singh', email: 'kabir@student.com', phone: '1234567897' },
+      { first: 'Diya', last: 'Patel', email: 'diya@student.com', phone: '1234567898' },
+      { first: 'Vihaan', last: 'Sharma', email: 'vihaan@student.com', phone: '1234567899' },
+      { first: 'Sandipan', last: 'Goswami', email: 'sandipangoswami28@gmail.com', phone: '9999999999' },
     ];
 
     for (const student of studentsData) {
       const u = await User.create({
-        firstName: student.first,
-        lastName: student.last,
+        fullName: `${student.first} ${student.last}`,
+        phone: student.phone,
         email: student.email,
         password: defaultPasswordHash,
         role: 'student',
