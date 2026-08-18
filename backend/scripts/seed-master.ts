@@ -36,7 +36,7 @@ async function seedMaster() {
 
     // 1. Clear existing database collections related to this scope
     logger.info('Cleaning collections...');
-    const collectionsToClear = [
+    const collectionsToClear: mongoose.Model<any>[] = [
       User,
       StudentProfile,
       CollegeProfile,
@@ -62,9 +62,9 @@ async function seedMaster() {
     
     // SuperAdmin
     const superAdmin = await User.create({
-      firstName: 'Super',
-      lastName: 'Admin',
+      fullName: 'Super Admin',
       email: 'admin@growthcraft.com',
+      phone: '+1234567890',
       password: defaultPasswordHash,
       role: 'super_admin',
       isEmailVerified: true,
@@ -74,9 +74,9 @@ async function seedMaster() {
 
     // Ops
     const ops = await User.create({
-      firstName: 'Operations',
-      lastName: 'Manager',
+      fullName: 'Operations Manager',
       email: 'ops@growthcraft.com',
+      phone: '+1234567891',
       password: defaultPasswordHash,
       role: 'ops',
       isEmailVerified: true,
@@ -86,9 +86,9 @@ async function seedMaster() {
 
     // Mentor
     const mentorUser = await User.create({
-      firstName: 'Siddharth',
-      lastName: 'Sharma',
+      fullName: 'Siddharth Sharma',
       email: 'mentor@growthcraft.com',
+      phone: '+1234567892',
       password: defaultPasswordHash,
       role: 'mentor',
       isEmailVerified: true,
@@ -118,9 +118,9 @@ async function seedMaster() {
 
     // College Manager
     const collegeUser = await User.create({
-      firstName: 'College',
-      lastName: 'Coordinator',
+      fullName: 'College Coordinator',
       email: 'college@growthcraft.com',
+      phone: '+1234567893',
       password: defaultPasswordHash,
       role: 'college',
       isEmailVerified: true,
@@ -131,29 +131,45 @@ async function seedMaster() {
       collegeName: 'IIT Bombay',
       partnershipTier: 'Gold',
       partnershipActive: true,
-      registeredStudents: 0,
-      address: 'IIT Area, Powai, Mumbai, Maharashtra 400076',
-      contactPerson: 'IITB Placement Cell',
+      registeredStudents: [],
+      address: {
+        street: 'IIT Area, Powai',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        country: 'India',
+        pincode: '400076'
+      },
+      contactPerson: {
+        name: 'IITB Placement Cell Coordinator',
+        designation: 'Placement Officer',
+        email: 'placement@iitb.ac.in',
+        phone: '+912225767096'
+      },
     });
     logger.info(`✓ College coordinator created: ${collegeUser.email}`);
 
     // Hiring Partner (Employer)
     const employerUser = await User.create({
-      firstName: 'Hiring',
-      lastName: 'Partner',
+      fullName: 'Hiring Partner',
       email: 'employer@growthcraft.com',
+      phone: '+1234567894',
       password: defaultPasswordHash,
-      role: 'hiring_partner',
+      role: 'employer',
       isEmailVerified: true,
       isActive: true,
     });
     const employerProfile = await EmployerProfile.create({
       userId: employerUser._id,
       companyName: 'SynthWeb',
-      industry: 'Software Development',
+      contactPerson: {
+        name: 'Hiring Partner Coordinator',
+        email: 'jobs@synthweb.com',
+        phone: '+919999999995',
+      },
+      industry: 'IT/Software',
+      companySize: '51-200',
       website: 'https://synthweb.com',
-      status: 'approved',
-      bio: 'Next-generation agentic AI building tools.',
+      hiringNeeds: 'Next-generation agentic AI building tools.',
     });
     logger.info(`✓ Employer created: ${employerUser.email}`);
 
@@ -180,7 +196,7 @@ async function seedMaster() {
       price: 59999,
       discountedPrice: 29999,
       level: 'Advanced',
-      category: 'Data Science & AI',
+      category: 'Data Science',
       isPublished: true,
     });
 
@@ -236,9 +252,9 @@ async function seedMaster() {
 
     for (const student of studentsData) {
       const u = await User.create({
-        firstName: student.first,
-        lastName: student.last,
+        fullName: `${student.first} ${student.last}`,
         email: student.email,
+        phone: `+91999999990${studentsData.indexOf(student)}`,
         password: defaultPasswordHash,
         role: 'student',
         isEmailVerified: true,
