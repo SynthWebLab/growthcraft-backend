@@ -19,6 +19,31 @@ const slugify = (text: string): string => {
     .replace(/-+$/, '');
 };
 
+// Helper to resolve internship partner companies
+const resolvePartners = (partnersInput: any): any[] => {
+  if (!partnersInput) return [];
+  if (Array.isArray(partnersInput)) {
+    return partnersInput
+      .map((p) => {
+        if (typeof p === 'string') {
+          return { companyName: p.trim(), role: 'Industrial Intern' };
+        }
+        return {
+          companyName: (p.companyName || p.name || '').trim(),
+          logo: p.logo || '',
+          role: (p.role || 'Industrial Intern').trim(),
+          duration: p.duration || '2-3 Months',
+          mode: p.mode || 'Hybrid',
+          stipend: p.stipend || 'Performance-based Stipend',
+          description: p.description || '',
+          availableSeats: p.availableSeats ? Number(p.availableSeats) : undefined,
+        };
+      })
+      .filter((p) => Boolean(p.companyName));
+  }
+  return [];
+};
+
 // Helper to resolve mentors
 const resolveMentors = async (mentorIds?: string[], mentorsInput?: any[]): Promise<any[]> => {
   let resolvedMentors: any[] = [];
@@ -105,7 +130,20 @@ export class TrainingProgramAdminController {
    */
   public async createTrainingProgram(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { title, description, domain, durationDays, tools, price, isPublished, isFeatured, mentorIds, mentors: mentorsInput, ...otherFields } = req.body;
+      const {
+        title,
+        description,
+        domain,
+        durationDays,
+        tools,
+        price,
+        isPublished,
+        isFeatured,
+        mentorIds,
+        mentors: mentorsInput,
+        internshipPartners,
+        ...otherFields
+      } = req.body;
 
       if (!title || !description || !domain || !durationDays || price === undefined) {
         throw new ValidationError('Title, description, domain, durationDays, and price are required');
@@ -119,6 +157,7 @@ export class TrainingProgramAdminController {
       }
 
       const resolvedMentors = await resolveMentors(mentorIds, mentorsInput);
+      const resolvedInternshipPartners = resolvePartners(internshipPartners || otherFields.internshipPartners);
       const toolsArray = Array.isArray(tools) ? tools : typeof tools === 'string' ? tools.split(',').map(t => t.trim()).filter(Boolean) : ['React', 'Node.js'];
 
       const program = await TrainingProgram.create({
@@ -133,6 +172,7 @@ export class TrainingProgramAdminController {
         isPublished: Boolean(isPublished),
         isFeatured: Boolean(isFeatured),
         mentors: resolvedMentors,
+        internshipPartners: resolvedInternshipPartners,
         level: otherFields.level || 'Beginner',
         ...otherFields,
       });
@@ -188,6 +228,9 @@ export class TrainingProgramAdminController {
       if (updates.mentorIds || updates.mentors) {
         updates.mentors = await resolveMentors(updates.mentorIds, updates.mentors);
         delete updates.mentorIds;
+      }
+      if (updates.internshipPartners !== undefined) {
+        updates.internshipPartners = resolvePartners(updates.internshipPartners);
       }
       if (updates.isPublished !== undefined) {
         updates.status = updates.isPublished ? 'active' : 'draft';

@@ -8,6 +8,18 @@ export enum ProgramLevel {
 
 export type ProgramStatus = 'active' | 'coming-soon' | 'draft';
 
+export interface IInternshipPartner {
+  _id?: mongoose.Types.ObjectId | string;
+  companyName: string;
+  logo?: string;
+  role: string;
+  duration?: string;
+  mode?: 'Hybrid' | 'Remote' | 'On-site' | string;
+  stipend?: string;
+  description?: string;
+  availableSeats?: number;
+}
+
 export interface ITrainingProgram extends Document {
   slug: string;
   title: string;
@@ -31,6 +43,7 @@ export interface ITrainingProgram extends Document {
   isFeatured?: boolean;
   prerequisites?: string[];
   careerOutcomes?: string[];
+  internshipPartners?: IInternshipPartner[];
   mentors?: Array<{
     userId?: mongoose.Types.ObjectId;
     mentorProfileId?: mongoose.Types.ObjectId;
@@ -176,6 +189,18 @@ const trainingProgramSchema = new Schema<ITrainingProgram>(
       default: false,
       index: true,
     },
+    internshipPartners: [
+      {
+        companyName: { type: String, required: true },
+        logo: { type: String },
+        role: { type: String, required: true },
+        duration: { type: String },
+        mode: { type: String, default: 'Hybrid' },
+        stipend: { type: String },
+        description: { type: String },
+        availableSeats: { type: Number },
+      },
+    ],
     mentors: [
       {
         userId: { type: Schema.Types.ObjectId, ref: 'User' },

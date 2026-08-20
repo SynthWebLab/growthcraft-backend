@@ -1,6 +1,7 @@
 import { TrainingProgram, TrainingProgramDetails, ITrainingProgramDetails } from '@/database/models';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { logger } from '@/common/utils/logger.util';
+import { DEFAULT_INTERNSHIP_PARTNERS } from './training-program.service';
 
 export class TrainingProgramDetailsService {
   private static instance: TrainingProgramDetailsService;
@@ -34,6 +35,15 @@ export class TrainingProgramDetailsService {
       // Priority 1: If base TrainingProgram has assigned mentors, use those real assigned mentors
       if (program && (program as any).mentors && (program as any).mentors.length > 0) {
         (programDetails as any).mentors = (program as any).mentors;
+      }
+
+      const partners = (program && (program as any).internshipPartners && (program as any).internshipPartners.length > 0)
+        ? (program as any).internshipPartners
+        : DEFAULT_INTERNSHIP_PARTNERS;
+
+      (programDetails as any).internshipPartners = partners;
+      if (program) {
+        (programDetails as any).program = { ...program, internshipPartners: partners };
       }
 
       return programDetails as unknown as ITrainingProgramDetails;

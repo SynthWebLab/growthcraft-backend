@@ -35,7 +35,7 @@ export class TrainingProgramEnrollmentController {
       }
 
       const { programId } = req.params;
-      const { fullName, email, phone } = req.body;
+      const { fullName, email, phone, selectedCompany } = req.body;
       const userId = req.user?.userId;
 
       if (!userId) {
@@ -48,6 +48,7 @@ export class TrainingProgramEnrollmentController {
         fullName,
         email,
         phone,
+        selectedCompany,
       });
 
       SuccessResponseHelper.created(
@@ -57,6 +58,42 @@ export class TrainingProgramEnrollmentController {
       );
     } catch (error: any) {
       logger.error('Enroll in training program controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Select internship company for a program
+   * PATCH /api/v1/training-programs/:programId/select-company
+   */
+  public async selectCompany(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { programId } = req.params;
+      const { companyName, role, duration, stipend, mode } = req.body;
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        throw new ValidationError('User authentication required');
+      }
+      if (!companyName) {
+        throw new ValidationError('Company name is required');
+      }
+
+      const enrollment = await trainingProgramEnrollmentService.selectCompany(userId, programId, {
+        companyName,
+        role,
+        duration,
+        stipend,
+        mode,
+      });
+
+      SuccessResponseHelper.ok(
+        res,
+        { enrollment },
+        'Internship partner company selected successfully'
+      );
+    } catch (error: any) {
+      logger.error('Select internship company controller error:', error);
       next(error);
     }
   }

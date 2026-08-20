@@ -160,7 +160,8 @@ export class TrainingProgramController {
     const enrollments = await TrainingProgramEnrollment.find({
       userId,
       programId: { $in: programIds },
-      status: { $in: ['pending', 'confirmed'] },
+      status: { $in: ['confirmed', 'active', 'completed', 'enrolled'] },
+      paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
     }).select('programId').lean().exec();
 
     const callbacks = await TrainingProgramCallbackRequest.find({

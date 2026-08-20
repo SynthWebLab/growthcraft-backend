@@ -378,6 +378,24 @@ const seedTrainingPrograms = async () => {
       isPublished: p.isPublished,
       prerequisites: p.prerequisites,
       careerOutcomes: p.careerOutcomes,
+      internshipPartners: [
+        {
+          companyName: 'SynthWeb',
+          role: `${p.title} Industrial Intern`,
+          duration: `${p.durationDays || 60} Days Internship`,
+          mode: 'Hybrid / Campus Hub',
+          stipend: 'Performance-based Stipend + PPO Opportunity',
+          description: `Work on live client-facing software systems and enterprise modules using ${p.tools.slice(0, 3).join(', ')}.`,
+        },
+        {
+          companyName: 'Social Stories',
+          role: 'Product Engineering & Growth Intern',
+          duration: `${p.durationDays || 60} Days Internship`,
+          mode: 'Hybrid / Remote',
+          stipend: 'Performance-based Stipend + Co-branded Certificate',
+          description: `Build modern interactive tools, responsive workflows, and UI components using ${p.tools.slice(0, 2).join(', ')}.`,
+        },
+      ],
     }));
 
     // Insert training programs

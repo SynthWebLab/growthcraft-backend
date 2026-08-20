@@ -69,7 +69,8 @@ export interface StudentDashboardSummary {
   certificates: StudentCertification[];
 }
 
-const ACTIVE_STATUSES = ['pending', 'confirmed', 'active', 'completed', 'enrolled'];
+const ACTIVE_STATUSES = ['confirmed', 'active', 'completed', 'enrolled'];
+const PAID_PAYMENT_STATUSES = ['completed', 'paid', 'success'];
 
 export class StudentDashboardService {
   private static instance: StudentDashboardService;
@@ -124,18 +125,40 @@ export class StudentDashboardService {
         ),
       ]);
 
-      // Update operational batch enrollments for any old/guest user IDs
+      // Relink legacy enrollments
       if (oldUserIds.size > 0) {
-        const Enrollment = mongoose.model('Enrollment');
-        
-        for (const oldId of oldUserIds) {
-          const oldEnrollments = await Enrollment.find({ studentUserId: oldId }).exec();
-          
-          for (const e of oldEnrollments) {
+        const legacyEnrollments = await Enrollment.find({
+          studentUserId: { $in: Array.from(oldUserIds) },
+        }).exec();
+
+        for (const e of legacyEnrollments) {
+          const duplicate = await Enrollment.findOne({
+            studentUserId: userId,
+            batchId: e.batchId,
+          });
+
+          if (duplicate) {
+            await Enrollment.deleteOne({ _id: e._id });
+          } else {
+            await Enrollment.updateOne(
+              { _id: e._id },
+              { $set: { studentUserId: userId } }
+            );
+          }
+        }
+      } else {
+        const studentProfile = await StudentProfile.findOne({ userId }).select('email').lean().exec();
+        if (studentProfile) {
+          const legacyEnrollments = await Enrollment.find({
+            studentEmail: email,
+            studentUserId: { $ne: userId },
+          }).exec();
+
+          for (const e of legacyEnrollments) {
             const duplicate = await Enrollment.findOne({
               studentUserId: userId,
-              batchId: e.batchId
-            }).exec();
+              batchId: e.batchId,
+            });
 
             if (duplicate) {
               await Enrollment.deleteOne({ _id: e._id });
@@ -157,14 +180,17 @@ export class StudentDashboardService {
   }
 
   /**
-   * Get the student's enrolled courses
+   * Get the student's enrolled courses (only confirmed/paid enrollments)
    */
   public async getCourses(userId: string): Promise<ICourseEnrollment[]> {
     try {
       const email = await this.linkEnrollmentsByEmail(userId);
-      const filter = email
-        ? { $or: [{ userId }, { email }], status: { $in: ACTIVE_STATUSES } }
-        : { userId, status: { $in: ACTIVE_STATUSES } };
+      const userCondition = email ? { $or: [{ userId }, { email }] } : { userId };
+      const filter = {
+        ...userCondition,
+        status: { $in: ACTIVE_STATUSES },
+        paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
+      };
 
       return await CourseEnrollment.find(filter)
         .populate('courseId')
@@ -177,17 +203,17 @@ export class StudentDashboardService {
   }
 
   /**
-   * Get the student's enrolled events (optionally filtered by event type)
+   * Get the student's enrolled events (only confirmed/paid enrollments)
    */
   public async getEvents(userId: string, eventType?: EventType): Promise<IEventEnrollment[]> {
     try {
       const email = await this.linkEnrollmentsByEmail(userId);
-      const filter: any = { status: { $in: ACTIVE_STATUSES } };
-      if (email) {
-        filter.$or = [{ userId }, { email }];
-      } else {
-        filter.userId = userId;
-      }
+      const userCondition = email ? { $or: [{ userId }, { email }] } : { userId };
+      const filter: any = {
+        ...userCondition,
+        status: { $in: ACTIVE_STATUSES },
+        paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
+      };
       if (eventType) {
         filter.eventType = eventType;
       }
@@ -203,14 +229,17 @@ export class StudentDashboardService {
   }
 
   /**
-   * Get the student's enrolled training programs
+   * Get the student's enrolled training programs (only confirmed/paid enrollments)
    */
   public async getTrainingPrograms(userId: string): Promise<ITrainingProgramEnrollment[]> {
     try {
       const email = await this.linkEnrollmentsByEmail(userId);
-      const filter = email
-        ? { $or: [{ userId }, { email }], status: { $in: ACTIVE_STATUSES } }
-        : { userId, status: { $in: ACTIVE_STATUSES } };
+      const userCondition = email ? { $or: [{ userId }, { email }] } : { userId };
+      const filter = {
+        ...userCondition,
+        status: { $in: ACTIVE_STATUSES },
+        paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
+      };
 
       return await TrainingProgramEnrollment.find(filter)
         .populate('programId')
@@ -457,14 +486,17 @@ export class StudentDashboardService {
   }
 
   /**
-   * Build the aggregated dashboard summary for a student
+   * Build the aggregated dashboard summary for a student (only paid/confirmed enrollments)
    */
   public async getDashboard(userId: string): Promise<StudentDashboardSummary> {
     try {
       const email = await this.linkEnrollmentsByEmail(userId);
-      const baseFilter = email
-        ? { $or: [{ userId }, { email }], status: { $in: ACTIVE_STATUSES } }
-        : { userId, status: { $in: ACTIVE_STATUSES } };
+      const userCondition = email ? { $or: [{ userId }, { email }] } : { userId };
+      const baseFilter = {
+        ...userCondition,
+        status: { $in: ACTIVE_STATUSES },
+        paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
+      };
 
       const [
         courses,
@@ -1874,32 +1906,61 @@ export class StudentDashboardService {
     try {
       const email = await this.linkEnrollmentsByEmail(userId);
       const { TrainingProgramEnrollment } = await import('@/database/models/TrainingProgramEnrollment.model');
+      const { TrainingProgram } = await import('@/database/models/TrainingProgram.model');
       const { MentorProfile } = await import('@/database/models/MentorProfile.model');
+      const { DEFAULT_INTERNSHIP_PARTNERS } = await import('@/modules/training-programs/services/training-program.service');
+
+      const realProgram = await TrainingProgram.findOne({
+        $or: [
+          ...(mongoose.Types.ObjectId.isValid(slugOrId) ? [{ _id: new mongoose.Types.ObjectId(slugOrId) }] : []),
+          { slug: slugOrId },
+        ],
+        deletedAt: null,
+      }).lean();
 
       let enrollment = await TrainingProgramEnrollment.findOne({
-        $or: [{ userId: new mongoose.Types.ObjectId(userId) }, { email }]
+        $or: [
+          { userId: new mongoose.Types.ObjectId(userId), ...(realProgram ? { programId: realProgram._id } : {}) },
+          { email, ...(realProgram ? { programId: realProgram._id } : {}) },
+        ],
       }).exec();
 
-      const programTitle = slugOrId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const programSlug = slugOrId;
+      if (!enrollment && realProgram) {
+        enrollment = await TrainingProgramEnrollment.findOne({
+          programId: realProgram._id,
+          $or: [{ userId: new mongoose.Types.ObjectId(userId) }, { email }],
+        }).exec();
+      }
+
+      const programTitle = realProgram?.title || slugOrId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const programSlug = realProgram?.slug || slugOrId;
 
       let resolvedMentors: Array<{ name: string; designation: string; avatar: string; meetingLink?: string }> = [];
 
-      const activeProfiles = await MentorProfile.find()
-        .populate('userId', 'firstName lastName fullName avatar email')
-        .limit(3)
-        .exec();
+      if (realProgram?.mentors && realProgram.mentors.length > 0) {
+        resolvedMentors = realProgram.mentors.map((m: any) => ({
+          name: m.name || 'GrowthCraft Mentor',
+          designation: m.designation || m.areaOfExpertise || 'Industrial Training Mentor',
+          avatar: m.avatar || '',
+          meetingLink: 'https://meet.google.com/gc-training-room',
+        }));
+      } else {
+        const activeProfiles = await MentorProfile.find()
+          .populate('userId', 'firstName lastName fullName avatar email')
+          .limit(3)
+          .exec();
 
-      for (const mp of activeProfiles) {
-        const u = mp.userId as any;
-        const name = u ? (u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim()) : '';
-        if (name) {
-          resolvedMentors.push({
-            name,
-            designation: mp.areaOfExpertise || mp.currentOrganization || 'Industrial Training Lead',
-            avatar: u?.avatar || '',
-            meetingLink: 'https://meet.google.com/gc-training-room',
-          });
+        for (const mp of activeProfiles) {
+          const u = mp.userId as any;
+          const name = u ? (u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim()) : '';
+          if (name) {
+            resolvedMentors.push({
+              name,
+              designation: mp.areaOfExpertise || mp.currentOrganization || 'Industrial Training Lead',
+              avatar: u?.avatar || '',
+              meetingLink: 'https://meet.google.com/gc-training-room',
+            });
+          }
         }
       }
 
@@ -1911,8 +1972,8 @@ export class StudentDashboardService {
       }
 
       const now = new Date();
-      const start = new Date("2026-06-01T09:00:00Z");
-      const end = new Date("2026-08-30T18:00:00Z");
+      const start = realProgram?.startDate ? new Date(realProgram.startDate) : new Date("2026-06-01T09:00:00Z");
+      const end = new Date(start.getTime() + (realProgram?.durationDays || 60) * 24 * 60 * 60 * 1000);
 
       let calculatedStatus: 'Open' | 'Live' | 'Closed' = 'Live';
       if (now > end) {
@@ -1943,18 +2004,23 @@ export class StudentDashboardService {
         ? 'Online Training • GrowthCraft Live Enterprise Stream'
         : 'GrowthCraft Campus Hub • Industrial Training Center';
 
+      const programPartners = (realProgram?.internshipPartners && realProgram.internshipPartners.length > 0)
+        ? realProgram.internshipPartners
+        : DEFAULT_INTERNSHIP_PARTNERS;
+
       return {
         program: {
-          _id: enrollment?.programId || new mongoose.Types.ObjectId(),
+          _id: realProgram?._id || enrollment?.programId || new mongoose.Types.ObjectId(),
           title: programTitle,
           slug: programSlug,
-          domain: 'Industrial Engineering & SaaS',
-          description: 'Multi-month intensive campus industrial training program designed with hiring partners.',
+          domain: realProgram?.domain || 'Industrial Engineering & SaaS',
+          description: realProgram?.description || 'Multi-month intensive campus industrial training program designed with hiring partners.',
           startDate: start.toISOString(),
           endDate: end.toISOString(),
           mode: resolvedMode,
           venue: resolvedVenue,
           status: calculatedStatus,
+          internshipPartners: programPartners,
         },
         enrollment: {
           _id: enrollment?._id,
@@ -1968,6 +2034,7 @@ export class StudentDashboardService {
             : (hasAttended ? 'Present (Verified)' : 'Check-in Pending'),
           certificateStatus: certStatus,
           certificateUrl: enr?.certificateUrl || null,
+          selectedCompany: enr?.selectedCompany || null,
           projectSubmission: enr?.projectSubmission || {
             projectTitle: 'Industrial Training Capstone',
             repoUrl: 'https://github.com/growthcraft/industrial-capstone',
