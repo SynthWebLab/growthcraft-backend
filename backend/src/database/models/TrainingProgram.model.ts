@@ -11,6 +11,8 @@ export type ProgramStatus = 'active' | 'coming-soon' | 'draft';
 export interface ITrainingProgram extends Document {
   slug: string;
   title: string;
+  programName?: string;
+  fullTitle?: string;
   description: string;
   domain: string;
   durationDays: number;
@@ -27,6 +29,8 @@ export interface ITrainingProgram extends Document {
   enrolledCount?: number;
   isPublished: boolean;
   isFeatured?: boolean;
+  prerequisites?: string[];
+  careerOutcomes?: string[];
   mentors?: Array<{
     userId?: mongoose.Types.ObjectId;
     mentorProfileId?: mongoose.Types.ObjectId;
@@ -58,9 +62,17 @@ const trainingProgramSchema = new Schema<ITrainingProgram>(
       type: String,
       required: [true, 'Training program title is required'],
       trim: true,
-      minlength: [3, 'Title must be at least 3 characters'],
+      minlength: [2, 'Title must be at least 2 characters'],
       maxlength: [200, 'Title cannot exceed 200 characters'],
       index: 'text',
+    },
+    programName: {
+      type: String,
+      trim: true,
+    },
+    fullTitle: {
+      type: String,
+      trim: true,
     },
     description: {
       type: String,
@@ -90,6 +102,14 @@ const trainingProgramSchema = new Schema<ITrainingProgram>(
         },
         message: 'At least one tool/technology is required',
       },
+    },
+    prerequisites: {
+      type: [String],
+      default: [],
+    },
+    careerOutcomes: {
+      type: [String],
+      default: [],
     },
     price: {
       type: Number,

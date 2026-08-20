@@ -1,8 +1,6 @@
 /**
- * Seed script for Training Programs (40-day internship programs)
- * 
- * This script populates the database with sample training programs matching the frontend mock data.
- * It creates both TrainingProgram entries and their corresponding TrainingProgramDetails.
+ * Seed script for Training Programs (40/60-day offline internship programs)
+ * Based on GrowthCraft Complete Product Catalogue
  * 
  * Usage: npx ts-node scripts/seed-training-programs.ts
  */
@@ -24,436 +22,395 @@ const connectDB = async () => {
   }
 };
 
-// Training Program seed data (matching frontend mocks)
+/// Training Program seed data from GrowthCraft Complete Product Catalogue
 const trainingProgramSeeds = [
   {
-    slug: 'full-stack-web-development',
-    title: 'Full-Stack Web Development Internship',
-    description: 'Build production-ready web applications using MERN stack. Work on real client projects and deploy live applications.',
-    domain: 'Web Development',
+    slug: 'appfoundry-mobile-app-development',
+    title: 'AppFoundry',
+    programName: 'AppFoundry',
+    fullTitle: 'Mobile App Development with React Native',
+    description: 'Build production-ready cross-platform mobile apps with React Native, Expo, and Redux. Learn Firebase backend integration, UI building with native components, navigation patterns, and deploy live apps to Google Play and Apple App Store.',
+    domain: 'Mobile Development',
     durationDays: 60,
-    tools: ['React', 'Node.js', 'MongoDB', 'Express'],
+    tools: ['React Native', 'Expo', 'Firebase', 'Redux', 'React Navigation'],
     price: 12999,
     originalPrice: 18999,
     status: 'active' as const,
-    enrollmentCount: 342,
+    enrollmentCount: 145,
     rating: 4.8,
+    level: ProgramLevel.INTERMEDIATE,
+    thumbnail: '/images/programs/mobile-app-development.jpg',
+    startDate: new Date('2026-07-01'),
+    maxSeats: 40,
+    enrolledCount: 18,
+    isPublished: true,
+    prerequisites: [
+      'Basic JavaScript + React knowledge',
+      'AppStarter or React Ready recommended',
+    ],
+    careerOutcomes: [
+      'Mobile App Developer',
+      'Cross-Platform Developer',
+      'React Native Engineer',
+    ],
+    whatYouWillLearn: [
+      'Cross-platform mobile app development',
+      'Firebase integration',
+      'UI building with native components',
+      'State management with Redux',
+      'Navigation patterns',
+      'Real app deployment to app stores',
+    ],
+    syllabusTitles: [
+      'React Native & Expo Essentials',
+      'UI Architecture & Native Components',
+      'Navigation Patterns & Screen Flows',
+      'State Management with Redux Toolkit',
+      'Firebase Authentication & Cloud Firestore',
+      'Device APIs, Camera & Push Notifications',
+      'Offline Storage & Performance Tuning',
+      'App Store & Play Store Deployment',
+    ],
+  },
+  {
+    slug: 'mern-masters-full-stack-web-dev',
+    title: 'MERN Masters',
+    programName: 'MERN Masters',
+    fullTitle: 'Full Stack Web Dev Internship',
+    description: '60-day intensive full-stack internship covering MERN stack end-to-end. Master API design & integration, JWT/OAuth authentication, MongoDB database modeling, CI/CD automated deployment, and client project delivery.',
+    domain: 'Web Application Development',
+    durationDays: 60,
+    tools: ['MongoDB', 'Express.js', 'React.js', 'Node.js', 'Git', 'Netlify/Vercel'],
+    price: 12999,
+    originalPrice: 18999,
+    status: 'active' as const,
+    enrollmentCount: 312,
+    rating: 4.9,
     level: ProgramLevel.INTERMEDIATE,
     thumbnail: '/images/programs/full-stack-web-development.jpg',
     startDate: new Date('2026-07-01'),
     maxSeats: 50,
     enrolledCount: 28,
     isPublished: true,
+    prerequisites: [
+      'FullStack Fusion or equivalent MERN experience',
+      'Git proficiency',
+    ],
+    careerOutcomes: [
+      'Full-Stack Developer',
+      'MERN Developer',
+      'Web Application Engineer',
+    ],
+    whatYouWillLearn: [
+      'Full-stack development end-to-end',
+      'API design & integration',
+      'Authentication (JWT, OAuth)',
+      'Database modeling',
+      'Deployment & CI/CD basics',
+      'Client project delivery',
+    ],
+    syllabusTitles: [
+      'Advanced React & State Architecture',
+      'Node.js & Express RESTful API Design',
+      'MongoDB Schema Design & Query Optimization',
+      'Authentication & Authorization (JWT, OAuth)',
+      'Full-Stack Integration & Middleware',
+      'Testing & Code Quality with Jest/Supertest',
+      'CI/CD Pipelines & Automated Deployments',
+      'Capstone Client Project Delivery',
+    ],
   },
   {
-    slug: 'uiux-design-internship',
-    title: 'UI/UX Design Internship',
-    description: 'Master Figma, design systems, and user research. Create portfolio-worthy designs for real startups.',
-    domain: 'Design',
-    durationDays: 30,
-    tools: ['Figma', 'Adobe XD', 'Sketch', 'InVision'],
+    slug: 'wp-wizard-cms-web-design',
+    title: 'WP Wizard',
+    programName: 'WP Wizard',
+    fullTitle: 'CMS Web Design & Customization with WordPress',
+    description: '40-day practical CMS web design internship. Master WordPress theme customization, Elementor visual page building, WooCommerce online store setup, SEO fundamentals, hosting, and cPanel server management.',
+    domain: 'CMS Web Development',
+    durationDays: 40,
+    tools: ['WordPress', 'Elementor', 'WooCommerce', 'cPanel', 'MySQL'],
     price: 9999,
     originalPrice: 14999,
     status: 'active' as const,
-    enrollmentCount: 256,
+    enrollmentCount: 220,
     rating: 4.7,
     level: ProgramLevel.BEGINNER,
-    thumbnail: '/images/programs/uiux-design.jpg',
-    startDate: new Date('2026-07-01'),
-    maxSeats: 40,
-    enrolledCount: 22,
-    isPublished: true,
-  },
-  {
-    slug: 'data-science-analytics',
-    title: 'Data Science & Analytics Internship',
-    description: 'Work with real datasets, build ML models, and create dashboards. Learn Python, pandas, and visualization tools.',
-    domain: 'Data Science',
-    durationDays: 60,
-    tools: ['Python', 'Pandas', 'NumPy', 'Scikit-learn'],
-    price: 14999,
-    originalPrice: 21999,
-    status: 'active' as const,
-    enrollmentCount: 189,
-    rating: 4.9,
-    level: ProgramLevel.INTERMEDIATE,
-    thumbnail: '/images/programs/data-science.jpg',
-    startDate: new Date('2026-07-15'),
-    maxSeats: 35,
-    enrolledCount: 18,
-    isPublished: true,
-  },
-  {
-    slug: 'devops-cloud-engineering',
-    title: 'DevOps & Cloud Engineering Internship',
-    description: 'Master Docker, Kubernetes, CI/CD pipelines. Deploy and manage applications on AWS and GCP.',
-    domain: 'DevOps',
-    durationDays: 40,
-    tools: ['Docker', 'Kubernetes', 'AWS', 'Jenkins'],
-    price: 15999,
-    originalPrice: 22999,
-    status: 'coming-soon' as const,
-    enrollmentCount: 0,
-    rating: 0,
-    level: ProgramLevel.ADVANCED,
-    thumbnail: '/images/programs/devops-cloud.jpg',
-    startDate: new Date('2026-08-01'),
-    maxSeats: 30,
-    enrolledCount: 0,
-    isPublished: true,
-  },
-  {
-    slug: 'mobile-app-development',
-    title: 'Mobile App Development Internship',
-    description: 'Build cross-platform mobile apps with React Native. Ship apps to iOS and Android app stores.',
-    domain: 'Mobile Development',
-    durationDays: 40,
-    tools: ['React Native', 'Expo', 'Firebase', 'Redux'],
-    price: 13999,
-    originalPrice: 19999,
-    status: 'active' as const,
-    enrollmentCount: 178,
-    rating: 4.6,
-    level: ProgramLevel.INTERMEDIATE,
-    thumbnail: '/images/programs/mobile-app-development.jpg',
+    thumbnail: '/images/programs/wp-wizard.jpg',
     startDate: new Date('2026-07-10'),
     maxSeats: 40,
-    enrolledCount: 25,
+    enrolledCount: 19,
     isPublished: true,
+    prerequisites: [
+      'Basic computer and internet literacy',
+      'No coding required',
+    ],
+    careerOutcomes: [
+      'WordPress Developer',
+      'Freelance Web Designer',
+      'CMS Specialist',
+    ],
+    whatYouWillLearn: [
+      'Theme design & customization',
+      'Plugin configuration & management',
+      'WooCommerce store setup',
+      'Elementor page building',
+      'SEO basics',
+      'Hosting & cPanel management',
+    ],
+    syllabusTitles: [
+      'WordPress Architecture & cPanel Hosting',
+      'Visual Page Building with Elementor Pro',
+      'Theme Customization & Child Themes',
+      'WooCommerce Store Setup & Payment Gateways',
+      'On-Page SEO, Speed Optimization & Security',
+      'Client Project Delivery & Site Handoff',
+    ],
   },
   {
-    slug: 'digital-marketing-growth',
-    title: 'Digital Marketing & Growth Internship',
-    description: 'Learn SEO, social media marketing, content strategy, and analytics. Run real campaigns for brands.',
-    domain: 'Marketing',
-    durationDays: 30,
-    tools: ['Google Analytics', 'SEMrush', 'HubSpot', 'Meta Ads'],
-    price: 8999,
-    originalPrice: 12999,
-    status: 'active' as const,
-    enrollmentCount: 423,
-    rating: 4.5,
-    level: ProgramLevel.BEGINNER,
-    thumbnail: '/images/programs/digital-marketing.jpg',
-    startDate: new Date('2026-07-05'),
-    maxSeats: 60,
-    enrolledCount: 45,
-    isPublished: true,
-  },
-  {
-    slug: 'ai-machine-learning',
-    title: 'AI & Machine Learning Internship',
-    description: 'Deep dive into neural networks, NLP, and computer vision. Build and deploy ML models.',
-    domain: 'Artificial Intelligence',
-    durationDays: 60,
-    tools: ['TensorFlow', 'PyTorch', 'Keras', 'OpenCV'],
-    price: 16999,
-    originalPrice: 24999,
-    status: 'active' as const,
-    enrollmentCount: 234,
-    rating: 4.9,
-    level: ProgramLevel.ADVANCED,
-    thumbnail: '/images/programs/ai-machine-learning.jpg',
-    startDate: new Date('2026-07-20'),
-    maxSeats: 25,
-    enrolledCount: 12,
-    isPublished: true,
-  },
-  {
-    slug: 'backend-engineering',
-    title: 'Backend Engineering Internship',
-    description: 'Build scalable APIs, implement authentication, caching, and queues. Learn Node.js and microservices.',
-    domain: 'Backend Development',
+    slug: 'designsprint-ui-ux-design',
+    title: 'DesignSprint',
+    programName: 'DesignSprint',
+    fullTitle: 'UI/UX Design Internship Program',
+    description: '40-day immersive UI/UX design internship. Master Figma from end-to-end product design, wireframing, high-fidelity prototyping, user research, design systems, and crafting client-ready portfolio case studies.',
+    domain: 'UI/UX Design',
     durationDays: 40,
-    tools: ['Node.js', 'PostgreSQL', 'Redis', 'GraphQL'],
-    price: 13999,
-    originalPrice: 19999,
+    tools: ['Figma', 'UI/UX Design', 'Design Systems', 'Prototyping'],
+    price: 9999,
+    originalPrice: 14999,
     status: 'active' as const,
-    enrollmentCount: 167,
-    rating: 4.7,
+    enrollmentCount: 280,
+    rating: 4.8,
+    level: ProgramLevel.BEGINNER,
+    thumbnail: '/images/programs/uiux-design.jpg',
+    startDate: new Date('2026-07-05'),
+    maxSeats: 45,
+    enrolledCount: 24,
+    isPublished: true,
+    prerequisites: [
+      'UX Genesis or FigmaFlow recommended',
+      'Strong visual sense helpful',
+    ],
+    careerOutcomes: [
+      'UI/UX Designer',
+      'Product Designer',
+      'UX Researcher',
+    ],
+    whatYouWillLearn: [
+      'Design principles & visual hierarchy',
+      'Wireframing & prototyping',
+      'User research & testing',
+      'Design systems & component libraries',
+      'Portfolio-ready case studies',
+      'Client design handoffs',
+    ],
+    syllabusTitles: [
+      'Design Foundations & Visual Hierarchy',
+      'User Research, Personas & User Journeys',
+      'Wireframing & Information Architecture',
+      'Figma Mastery & Interactive Prototyping',
+      'Design Systems, Tokens & Component Libraries',
+      'Usability Testing & Portfolio Case Study',
+    ],
+  },
+  {
+    slug: 'devops-launchpad-devops-engineering',
+    title: 'DevOps Launchpad',
+    programName: 'DevOps Launchpad',
+    fullTitle: 'DevOps Engineering Internship',
+    description: '40-day intensive DevOps internship. Master containerization with Docker, orchestration with Kubernetes, automated CI/CD with GitHub Actions & Jenkins, AWS cloud infrastructure as code, and live monitoring.',
+    domain: 'DevOps',
+    durationDays: 40,
+    tools: ['Git', 'GitHub Actions', 'Docker', 'Kubernetes', 'Jenkins', 'AWS'],
+    price: 12999,
+    originalPrice: 18999,
+    status: 'active' as const,
+    enrollmentCount: 195,
+    rating: 4.8,
     level: ProgramLevel.INTERMEDIATE,
-    thumbnail: '/images/programs/backend-engineering.jpg',
+    thumbnail: '/images/programs/devops-cloud.jpg',
     startDate: new Date('2026-07-15'),
     maxSeats: 35,
-    enrolledCount: 20,
+    enrolledCount: 16,
     isPublished: true,
-  },
-  {
-    slug: 'cybersecurity-internship',
-    title: 'Cybersecurity Internship',
-    description: 'Learn ethical hacking, penetration testing, and security auditing. Secure real applications.',
-    domain: 'Cybersecurity',
-    durationDays: 60,
-    tools: ['Kali Linux', 'Wireshark', 'Metasploit', 'Burp Suite'],
-    price: 14999,
-    originalPrice: 21999,
-    status: 'coming-soon' as const,
-    enrollmentCount: 0,
-    rating: 0,
-    level: ProgramLevel.ADVANCED,
-    thumbnail: '/images/programs/cybersecurity.jpg',
-    startDate: new Date('2026-08-10'),
-    maxSeats: 20,
-    enrolledCount: 0,
-    isPublished: true,
-  },
-  {
-    slug: 'product-management',
-    title: 'Product Management Internship',
-    description: 'Learn product strategy, roadmapping, user research, and stakeholder management. Work with real products.',
-    domain: 'Product Management',
-    durationDays: 30,
-    tools: ['Jira', 'Miro', 'Figma', 'Google Analytics'],
-    price: 11999,
-    originalPrice: 16999,
-    status: 'active' as const,
-    enrollmentCount: 145,
-    rating: 4.6,
-    level: ProgramLevel.INTERMEDIATE,
-    thumbnail: '/images/programs/product-management.jpg',
-    startDate: new Date('2026-07-12'),
-    maxSeats: 30,
-    enrolledCount: 15,
-    isPublished: true,
-  },
-  {
-    slug: 'game-development',
-    title: 'Game Development Internship',
-    description: 'Build 2D and 3D games using Unity and C#. Design gameplay mechanics and publish your games.',
-    domain: 'Game Development',
-    durationDays: 40,
-    tools: ['Unity', 'C#', 'Blender', 'Photoshop'],
-    price: 15999,
-    originalPrice: 22999,
-    status: 'coming-soon' as const,
-    enrollmentCount: 0,
-    rating: 0,
-    level: ProgramLevel.INTERMEDIATE,
-    thumbnail: '/images/programs/game-development.jpg',
-    startDate: new Date('2026-08-05'),
-    maxSeats: 25,
-    enrolledCount: 0,
-    isPublished: true,
-  },
-  {
-    slug: 'blockchain-development',
-    title: 'Blockchain Development Internship',
-    description: 'Build decentralized applications, write smart contracts with Solidity, and work with Web3 technologies.',
-    domain: 'Blockchain',
-    durationDays: 60,
-    tools: ['Solidity', 'Ethereum', 'Web3.js', 'Hardhat'],
-    price: 17999,
-    originalPrice: 25999,
-    status: 'active' as const,
-    enrollmentCount: 98,
-    rating: 4.8,
-    level: ProgramLevel.ADVANCED,
-    thumbnail: '/images/programs/blockchain-development.jpg',
-    startDate: new Date('2026-07-25'),
-    maxSeats: 20,
-    enrolledCount: 8,
-    isPublished: true,
+    prerequisites: [
+      'DevOps Jumpstart, CloudClimb recommended',
+      'Linux CLI proficiency required',
+    ],
+    careerOutcomes: [
+      'DevOps Engineer',
+      'Site Reliability Engineer',
+      'Cloud Engineer',
+    ],
+    whatYouWillLearn: [
+      'CI/CD pipeline design & automation',
+      'Containerization & orchestration',
+      'Infrastructure as code',
+      'Cloud deployment (AWS)',
+      'Monitoring & logging',
+      'Real infrastructure project delivery',
+    ],
+    syllabusTitles: [
+      'Linux Shell Scripting & Git Workflows',
+      'Docker Containerization & Multi-Stage Builds',
+      'CI/CD Automation with GitHub Actions & Jenkins',
+      'AWS Cloud Core Services (EC2, S3, RDS, IAM)',
+      'Kubernetes Pods, Deployments & Services',
+      'Infrastructure Monitoring & Production Deployment',
+    ],
   },
 ];
 
-// Training Program Details seed data
-const getTrainingProgramDetails = (program: any, programId: mongoose.Types.ObjectId) => {
-  // Common templates for different program types
-  const commonOverview = {
-    aboutProgram: `${program.description}\n\nThis comprehensive ${program.durationDays}-day internship program is designed to give you hands-on experience in ${program.domain}. You'll work on real-world projects, learn industry-standard tools, and build a professional portfolio that will help you stand out in the job market.`,
-    whatYouWillLearn: [
-      { text: `Master ${program.tools[0]} from basics to advanced concepts` },
-      { text: 'Build real-world projects for your portfolio' },
-      { text: 'Work with industry-standard tools and best practices' },
-      { text: 'Collaborate with peers on team projects' },
-      { text: 'Get mentorship from experienced professionals' },
-      { text: 'Prepare for technical interviews and job placements' },
-    ],
-    prerequisites: [
-      { text: 'Basic understanding of programming concepts' },
-      { text: 'Laptop with internet connection' },
-      { text: 'Willingness to dedicate 4-6 hours daily' },
-      { text: 'Passion for learning and building things' },
-    ],
+// Helper to construct TrainingProgramDetails
+const getTrainingProgramDetails = (programSeed: typeof trainingProgramSeeds[0], programId: mongoose.Types.ObjectId) => {
+  const overview = {
+    aboutProgram: `${programSeed.description}\n\nThis comprehensive ${programSeed.durationDays}-day offline internship program is delivered in-person at partner campuses and GrowthCraft tech hubs. You will work on real client projects, build industry-standard applications, and graduate with a verified internship certificate and production portfolio.`,
+    whatYouWillLearn: programSeed.whatYouWillLearn.map((item) => ({ text: item })),
+    prerequisites: programSeed.prerequisites.map((item) => ({ text: item })),
     whatsIncluded: [
-      { text: 'Live interactive sessions', icon: '🎥' },
-      { text: 'Hands-on projects and assignments', icon: '💻' },
-      { text: 'Mentor support and code reviews', icon: '👨‍🏫' },
-      { text: 'Industry-recognized certificate', icon: '📜' },
-      { text: 'Lifetime community access', icon: '👥' },
-      { text: 'Placement assistance', icon: '💼' },
+      { text: 'In-person mentor-led daily training', icon: '👨‍🏫' },
+      { text: 'Real client project deliverables', icon: '💻' },
+      { text: 'Code reviews & architecture feedback', icon: '🔍' },
+      { text: 'Internship Completion Certificate (GrowthCraft + SynthWeb)', icon: '📜' },
+      { text: 'Resume building & interview preparation', icon: '💼' },
+      { text: 'Lifetime alumni community access', icon: '👥' },
     ],
   };
 
-  // Generate syllabus based on duration
-  const weeksCount = Math.ceil(program.durationDays / 7);
-  const syllabus = [];
-  for (let i = 1; i <= Math.min(weeksCount, 8); i++) {
-    syllabus.push({
-      week: i,
-      title: `Week ${i}: ${getWeekTitle(program.domain, i)}`,
-      topics: getWeekTopics(program.domain, program.tools, i),
-      deliverables: [`Project milestone ${i}`, 'Weekly assignment'],
-    });
-  }
+  const syllabus = programSeed.syllabusTitles.map((title, index) => ({
+    week: index + 1,
+    title: `Week ${index + 1}: ${title}`,
+    topics: [
+      `Core concepts and fundamentals of ${title}`,
+      `Practical hands-on lab and component building`,
+      `Best practices, debugging, and optimization`,
+      `Weekly milestone evaluation and code review`,
+    ],
+    deliverables: [`Week ${index + 1} milestone submission`, 'Weekly assignment assessment'],
+  }));
 
   return {
     programId,
-    slug: program.slug,
-    overview: commonOverview,
+    slug: programSeed.slug,
+    overview,
     syllabus,
     mentors: [
       {
-        name: 'Rajesh Kumar',
-        avatar: '/images/mentors/rajesh-kumar.jpg',
-        designation: 'Senior Engineer',
-        company: 'Tech Corp',
-        bio: `Rajesh has over 10 years of experience in ${program.domain} and has mentored hundreds of students. He's passionate about helping aspiring developers launch their careers.`,
-        expertise: program.tools.slice(0, 3),
+        name: 'Siddharth Sharma',
+        avatar: '/images/mentors/siddharth-sharma.jpg',
+        designation: 'Lead Technical Mentor',
+        company: 'GrowthCraft & SynthWeb',
+        bio: `Siddharth has over 8 years of industry experience across ${programSeed.domain}. He has mentored 500+ engineers into top tier product companies.`,
+        expertise: programSeed.tools.slice(0, 3),
         socialLinks: {
-          linkedin: 'https://linkedin.com/in/rajesh-kumar',
-          github: 'https://github.com/rajeshkumar',
+          linkedin: 'https://linkedin.com/in/siddharth-sharma',
+          github: 'https://github.com/siddharthsharma',
         },
       },
       {
-        name: 'Priya Sharma',
-        avatar: '/images/mentors/priya-sharma.jpg',
-        designation: 'Lead Developer',
-        company: 'Innovation Labs',
-        bio: `Priya specializes in ${program.domain} and has worked on multiple high-scale projects. She brings practical industry experience to the classroom.`,
-        expertise: program.tools.slice(1, 4),
+        name: 'Pooja Verma',
+        avatar: '/images/mentors/pooja-verma.jpg',
+        designation: 'Senior Industry Instructor',
+        company: 'SynthWeb Technologies',
+        bio: `Pooja brings rich production experience in ${programSeed.domain} and specializes in project-based learning and career mentorship.`,
+        expertise: programSeed.tools.slice(1, 4),
         socialLinks: {
-          linkedin: 'https://linkedin.com/in/priya-sharma',
-          twitter: 'https://twitter.com/priyasharma',
+          linkedin: 'https://linkedin.com/in/pooja-verma',
+          twitter: 'https://twitter.com/poojaverma',
         },
       },
     ],
     faqs: [
       {
-        question: 'Is this program suitable for beginners?',
-        answer: `This program is designed for ${program.level.toLowerCase()} level students. You should have basic programming knowledge and willingness to learn.`,
+        question: 'Is this an offline internship program?',
+        answer: 'Yes, all GrowthCraft internship programs are offline and conducted in-person at partner college campuses or SynthWeb offices.',
+      },
+      {
+        question: 'What are the prerequisites for this program?',
+        answer: programSeed.prerequisites.join('. ') + '.',
+      },
+      {
+        question: 'Will I receive an internship certificate?',
+        answer: 'Yes! Upon successful completion and project delivery, you will receive an industry-recognized Internship Completion Certificate co-branded by GrowthCraft and SynthWeb.',
+      },
+      {
+        question: 'Will I work on real client projects?',
+        answer: 'Yes, every participant builds portfolio-ready, live-deployed client projects under direct mentor supervision.',
       },
       {
         question: 'What is the daily time commitment?',
-        answer: 'You should dedicate 4-6 hours daily including live sessions, assignments, and project work.',
-      },
-      {
-        question: 'Will I get a certificate?',
-        answer: 'Yes, you will receive an industry-recognized certificate upon successful completion of the program.',
-      },
-      {
-        question: 'Do you provide placement assistance?',
-        answer: 'Yes, we provide placement assistance including resume building, interview preparation, and job referrals.',
-      },
-      {
-        question: 'Can I work on this part-time?',
-        answer: `This is a ${program.durationDays}-day intensive program. While you can manage it part-time, we recommend dedicating focused hours daily for best results.`,
-      },
-      {
-        question: 'What if I miss a live session?',
-        answer: 'All live sessions are recorded and made available within 24 hours. You can catch up at your own pace.',
+        answer: `This is an intensive ${programSeed.durationDays}-day program requiring dedicated in-person training and project building hours.`,
       },
     ],
   };
 };
-
-// Helper functions for generating dynamic content
-function getWeekTitle(domain: string, week: number): string {
-  const titles: { [key: string]: string[] } = {
-    'Web Development': [
-      'HTML, CSS & JavaScript Fundamentals',
-      'React Basics & Components',
-      'State Management & Hooks',
-      'Backend with Node.js & Express',
-      'Database Integration',
-      'Authentication & Security',
-      'Deployment & DevOps',
-      'Final Project',
-    ],
-    'Design': [
-      'Design Principles & Figma Basics',
-      'User Research & Personas',
-      'Wireframing & Prototyping',
-      'UI Components & Design Systems',
-      'Advanced Interactions',
-      'Usability Testing',
-      'Portfolio Building',
-      'Final Project',
-    ],
-    'Data Science': [
-      'Python Programming Basics',
-      'Data Analysis with Pandas',
-      'Data Visualization',
-      'Statistical Analysis',
-      'Machine Learning Fundamentals',
-      'Advanced ML Algorithms',
-      'Model Deployment',
-      'Capstone Project',
-    ],
-  };
-  return titles[domain]?.[week - 1] || `Core Concepts - Part ${week}`;
-}
-
-function getWeekTopics(domain: string, tools: string[], week: number): string[] {
-  // Return relevant topics based on domain and week
-  return [
-    `Introduction to ${tools[0]}`,
-    `Practical applications and use cases`,
-    `Best practices and patterns`,
-    `Hands-on exercises and projects`,
-  ];
-}
 
 // Main seed function
 const seedTrainingPrograms = async () => {
   try {
-    logger.info('Starting training programs seeding...');
+    logger.info('Starting Training Programs seeding...');
 
     // Clear existing training programs and their details
     const deletePrograms = await TrainingProgram.deleteMany({});
     const deleteDetails = await TrainingProgramDetails.deleteMany({});
-    logger.info(`Deleted ${deletePrograms.deletedCount} existing training programs`);
-    logger.info(`Deleted ${deleteDetails.deletedCount} existing training program details`);
+    logger.info(`Cleared ${deletePrograms.deletedCount} existing training programs`);
+    logger.info(`Cleared ${deleteDetails.deletedCount} existing training program details`);
+
+    // Prepare program docs (excluding syllabus/whatYouWillLearn helper arrays from base doc)
+    const baseProgramData = trainingProgramSeeds.map((p) => ({
+      slug: p.slug,
+      title: p.title,
+      programName: p.programName,
+      fullTitle: p.fullTitle,
+      description: p.description,
+      domain: p.domain,
+      durationDays: p.durationDays,
+      tools: p.tools,
+      price: p.price,
+      originalPrice: p.originalPrice,
+      status: p.status,
+      enrollmentCount: p.enrollmentCount,
+      rating: p.rating,
+      level: p.level,
+      thumbnail: p.thumbnail,
+      startDate: p.startDate,
+      maxSeats: p.maxSeats,
+      enrolledCount: p.enrolledCount,
+      isPublished: p.isPublished,
+      prerequisites: p.prerequisites,
+      careerOutcomes: p.careerOutcomes,
+    }));
 
     // Insert training programs
-    logger.info('Seeding training programs...');
-    const programs = await TrainingProgram.insertMany(trainingProgramSeeds);
-    logger.info(`✓ Created ${programs.length} training programs`);
+    logger.info('Inserting Training Programs...');
+    const createdPrograms = await TrainingProgram.insertMany(baseProgramData);
+    logger.info(`✓ Created ${createdPrograms.length} Training Programs`);
 
-    // Create program details for each program
-    logger.info('Seeding training program details...');
-    const programDetailsData = programs.map((program) =>
-      getTrainingProgramDetails(
-        trainingProgramSeeds.find((p) => p.slug === program.slug),
-        program._id as mongoose.Types.ObjectId
-      )
-    );
-    const programDetails = await TrainingProgramDetails.insertMany(programDetailsData);
-    logger.info(`✓ Created ${programDetails.length} training program details`);
+    // Create program details
+    logger.info('Inserting Training Program Details...');
+    const detailsData = createdPrograms.map((prog) => {
+      const seed = trainingProgramSeeds.find((s) => s.slug === prog.slug)!;
+      return getTrainingProgramDetails(seed, prog._id as mongoose.Types.ObjectId);
+    });
 
-    // Summary
-    logger.info('\n=== Seeding Summary ===');
-    logger.info(`Training Programs created: ${programs.length}`);
-    logger.info(`Program Details created: ${programDetails.length}`);
-    logger.info('======================\n');
+    const createdDetails = await TrainingProgramDetails.insertMany(detailsData);
+    logger.info(`✓ Created ${createdDetails.length} Training Program Details`);
 
-    // Display sample program for testing
-    logger.info('Sample Training Program for testing:');
-    if (programs.length > 0) {
-      logger.info(`ID: ${programs[0]._id}`);
-      logger.info(`Title: ${programs[0].title}`);
-      logger.info(`Slug: ${programs[0].slug}`);
-      logger.info(`Status: ${programs[0].status}`);
+    logger.info('\n=== Training Programs Seeding Summary ===');
+    for (const prog of createdPrograms) {
+      logger.info(`• [${prog.domain}] ${prog.title} (Slug: ${prog.slug}, Days: ${prog.durationDays}, Price: ₹${prog.price})`);
+      logger.info(`  Prerequisites: ${prog.prerequisites?.join(', ')}`);
+      logger.info(`  Tools: ${prog.tools.join(', ')}`);
     }
+    logger.info('=========================================\n');
 
-    logger.info('\n✓ Training programs seeding completed successfully!');
+    logger.info('✓ Training Programs seeding completed successfully!');
   } catch (error) {
-    logger.error('Training programs seeding failed:', error);
+    logger.error('Training Programs seeding failed:', error);
     throw error;
   }
 };
 
-// Run the seed script
+// Run script if executed directly
 const run = async () => {
   try {
     await connectDB();
@@ -467,7 +424,6 @@ const run = async () => {
   }
 };
 
-// Execute if run directly
 if (require.main === module) {
   run();
 }
