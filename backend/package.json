@@ -16,6 +16,8 @@
     "test:mentor": "ts-node scripts/test-mentor-api.ts",
     "seed:catalogue": "ts-node scripts/seed-catalogue.ts",
     "seed:courses": "ts-node scripts/seed-courses.ts",
+    "seed:courses-set1": "ts-node scripts/seed-courses-set1.ts",
+    "seed:courses-set2": "ts-node scripts/seed-courses-set2.ts",
     "seed:bootcamps": "ts-node scripts/seed-bootcamps.ts",
     "seed:events": "ts-node scripts/seed-events.ts",
     "seed:event-details": "ts-node scripts/seed-event-details.ts",
