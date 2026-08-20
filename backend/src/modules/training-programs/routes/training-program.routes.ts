@@ -136,6 +136,17 @@ router.post(
 );
 
 /**
+ * @route   PATCH /api/v1/training-programs/:programId/select-company
+ * @desc    Select or update internship partner company
+ * @access  Protected (requires authentication)
+ */
+router.patch(
+  '/:programId/select-company',
+  authenticate,
+  trainingProgramEnrollmentController.selectCompany.bind(trainingProgramEnrollmentController)
+);
+
+/**
  * @route   POST /api/v1/training-programs/:programId/request-callback
  * @desc    Request callback for a training program
  * @access  Protected (requires authentication)

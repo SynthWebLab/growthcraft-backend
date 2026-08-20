@@ -36,7 +36,8 @@ export class TrainingProgramDetailsController {
           const isEnrolled = await TrainingProgramEnrollment.findOne({
             userId,
             programId: programIdStr,
-            status: { $in: ['pending', 'confirmed'] },
+            status: { $in: ['confirmed', 'active', 'completed', 'enrolled'] },
+            paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
           }).select('_id').lean().exec();
           
           const hasCallback = await TrainingProgramCallbackRequest.findOne({

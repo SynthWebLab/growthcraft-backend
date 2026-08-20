@@ -364,10 +364,8 @@ export class EventEnrollmentService {
       const enrollment = await EventEnrollment.findOne({
         userId,
         eventId,
-        $or: [
-          { status: 'confirmed' },
-          { paymentStatus: 'completed' },
-        ],
+        status: { $in: ['confirmed', 'active', 'completed', 'enrolled'] },
+        paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
       });
 
       return !!enrollment;
@@ -389,10 +387,8 @@ export class EventEnrollmentService {
       const enrollment = await EventEnrollment.findOne({
         userId,
         eventId,
-        $or: [
-          { status: 'confirmed' },
-          { paymentStatus: 'completed' },
-        ],
+        status: { $in: ['confirmed', 'active', 'completed', 'enrolled'] },
+        paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
       });
 
 
@@ -429,10 +425,8 @@ export class EventEnrollmentService {
       const filter: any = {
         userId,
         eventId: { $in: eventIds },
-        $or: [
-          { status: 'confirmed' },
-          { paymentStatus: 'completed' },
-        ],
+        status: { $in: ['confirmed', 'active', 'completed', 'enrolled'] },
+        paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
       };
 
 

@@ -220,7 +220,10 @@ export class EnrollmentService {
   public async isUserEnrolled(userId: string, courseId: string): Promise<boolean> {
     try {
       const user = await User.findById(userId).select('email').lean().exec();
-      const statusCondition = { $or: [{ status: 'confirmed' }, { paymentStatus: 'completed' }] };
+      const statusCondition = {
+        status: { $in: ['confirmed', 'active', 'completed', 'enrolled'] },
+        paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
+      };
       const userCondition = user ? { $or: [{ userId }, { email: user.email }] } : { userId };
       const filter = {
         courseId,
@@ -245,10 +248,12 @@ export class EnrollmentService {
   ): Promise<{ isEnrolled: boolean; hasCallbackRequest: boolean }> {
     try {
       const user = await User.findById(userId).select('email').lean().exec();
-      const enrollmentFilter = user
-        ? { $or: [{ userId }, { email: user.email }], courseId, status: 'confirmed' }
-        : { userId, courseId, status: 'confirmed' };
-
+      const enrollmentFilter = {
+        ...(user ? { $or: [{ userId }, { email: user.email }] } : { userId }),
+        courseId,
+        status: { $in: ['confirmed', 'active', 'completed', 'enrolled'] },
+        paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
+      };
 
       const callbackFilter = user
         ? { $or: [{ userId }, { email: user.email }], courseId, status: 'pending' }
@@ -280,10 +285,12 @@ export class EnrollmentService {
       }
 
       const user = await User.findById(userId).select('email').lean().exec();
-      const filter = user
-        ? { $or: [{ userId }, { email: user.email }], courseId: { $in: courseIds }, status: 'confirmed' }
-        : { userId, courseId: { $in: courseIds }, status: 'confirmed' };
-
+      const filter = {
+        ...(user ? { $or: [{ userId }, { email: user.email }] } : { userId }),
+        courseId: { $in: courseIds },
+        status: { $in: ['confirmed', 'active', 'completed', 'enrolled'] },
+        paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
+      };
 
       const enrollments = await CourseEnrollment.find(filter)
         .select('courseId')

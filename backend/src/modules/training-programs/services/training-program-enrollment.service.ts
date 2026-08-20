@@ -15,6 +15,13 @@ interface EnrollmentData {
   fullName: string;
   email: string;
   phone: string;
+  selectedCompany?: {
+    companyName: string;
+    role?: string;
+    duration?: string;
+    stipend?: string;
+    mode?: string;
+  };
 }
 
 export class TrainingProgramEnrollmentService {
@@ -34,7 +41,7 @@ export class TrainingProgramEnrollmentService {
    */
   public async enrollInProgram(data: EnrollmentData): Promise<ITrainingProgramEnrollment> {
     try {
-      const { userId, programId, fullName, email, phone } = data;
+      const { userId, programId, fullName, email, phone, selectedCompany } = data;
 
       // Check if training program exists
       const program = await TrainingProgram.findOne({
@@ -47,7 +54,7 @@ export class TrainingProgramEnrollmentService {
         throw new NotFoundError('Training program not found');
       }
 
-      // Check if user is already enrolled
+      // Check if user is already enrolled with completed payment
       const existingEnrollment = await TrainingProgramEnrollment.findOne({
         $or: [
           { userId, programId },
@@ -56,16 +63,29 @@ export class TrainingProgramEnrollmentService {
       });
 
       if (existingEnrollment) {
-        // Allow retry if payment was never completed
+        // Allow retry if payment was never completed or was pending/cancelled
         if (
           existingEnrollment.paymentStatus === 'pending' ||
-          existingEnrollment.status === 'pending'
+          existingEnrollment.paymentStatus === 'failed' ||
+          existingEnrollment.status === 'pending' ||
+          existingEnrollment.status === 'cancelled'
         ) {
+          if (selectedCompany) {
+            existingEnrollment.selectedCompany = {
+              ...selectedCompany,
+              selectedAt: new Date(),
+            };
+          }
+          if (fullName) existingEnrollment.fullName = fullName;
+          if (email) existingEnrollment.email = email;
+          if (phone) existingEnrollment.phone = phone;
+          existingEnrollment.status = 'pending';
+          existingEnrollment.paymentStatus = 'pending';
+          await existingEnrollment.save();
           return existingEnrollment;
         }
         throw new ConflictError('You are already enrolled in this training program');
       }
-
 
       // Create enrollment
       const enrollment = await TrainingProgramEnrollment.create({
@@ -77,6 +97,12 @@ export class TrainingProgramEnrollmentService {
         title: program.title,
         status: 'pending',
         paymentStatus: 'pending',
+        selectedCompany: selectedCompany
+          ? {
+              ...selectedCompany,
+              selectedAt: new Date(),
+            }
+          : undefined,
       });
 
       // Increment enrollment count
@@ -87,6 +113,57 @@ export class TrainingProgramEnrollmentService {
       return enrollment;
     } catch (error: any) {
       logger.error('Enroll in training program service error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Select or update internship partner company for enrollment
+   */
+  public async selectCompany(
+    userId: string,
+    programId: string,
+    companyData: {
+      companyName: string;
+      role?: string;
+      duration?: string;
+      stipend?: string;
+      mode?: string;
+    }
+  ): Promise<ITrainingProgramEnrollment> {
+    try {
+      let enrollment = await TrainingProgramEnrollment.findOne({
+        userId,
+        programId,
+      });
+
+      if (!enrollment) {
+        // Try finding by slug
+        const program = await TrainingProgram.findOne({
+          $or: [{ _id: programId }, { slug: programId }],
+          deletedAt: null,
+        });
+        if (program) {
+          enrollment = await TrainingProgramEnrollment.findOne({
+            userId,
+            programId: program._id,
+          });
+        }
+      }
+
+      if (!enrollment) {
+        throw new NotFoundError('Training program enrollment not found');
+      }
+
+      enrollment.selectedCompany = {
+        ...companyData,
+        selectedAt: new Date(),
+      };
+      await enrollment.save();
+
+      return enrollment;
+    } catch (error: any) {
+      logger.error('Select internship company service error:', error);
       throw error;
     }
   }
@@ -184,7 +261,12 @@ export class TrainingProgramEnrollmentService {
   ): Promise<{ isEnrolled: boolean; hasCallbackRequest: boolean }> {
     try {
       const [enrollment, callbackRequest] = await Promise.all([
-        TrainingProgramEnrollment.findOne({ userId, programId, status: 'confirmed' }),
+        TrainingProgramEnrollment.findOne({
+          userId,
+          programId,
+          status: { $in: ['confirmed', 'active', 'completed', 'enrolled'] },
+          paymentStatus: { $nin: ['pending', 'failed', 'cancelled', 'unpaid'] },
+        }),
         TrainingProgramCallbackRequest.findOne({ userId, programId, status: 'pending' }),
       ]);
 

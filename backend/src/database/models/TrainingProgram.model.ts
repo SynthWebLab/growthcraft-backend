@@ -8,9 +8,23 @@ export enum ProgramLevel {
 
 export type ProgramStatus = 'active' | 'coming-soon' | 'draft';
 
+export interface IInternshipPartner {
+  _id?: mongoose.Types.ObjectId | string;
+  companyName: string;
+  logo?: string;
+  role: string;
+  duration?: string;
+  mode?: 'Hybrid' | 'Remote' | 'On-site' | string;
+  stipend?: string;
+  description?: string;
+  availableSeats?: number;
+}
+
 export interface ITrainingProgram extends Document {
   slug: string;
   title: string;
+  programName?: string;
+  fullTitle?: string;
   description: string;
   domain: string;
   durationDays: number;
@@ -27,6 +41,9 @@ export interface ITrainingProgram extends Document {
   enrolledCount?: number;
   isPublished: boolean;
   isFeatured?: boolean;
+  prerequisites?: string[];
+  careerOutcomes?: string[];
+  internshipPartners?: IInternshipPartner[];
   mentors?: Array<{
     userId?: mongoose.Types.ObjectId;
     mentorProfileId?: mongoose.Types.ObjectId;
@@ -58,9 +75,17 @@ const trainingProgramSchema = new Schema<ITrainingProgram>(
       type: String,
       required: [true, 'Training program title is required'],
       trim: true,
-      minlength: [3, 'Title must be at least 3 characters'],
+      minlength: [2, 'Title must be at least 2 characters'],
       maxlength: [200, 'Title cannot exceed 200 characters'],
       index: 'text',
+    },
+    programName: {
+      type: String,
+      trim: true,
+    },
+    fullTitle: {
+      type: String,
+      trim: true,
     },
     description: {
       type: String,
@@ -90,6 +115,14 @@ const trainingProgramSchema = new Schema<ITrainingProgram>(
         },
         message: 'At least one tool/technology is required',
       },
+    },
+    prerequisites: {
+      type: [String],
+      default: [],
+    },
+    careerOutcomes: {
+      type: [String],
+      default: [],
     },
     price: {
       type: Number,
@@ -156,6 +189,18 @@ const trainingProgramSchema = new Schema<ITrainingProgram>(
       default: false,
       index: true,
     },
+    internshipPartners: [
+      {
+        companyName: { type: String, required: true },
+        logo: { type: String },
+        role: { type: String, required: true },
+        duration: { type: String },
+        mode: { type: String, default: 'Hybrid' },
+        stipend: { type: String },
+        description: { type: String },
+        availableSeats: { type: Number },
+      },
+    ],
     mentors: [
       {
         userId: { type: Schema.Types.ObjectId, ref: 'User' },
