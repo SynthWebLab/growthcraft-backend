@@ -2,6 +2,25 @@ import { TrainingProgram, ITrainingProgram } from '@/database/models';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { logger } from '@/common/utils/logger.util';
 
+export const DEFAULT_INTERNSHIP_PARTNERS: any[] = [
+  {
+    companyName: 'SynthWeb',
+    role: 'Full Stack & Enterprise Software Intern',
+    duration: '2-3 Months Live Internship',
+    mode: 'Hybrid / Campus Hub',
+    stipend: 'Performance-based Stipend + PPO Opportunity',
+    description: 'Work on live enterprise client projects, microservices architecture, and scalable software systems.',
+  },
+  {
+    companyName: 'Social Stories',
+    role: 'Product Engineering & Growth Intern',
+    duration: '2-3 Months Live Internship',
+    mode: 'Hybrid / Remote',
+    stipend: 'Performance-based Stipend + Co-branded Certificate',
+    description: 'Build modern user-centric web applications, UI/UX systems, and rapid growth tooling.',
+  },
+];
+
 export class TrainingProgramService {
   private static instance: TrainingProgramService;
 
@@ -12,6 +31,14 @@ export class TrainingProgramService {
       TrainingProgramService.instance = new TrainingProgramService();
     }
     return TrainingProgramService.instance;
+  }
+
+  private attachDefaultPartners(program: any): any {
+    if (!program) return program;
+    if (!program.internshipPartners || program.internshipPartners.length === 0) {
+      program.internshipPartners = DEFAULT_INTERNSHIP_PARTNERS;
+    }
+    return program;
   }
 
   /**
@@ -74,10 +101,11 @@ export class TrainingProgramService {
         TrainingProgram.countDocuments(query),
       ]);
 
+      const processedPrograms = (programs || []).map((p: any) => this.attachDefaultPartners(p));
       const totalPages = Math.ceil(total / limit);
 
       return {
-        programs: programs as unknown as ITrainingProgram[],
+        programs: processedPrograms as unknown as ITrainingProgram[],
         total,
         page,
         totalPages,
@@ -103,7 +131,7 @@ export class TrainingProgramService {
         throw new NotFoundError('Training program not found');
       }
 
-      return program as unknown as ITrainingProgram;
+      return this.attachDefaultPartners(program) as unknown as ITrainingProgram;
     } catch (error: any) {
       logger.error('Get training program by slug service error:', error);
       throw error;
@@ -125,7 +153,7 @@ export class TrainingProgramService {
         throw new NotFoundError('Training program not found');
       }
 
-      return program as unknown as ITrainingProgram;
+      return this.attachDefaultPartners(program) as unknown as ITrainingProgram;
     } catch (error: any) {
       logger.error('Get training program by ID service error:', error);
       throw error;

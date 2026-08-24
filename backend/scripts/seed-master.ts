@@ -54,8 +54,8 @@ async function seedMaster() {
     }
     logger.info('✓ Collections cleaned');
 
-    // 2. Hash default passwords
-    const defaultPasswordHash = await bcrypt.hash('GrowthCraft@123', 10);
+    // 2. Default password for all seeded users
+    const defaultPassword = 'GrowthCraft@123';
 
     // 3. Create Users & Profiles
     logger.info('Seeding administrative users...');
@@ -65,7 +65,7 @@ async function seedMaster() {
       fullName: 'Super Admin',
       phone: '1234567890',
       email: 'admin@growthcraft.com',
-      password: defaultPasswordHash,
+      password: defaultPassword,
       role: 'super_admin',
       isEmailVerified: true,
       isActive: true,
@@ -77,7 +77,7 @@ async function seedMaster() {
       fullName: 'Operations Manager',
       phone: '1234567891',
       email: 'ops@growthcraft.com',
-      password: defaultPasswordHash,
+      password: defaultPassword,
       role: 'ops',
       isEmailVerified: true,
       isActive: true,
@@ -89,7 +89,7 @@ async function seedMaster() {
       fullName: 'Siddharth Sharma',
       phone: '1234567892',
       email: 'mentor@growthcraft.com',
-      password: defaultPasswordHash,
+      password: defaultPassword,
       role: 'mentor',
       isEmailVerified: true,
       isActive: true,
@@ -121,7 +121,7 @@ async function seedMaster() {
       fullName: 'College Coordinator',
       phone: '1234567893',
       email: 'college@growthcraft.com',
-      password: defaultPasswordHash,
+      password: defaultPassword,
       role: 'college',
       isEmailVerified: true,
       isActive: true,
@@ -153,7 +153,7 @@ async function seedMaster() {
       fullName: 'Hiring Partner',
       phone: '1234567894',
       email: 'employer@growthcraft.com',
-      password: defaultPasswordHash,
+      password: defaultPassword,
       role: 'employer',
       isEmailVerified: true,
       isActive: true,

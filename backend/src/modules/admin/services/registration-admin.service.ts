@@ -22,6 +22,13 @@ export interface UnifiedRegistration {
   event_id: string | null;
   item_type: 'course' | 'training-program' | 'event';
   item_title: string;
+  selected_company?: {
+    companyName: string;
+    role?: string;
+    duration?: string;
+    stipend?: string;
+    mode?: string;
+  } | null;
   created_at: string;
 }
 
@@ -138,6 +145,7 @@ export class RegistrationAdminService {
           event_id: null,
           item_type: 'training-program',
           item_title: e.title || (e.programId ? e.programId.title : 'Training Program'),
+          selected_company: e.selectedCompany || null,
           created_at: (e.createdAt || e.enrollmentDate || new Date()).toISOString(),
         });
       });

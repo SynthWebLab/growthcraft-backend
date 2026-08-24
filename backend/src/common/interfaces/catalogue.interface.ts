@@ -3,7 +3,7 @@
  * Used by both courses and bootcamps
  */
 
-export type CatalogueItemType = 'course' | 'bootcamp' | 'workshop' | 'hackathon';
+export type CatalogueItemType = 'course' | 'bootcamp' | 'workshop' | 'hackathon' | 'events' | 'event';
 
 export interface CatalogueItem {
   // Common fields

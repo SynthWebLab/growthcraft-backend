@@ -219,7 +219,7 @@ export class CatalogueController {
   public async getAllEvents(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const queryParams: CatalogueQueryParams = {
-        type: req.query.type ? (req.query.type as string).trim() as any : undefined,
+        type: (req.query.type ? (req.query.type as string).trim() : 'events') as any,
         cursor: req.query.cursor as string,
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
         page: req.query.page ? parseInt(req.query.page as string) : undefined,

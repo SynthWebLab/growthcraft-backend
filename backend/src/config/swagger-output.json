@@ -1504,6 +1504,55 @@
                   },
                   "phone": {
                     "example": "any"
+                  },
+                  "selectedCompany": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/training-programs/{programId}/select-company": {
+      "patch": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "programId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "companyName": {
+                    "example": "any"
+                  },
+                  "role": {
+                    "example": "any"
+                  },
+                  "duration": {
+                    "example": "any"
+                  },
+                  "stipend": {
+                    "example": "any"
+                  },
+                  "mode": {
+                    "example": "any"
                   }
                 }
               }
@@ -3817,6 +3866,9 @@
                   "mentors": {
                     "example": "any"
                   },
+                  "internshipPartners": {
+                    "example": "any"
+                  },
                   "otherFields": {
                     "example": "any"
                   }
@@ -3861,6 +3913,9 @@
                     "example": "any"
                   },
                   "mentors": {
+                    "example": "any"
+                  },
+                  "internshipPartners": {
                     "example": "any"
                   },
                   "isPublished": {

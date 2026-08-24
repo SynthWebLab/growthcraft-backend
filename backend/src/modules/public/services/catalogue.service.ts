@@ -15,7 +15,7 @@ import mongoose from 'mongoose';
 export class CatalogueService {
   private static instance: CatalogueService;
   private readonly CACHE_TTL = 300; // 5 minutes
-  private readonly CACHE_VERSION = 'cta-v6';
+  private readonly CACHE_VERSION = 'cta-v8';
 
   private constructor() {}
 
@@ -63,8 +63,8 @@ export class CatalogueService {
 
       let allItems: CatalogueItem[] = [];
 
-      // Fetch courses if type is not specified or is 'course'
-      if (!queryParams.type || queryParams.type === 'course') {
+      // Fetch courses if type is 'course'
+      if (queryParams.type === 'course') {
         const courses = await this.fetchCourses(queryParams, sortBy, sortOrder, limit + 1);
         allItems.push(...courses.map(this.mapCourseToCatalogueItem));
       }
@@ -87,9 +87,19 @@ export class CatalogueService {
         allItems.push(...hackathons.map(this.mapBootcampToCatalogueItem));
       }
 
-      // If no type specified, fetch all event types (bootcamp, workshop, hackathon)
-      if (!queryParams.type) {
+      // If type is 'events' or 'event', fetch all event types (bootcamp, workshop, hackathon)
+      if (queryParams.type === 'events' || queryParams.type === 'event') {
         const allEvents = await this.fetchBootcamps(queryParams, sortBy, sortOrder, limit + 1);
+        allItems.push(...allEvents.map(this.mapBootcampToCatalogueItem));
+      }
+
+      // If no type specified, fetch courses + events
+      if (!queryParams.type) {
+        const [courses, allEvents] = await Promise.all([
+          this.fetchCourses(queryParams, sortBy, sortOrder, limit + 1),
+          this.fetchBootcamps(queryParams, sortBy, sortOrder, limit + 1),
+        ]);
+        allItems.push(...courses.map(this.mapCourseToCatalogueItem));
         allItems.push(...allEvents.map(this.mapBootcampToCatalogueItem));
       }
 
@@ -168,7 +178,7 @@ export class CatalogueService {
       total = courseTotal;
     }
 
-    if (queryParams.type === 'bootcamp' || queryParams.type === 'workshop' || queryParams.type === 'hackathon') {
+    if (queryParams.type === 'events' || queryParams.type === 'event' || queryParams.type === 'bootcamp' || queryParams.type === 'workshop' || queryParams.type === 'hackathon') {
       const [bootcamps, bootcampTotal] = await Promise.all([
         this.fetchBootcamps(queryParams, sortBy, sortOrder, limit, skip),
         this.countBootcamps(queryParams),
@@ -311,6 +321,8 @@ export class CatalogueService {
       filter.type = 'Workshop';
     } else if (queryParams.type === 'hackathon') {
       filter.type = 'Hackathon';
+    } else if (queryParams.type === 'events' || queryParams.type === 'event') {
+      filter.type = { $in: ['Bootcamp', 'Workshop', 'Hackathon'] };
     }
     // If no type specified, return all types (no type filter)
 
