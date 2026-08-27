@@ -5,7 +5,7 @@ import { envUtil } from '@/common/utils/env.util';
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnvVars = ['NODE_ENV', 'PORT', 'MONGODB_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+const requiredEnvVars = ['NODE_ENV', 'PORT', 'MONGODB_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET', 'COOKIE_SECRET'];
 
 envUtil.validateEnvVars(requiredEnvVars);
 
@@ -44,7 +44,7 @@ export const config = {
 
   // Security
   BCRYPT_SALT_ROUNDS: parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10),
-  COOKIE_SECRET: process.env.COOKIE_SECRET || 'default-cookie-secret',
+  COOKIE_SECRET: process.env.COOKIE_SECRET!,
 
   // Logging
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
