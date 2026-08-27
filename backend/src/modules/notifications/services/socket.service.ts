@@ -1,6 +1,7 @@
 import { Server as SocketIOServer } from 'socket.io';
 import http from 'http';
 import { jwtConfig } from '@/config/jwt.config';
+import { config } from '@/config';
 import { logger } from '@/common/utils/logger.util';
 
 const parseCookies = (cookieString?: string): Record<string, string> => {
@@ -30,9 +31,11 @@ export class SocketService {
   }
 
   public init(server: http.Server): SocketIOServer {
+    const allowedOrigins = config.ALLOWED_ORIGINS.length > 0 ? config.ALLOWED_ORIGINS : [config.FRONTEND_URL];
+
     this.io = new SocketIOServer(server, {
       cors: {
-        origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+        origin: allowedOrigins,
         credentials: true,
       },
     });

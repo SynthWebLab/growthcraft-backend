@@ -19,7 +19,7 @@ export class EnvUtil {
       );
     }
 
-    // Reject weak or default secrets in production
+    // Reject weak or default secrets and insecure origins in production
     if (this.isProduction()) {
       const insecureSecrets = [
         'default-cookie-secret',
@@ -35,6 +35,17 @@ export class EnvUtil {
         if (val && (insecureSecrets.includes(val) || val.length < 32)) {
           throw new Error(
             `Insecure ${key} detected in production! Secret must be at least 32 characters long and not use default placeholder values.`
+          );
+        }
+      }
+
+      // Check FRONTEND_URL in production
+      const frontendUrl = process.env.FRONTEND_URL;
+      if (frontendUrl) {
+        const privateIpRegex = /^(https?:\/\/)?(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|127\.0\.0\.1|localhost)/i;
+        if (privateIpRegex.test(frontendUrl) || frontendUrl.includes('your-production-domain.com')) {
+          throw new Error(
+            `Insecure or placeholder FRONTEND_URL (${frontendUrl}) configured for production! Must be a valid public production domain with HTTPS.`
           );
         }
       }

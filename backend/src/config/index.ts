@@ -5,7 +5,15 @@ import { envUtil } from '@/common/utils/env.util';
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnvVars = ['NODE_ENV', 'PORT', 'MONGODB_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET', 'COOKIE_SECRET'];
+const requiredEnvVars = [
+  'NODE_ENV',
+  'PORT',
+  'MONGODB_URI',
+  'JWT_SECRET',
+  'JWT_REFRESH_SECRET',
+  'COOKIE_SECRET',
+  'FRONTEND_URL',
+];
 
 envUtil.validateEnvVars(requiredEnvVars);
 
@@ -35,8 +43,12 @@ export const config = {
   SMTP_USER: process.env.SMTP_USER,
   SMTP_PASS: process.env.SMTP_PASS,
 
-  // Frontend
-  FRONTEND_URL: process.env.FRONTEND_URL || 'http://192.168.1.17:3000',
+  // Frontend & CORS
+  FRONTEND_URL: process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'),
+  ALLOWED_ORIGINS: (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000'))
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
