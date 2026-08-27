@@ -54,7 +54,7 @@ const startServer = async () => {
       logger.warn('⚠ Redis connection failed - continuing without Redis');
     }
 
-    // Start listening
+    // Start listening on configured port
     const server = app.listen(config.PORT, () => {
       logger.info(`Server running on port ${config.PORT}`);
       logger.info(`Environment: ${config.NODE_ENV}`);

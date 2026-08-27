@@ -11,7 +11,7 @@ import { jwtConfig } from '@/config/jwt.config';
 export class AuthController {
   private static instance: AuthController;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): AuthController {
     if (!AuthController.instance) {
@@ -656,6 +656,17 @@ export class AuthController {
           error: {
             message: error.message,
             code: 'INVALID_OTP',
+          },
+        });
+        return;
+      }
+
+      if (error.message === 'New password must be different from current password' || error.message === 'New password must be different from your previous password') {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'SAME_PASSWORD',
           },
         });
         return;
