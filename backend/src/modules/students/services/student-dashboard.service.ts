@@ -19,6 +19,7 @@ import { queueInviteEmail } from '@/jobs/email-delivery.job';
 import { ConflictError } from '@/common/errors/ConflictError';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { logger } from '@/common/utils/logger.util';
+import { config } from '@/config';
 
 export type StudentCertification = IStudentProfile['certifications'][number];
 
@@ -593,7 +594,7 @@ export class StudentDashboardService {
         .limit(5)
         .exec();
 
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const frontendUrl = config.FRONTEND_URL;
       const referralLink = `${frontendUrl}/register/student?ref=${profile.referralCode}`;
 
       const totalReferrals = referrals.length;
@@ -667,7 +668,7 @@ export class StudentDashboardService {
       const ambassadorUser = await User.findById(profile.userId).select('fullName').lean().exec();
       const senderName = ambassadorUser ? ambassadorUser.fullName : 'Your friend';
 
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const frontendUrl = config.FRONTEND_URL;
       const invites: any[] = [];
 
       for (const email of payload.emails) {

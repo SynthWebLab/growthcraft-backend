@@ -3,7 +3,7 @@ import { config } from '@/config';
 import { logger } from '@/common/utils/logger.util';
 
 const smtpUser = (config as any).SMTP_USER || '';
-const frontendUrl = config.FRONTEND_URL || 'http://localhost:3000';
+const frontendUrl = config.FRONTEND_URL;
 
 class EmailService {
   private transporter: nodemailer.Transporter;
