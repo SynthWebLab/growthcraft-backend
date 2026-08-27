@@ -17,8 +17,8 @@ export class PasswordValidator {
     return body(fieldName)
       .notEmpty()
       .withMessage(`${fieldName === 'password' ? 'Password' : 'New password'} is required`)
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters')
+      .isLength({ min: 8, max: 128 })
+      .withMessage('Password must be between 8 and 128 characters')
       .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
       .withMessage(
         'Password must contain at least one uppercase letter, one lowercase letter, and one number'

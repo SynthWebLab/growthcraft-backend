@@ -1,6 +1,12 @@
 import { body, ValidationChain } from 'express-validator';
 import { PasswordValidator } from '@/common/validators/password.validator';
 
+/**
+ * Phone regex: optional leading +, then digits with optional spaces/hyphens/parens,
+ * but must start and end with a digit and contain at least 7 digits total.
+ */
+const PHONE_REGEX = /^\+?[\d][\d\s\-()]{5,18}[\d]$/;
+
 export class AuthValidator {
   public static register(): ValidationChain[] {
     return [
@@ -23,11 +29,21 @@ export class AuthValidator {
         .trim()
         .notEmpty()
         .withMessage('Phone number is required')
-        .matches(/^\+?[\d\s-()]+$/)
-        .withMessage('Please provide a valid phone number'),
+        .matches(PHONE_REGEX)
+        .withMessage('Please provide a valid phone number')
+        .custom((value: string) => {
+          const digitCount = (value.match(/\d/g) || []).length;
+          if (digitCount < 7) {
+            throw new Error('Phone number must have at least 7 digits');
+          }
+          return true;
+        }),
 
       // Use centralized password validation
       PasswordValidator.passwordRules('password'),
+
+      // Block commonly used passwords
+      PasswordValidator.blacklistValidation('password'),
 
       body('role')
         .notEmpty()
@@ -74,8 +90,15 @@ export class AuthValidator {
         .trim()
         .notEmpty()
         .withMessage('College phone number is required')
-        .matches(/^\+?[\d\s-()]+$/)
-        .withMessage('Please provide a valid phone number'),
+        .matches(PHONE_REGEX)
+        .withMessage('Please provide a valid phone number')
+        .custom((value: string) => {
+          const digitCount = (value.match(/\d/g) || []).length;
+          if (digitCount < 7) {
+            throw new Error('Phone number must have at least 7 digits');
+          }
+          return true;
+        }),
 
       body('collegeData.city')
         .if(body('role').equals('college'))
@@ -139,8 +162,15 @@ export class AuthValidator {
         .trim()
         .notEmpty()
         .withMessage('Company phone number is required')
-        .matches(/^\+?[\d\s-()]+$/)
-        .withMessage('Please provide a valid phone number'),
+        .matches(PHONE_REGEX)
+        .withMessage('Please provide a valid phone number')
+        .custom((value: string) => {
+          const digitCount = (value.match(/\d/g) || []).length;
+          if (digitCount < 7) {
+            throw new Error('Phone number must have at least 7 digits');
+          }
+          return true;
+        }),
 
       body('employerData.companySize')
         .if(body('role').equals('employer'))
@@ -266,7 +296,7 @@ export class AuthValidator {
 
       // Use centralized password validation
       PasswordValidator.passwordRules('newPassword'),
-      
+
       // Use centralized password confirmation validation
       PasswordValidator.confirmPasswordRules('newPassword', 'confirmPassword'),
     ];

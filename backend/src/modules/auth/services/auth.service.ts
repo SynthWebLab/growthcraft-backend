@@ -18,7 +18,7 @@ import { config } from '@/config';
 export class AuthService {
   private static instance: AuthService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): AuthService {
     if (!AuthService.instance) {
@@ -128,7 +128,7 @@ export class AuthService {
           referral.referredUserId = user._id as mongoose.Types.ObjectId;
           referral.status = 'registered';
           await referral.save();
-          
+
           // Increment totalReferrals count on the ambassador profile
           await StudentProfile.updateOne(
             { userId: referral.ambassadorUserId },
@@ -705,6 +705,7 @@ export class AuthService {
   }
 
   public async resetPassword(email: string, otp: string, newPassword: string): Promise<void> {
+    console.log('RESET PASSWORD CALLED', { email, newPassword: '***' });
     try {
       const hashedToken = hashToken(otp);
 
@@ -716,6 +717,15 @@ export class AuthService {
 
       if (!user) {
         throw new Error('Invalid or expired verification code');
+      }
+
+      // Check if new password is same as current password
+      console.log('Comparing passwords', { hasPassword: !!user.password });
+      const isSamePassword = await user.comparePassword(newPassword);
+      console.log('isSamePassword result:', isSamePassword);
+      if (isSamePassword) {
+        console.log('SAME PASSWORD DETECTED');
+        throw new Error('New password must be different from your previous password');
       }
 
       user.password = newPassword;
@@ -750,9 +760,11 @@ export class AuthService {
       }
 
       // Check if new password is same as current password
-      const isSamePassword = await user.comparePassword(newPassword);
-      if (isSamePassword) {
-        throw new Error('New password must be different from current password');
+      if (user.password) {
+        const isSamePassword = await user.comparePassword(newPassword);
+        if (isSamePassword) {
+          throw new Error('New password must be different from current password');
+        }
       }
 
       // Update password
