@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { logger } from '@/common/utils/logger.util';
 
 export enum EnrollmentStatus {
   PENDING = 'Pending',
@@ -170,13 +171,13 @@ enrollmentSchema.pre('save', async function (next) {
             }
           );
         } catch (err) {
-          console.error('Failed to trigger referral conversion notification:', err);
+          logger.error('Failed to trigger referral conversion notification:', err);
         }
 
-        console.log(`Referral commission of INR ${commissionAmount} successfully applied for ambassador ${referral.ambassadorUserId}`);
+        logger.info(`Referral commission of INR ${commissionAmount} successfully applied for ambassador ${referral.ambassadorUserId}`);
       }
     } catch (err) {
-      console.error('Error calculating referral commission on enrollment save:', err);
+      logger.error('Error calculating referral commission on enrollment save:', err);
     }
   }
   next();
