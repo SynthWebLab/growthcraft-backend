@@ -5,7 +5,7 @@ import { EmployerProfile } from '@/database/models/EmployerProfile.model';
 import { MentorProfile } from '@/database/models/MentorProfile.model';
 import { StudentProfile } from '@/database/models/StudentProfile.model';
 import { Referral } from '@/database/models/Referral.model';
-import { RegisterDto, RegisterResponseDto } from '../dto/register.dto';
+import { RegisterDto, RegisterResponseDto, LoginResponseDto } from '../dto/register.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
 import { logger } from '@/common/utils/logger.util';
 import { tokenService } from './token.service';
@@ -60,22 +60,6 @@ export class AuthService {
             logger.error('Failed to send verification OTP:', emailError);
           }
 
-          const tokens = tokenService.generateTokenPair({
-            userId: existingUser._id.toString(),
-            email: existingUser.email,
-            role: existingUser.role,
-          });
-
-          try {
-            if (redisTokenService.isAvailable()) {
-              await redisTokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
-            } else {
-              await tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
-            }
-          } catch (error) {
-            await tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
-          }
-
           return {
             user: {
               id: existingUser._id.toString(),
@@ -85,7 +69,6 @@ export class AuthService {
               role: existingUser.role,
               isEmailVerified: existingUser.isEmailVerified,
             },
-            tokens,
           };
         } else {
           throw new Error('User with this email already exists');
@@ -244,25 +227,6 @@ export class AuthService {
         // Continue with registration even if email fails
       }
 
-      // Generate tokens (JWT access + crypto refresh)
-      const tokens = tokenService.generateTokenPair({
-        userId: user._id.toString(),
-        email: user.email,
-        role: user.role,
-      });
-
-      // Store refresh token in Redis (fallback to MongoDB if Redis unavailable)
-      try {
-        if (redisTokenService.isAvailable()) {
-          await redisTokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
-        } else {
-          await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
-        }
-      } catch (error) {
-        logger.warn('Failed to store token in Redis, falling back to MongoDB');
-        await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
-      }
-
       logger.info(`User registered successfully: ${user.email}`);
 
       const response: RegisterResponseDto = {
@@ -274,7 +238,6 @@ export class AuthService {
           role: user.role,
           isEmailVerified: user.isEmailVerified,
         },
-        tokens,
       };
 
       // Add college profile data to response if created
@@ -314,7 +277,7 @@ export class AuthService {
     }
   }
 
-  public async login(email: string, password: string): Promise<RegisterResponseDto> {
+  public async login(email: string, password: string): Promise<LoginResponseDto> {
     try {
       // Find user with password field
       const user = await User.findOne({ email }).select('+password +refreshTokens');
@@ -530,7 +493,7 @@ export class AuthService {
   public async verifyEmail(
     email: string,
     otp: string
-  ): Promise<{ user: { email: string; fullName: string } }> {
+  ): Promise<{ user: { email: string; fullName: string; role: string } }> {
     try {
       const hashedOTP = hashToken(otp);
 
@@ -549,6 +512,7 @@ export class AuthService {
           user: {
             email: user.email,
             fullName: user.fullName,
+            role: user.role,
           },
         };
       }
@@ -606,6 +570,7 @@ export class AuthService {
         user: {
           email: user.email,
           fullName: user.fullName,
+          role: user.role,
         },
       };
     } catch (error: any) {
