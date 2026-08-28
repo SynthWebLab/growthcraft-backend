@@ -115,9 +115,6 @@ export class AuthController {
       // Register user
       const result = await authService.register(registerDto);
 
-      // Set httpOnly cookies
-      this.setTokenCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
-
       const responseData: any = {
         user: result.user,
         requiresEmailVerification: !result.user.isEmailVerified,
