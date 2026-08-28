@@ -668,14 +668,17 @@ export class AuthService {
 
   public async requestPasswordReset(email: string): Promise<void> {
     try {
-      const user = await User.findOne({ email }).select(
+      const normalizedEmail = email.toLowerCase().trim();
+      const user = await User.findOne({ email: normalizedEmail }).select(
         '+passwordResetToken +passwordResetExpires'
       );
 
       if (!user) {
-        // Don't reveal if user exists or not for security
-        logger.info(`Password reset requested for non-existent email: ${email}`);
-        return;
+        throw new Error('No account found with this email address');
+      }
+
+      if (!user.isActive) {
+        throw new Error('Account is deactivated. Please contact support.');
       }
 
       // Generate 6-digit OTP
