@@ -59,3 +59,10 @@ Thumbs.db
 
 # Optional REPL history
 .node_repl_history
+
+# Tokens and Credentials
+token.txt
+token*.txt
+*.token
+*.token.txt
+tokens/

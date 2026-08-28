@@ -588,12 +588,35 @@ export class AuthController {
 
       await authService.requestPasswordReset(email);
 
-      // Always return success to prevent email enumeration
       res.status(200).json({
         success: true,
-        message: 'If the email exists, a password reset link has been sent',
+        message: 'Password reset code has been sent to your email',
       });
-    } catch (error) {
+    } catch (error: any) {
+      logger.error('Request password reset error:', error);
+
+      if (error.message === 'No account found with this email address' || error.message === 'User not found') {
+        res.status(404).json({
+          success: false,
+          error: {
+            message: 'No account found with this email address',
+            code: 'USER_NOT_FOUND',
+          },
+        });
+        return;
+      }
+
+      if (error.message === 'Account is deactivated. Please contact support.') {
+        res.status(403).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'ACCOUNT_DEACTIVATED',
+          },
+        });
+        return;
+      }
+
       next(error);
     }
   }
