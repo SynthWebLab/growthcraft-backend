@@ -28,15 +28,23 @@ export interface CallbackRequestData {
 }
 
 export class EnrollmentService {
-  private static instance: EnrollmentService;
+  private static instance: EnrollmentService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): EnrollmentService {
     if (!EnrollmentService.instance) {
       EnrollmentService.instance = new EnrollmentService();
     }
     return EnrollmentService.instance;
+  }
+
+  public static setInstance(instance: EnrollmentService | null): void {
+    EnrollmentService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    EnrollmentService.instance = null;
   }
 
   /**

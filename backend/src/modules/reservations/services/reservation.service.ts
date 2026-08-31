@@ -17,16 +17,24 @@ export interface CreateReservationDTO {
 }
 
 export class ReservationService {
-  private static instance: ReservationService;
+  private static instance: ReservationService | null = null;
   private readonly RESERVATION_EXPIRY_HOURS = 24; // Reservation expires after 24 hours
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): ReservationService {
     if (!ReservationService.instance) {
       ReservationService.instance = new ReservationService();
     }
     return ReservationService.instance;
+  }
+
+  public static setInstance(instance: ReservationService | null): void {
+    ReservationService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    ReservationService.instance = null;
   }
 
   /**

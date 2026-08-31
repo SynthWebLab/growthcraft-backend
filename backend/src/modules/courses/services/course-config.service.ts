@@ -2,18 +2,29 @@ import { CourseConfig, ICourseConfig } from '@/database/models/CourseConfig.mode
 import { logger } from '@/common/utils/logger.util';
 
 export class CourseConfigService {
-  private static instance: CourseConfigService;
+  private static instance: CourseConfigService | null = null;
   private cache: Map<string, string[]> = new Map();
   private cacheExpiry: Map<string, number> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): CourseConfigService {
     if (!CourseConfigService.instance) {
       CourseConfigService.instance = new CourseConfigService();
     }
     return CourseConfigService.instance;
+  }
+
+  public static setInstance(instance: CourseConfigService | null): void {
+    CourseConfigService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    if (CourseConfigService.instance) {
+      CourseConfigService.instance.clearCache();
+    }
+    CourseConfigService.instance = null;
   }
 
   /**

@@ -174,15 +174,23 @@ const MONTH_LABELS = [
 ];
 
 export class CollegeDashboardService {
-  private static instance: CollegeDashboardService;
+  private static instance: CollegeDashboardService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): CollegeDashboardService {
     if (!CollegeDashboardService.instance) {
       CollegeDashboardService.instance = new CollegeDashboardService();
     }
     return CollegeDashboardService.instance;
+  }
+
+  public static setInstance(instance: CollegeDashboardService | null): void {
+    CollegeDashboardService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    CollegeDashboardService.instance = null;
   }
 
   /**

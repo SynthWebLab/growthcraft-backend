@@ -13,17 +13,25 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 
 export class CatalogueService {
-  private static instance: CatalogueService;
+  private static instance: CatalogueService | null = null;
   private readonly CACHE_TTL = 300; // 5 minutes
   private readonly CACHE_VERSION = 'cta-v8';
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): CatalogueService {
     if (!CatalogueService.instance) {
       CatalogueService.instance = new CatalogueService();
     }
     return CatalogueService.instance;
+  }
+
+  public static setInstance(instance: CatalogueService | null): void {
+    CatalogueService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    CatalogueService.instance = null;
   }
 
   /**

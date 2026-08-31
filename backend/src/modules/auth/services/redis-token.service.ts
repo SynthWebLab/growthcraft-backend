@@ -11,19 +11,26 @@ export interface RedisTokenMetadata {
 }
 
 export class RedisTokenService {
-  private static instance: RedisTokenService;
+  private static instance: RedisTokenService | null = null;
   private readonly TOKEN_PREFIX = 'refresh_token:';
   private readonly USER_TOKENS_PREFIX = 'user_tokens:';
   private readonly BLACKLIST_PREFIX = 'blacklist:access:';  // for invalidated access tokens
 
-
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): RedisTokenService {
     if (!RedisTokenService.instance) {
       RedisTokenService.instance = new RedisTokenService();
     }
     return RedisTokenService.instance;
+  }
+
+  public static setInstance(instance: RedisTokenService | null): void {
+    RedisTokenService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    RedisTokenService.instance = null;
   }
 
   /**

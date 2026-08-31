@@ -78,15 +78,23 @@ const allowedStatusTransitions: Record<BatchStatus, BatchStatus[]> = {
 };
 
 export class BatchService {
-  private static instance: BatchService;
+  private static instance: BatchService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): BatchService {
     if (!BatchService.instance) {
       BatchService.instance = new BatchService();
     }
     return BatchService.instance;
+  }
+
+  public static setInstance(instance: BatchService | null): void {
+    BatchService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    BatchService.instance = null;
   }
 
   private async findParent(batchType: BatchType, parentId: string): Promise<BatchParent> {

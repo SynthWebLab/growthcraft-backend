@@ -23,15 +23,23 @@ export interface UnifiedEnquiry {
 }
 
 export class EnquiryAdminService {
-  private static instance: EnquiryAdminService;
+  private static instance: EnquiryAdminService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): EnquiryAdminService {
     if (!EnquiryAdminService.instance) {
       EnquiryAdminService.instance = new EnquiryAdminService();
     }
     return EnquiryAdminService.instance;
+  }
+
+  public static setInstance(instance: EnquiryAdminService | null): void {
+    EnquiryAdminService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    EnquiryAdminService.instance = null;
   }
 
   /**

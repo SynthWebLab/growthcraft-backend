@@ -20,17 +20,25 @@ export interface BootcampQueryParams {
 }
 
 export class BootcampService {
-  private static instance: BootcampService;
+  private static instance: BootcampService | null = null;
   private readonly CACHE_TTL = 300; // 5 minutes
   private readonly CACHE_VERSION = 'cta-v6';
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): BootcampService {
     if (!BootcampService.instance) {
       BootcampService.instance = new BootcampService();
     }
     return BootcampService.instance;
+  }
+
+  public static setInstance(instance: BootcampService | null): void {
+    BootcampService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    BootcampService.instance = null;
   }
 
   /**
