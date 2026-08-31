@@ -86,7 +86,7 @@ export class UserController {
         user.phone = phone;
       }
 
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       res.status(200).json({
         success: true,

@@ -613,7 +613,7 @@ export class AuthService {
         user.emailVerificationOTP = undefined;
         user.emailVerificationOTPExpires = undefined;
         user.emailVerificationOTPAttempts = 0;
-        await user.save();
+        await user.save({ validateModifiedOnly: true });
         throw new Error('Maximum verification attempts exceeded. Please request a new OTP.');
       }
 
@@ -621,7 +621,7 @@ export class AuthService {
       if (user.emailVerificationOTP !== hashedOTP) {
         // Increment attempts
         user.emailVerificationOTPAttempts = (user.emailVerificationOTPAttempts || 0) + 1;
-        await user.save();
+        await user.save({ validateModifiedOnly: true });
 
         const remainingAttempts = 5 - user.emailVerificationOTPAttempts;
         throw new Error(
@@ -634,7 +634,7 @@ export class AuthService {
       user.emailVerificationOTP = undefined;
       user.emailVerificationOTPExpires = undefined;
       user.emailVerificationOTPAttempts = 0;
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       logger.info(`Email verified successfully for user: ${user.email}`);
 
@@ -691,7 +691,7 @@ export class AuthService {
       user.emailVerificationOTP = hashedOTP;
       user.emailVerificationOTPExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
       user.emailVerificationOTPAttempts = 0; // Reset attempts
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       // Send verification OTP
       try {
@@ -732,7 +732,7 @@ export class AuthService {
 
       user.passwordResetToken = hashedToken;
       user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       // Send password reset email
       try {
@@ -779,7 +779,7 @@ export class AuthService {
       user.password = newPassword;
       user.passwordResetToken = undefined;
       user.passwordResetExpires = undefined;
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       logger.info(`Password reset successfully for user: ${user.email}`);
     } catch (error: any) {
@@ -817,7 +817,7 @@ export class AuthService {
 
       // Update password
       user.password = newPassword;
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       // Optional: Invalidate all refresh tokens to force re-login on all devices
       // await tokenService.removeAllRefreshTokens(userId);

@@ -48,9 +48,15 @@ const userSchema = new Schema<IUser>(
     },
     phone: {
       type: String,
-      required: [true, 'Phone number is required'],
       trim: true,
-      match: [/^\+?[\d\s-()]+$/, 'Please provide a valid phone number'],
+      default: '',
+      validate: {
+        validator: function (v: string) {
+          if (!v || v.trim() === '') return true;
+          return /^\+?[\d\s-()]+$/.test(v);
+        },
+        message: 'Please provide a valid phone number',
+      },
     },
     password: {
       type: String,

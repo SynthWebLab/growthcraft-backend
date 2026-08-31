@@ -142,7 +142,7 @@ export class TokenService {
         user.refreshTokens = user.refreshTokens.slice(-5);
       }
 
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
       logger.info(`Refresh token stored for user: ${userId}`);
     } catch (error: any) {
       logger.error('Error storing refresh token:', error);
@@ -162,7 +162,7 @@ export class TokenService {
 
       // Remove expired tokens
       user.refreshTokens = user.refreshTokens.filter((rt) => rt.expiresAt > new Date());
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       // Check if any hashed token matches the provided token
       for (const tokenObj of user.refreshTokens) {
@@ -170,7 +170,7 @@ export class TokenService {
         if (isValid) {
           // Update last used timestamp
           tokenObj.lastUsedAt = new Date();
-          await user.save();
+          await user.save({ validateModifiedOnly: true });
           return true;
         }
       }
@@ -202,7 +202,7 @@ export class TokenService {
       }
 
       user.refreshTokens = updatedTokens;
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       logger.info(`Refresh token removed for user: ${userId}`);
     } catch (error: any) {
@@ -222,7 +222,7 @@ export class TokenService {
       }
 
       user.refreshTokens = [];
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
 
       logger.info(`All refresh tokens removed for user: ${userId}`);
     } catch (error: any) {
