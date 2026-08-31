@@ -31,6 +31,7 @@
     "init:config": "ts-node scripts/init-course-config.ts",
     "fix:enrollment": "ts-node scripts/fix-course-enrollment.ts",
     "backfill:batches": "ts-node scripts/backfill-enrollment-batches.ts",
+    "audit:enrollments": "ts-node scripts/audit-corrupted-enrollments.ts",
     "seed:metrics": "ts-node scripts/seed-test-metrics-data.ts",
     "trigger-metrics": "ts-node scripts/trigger-metrics-job.ts",
     "lint": "eslint src/**/*.ts",
