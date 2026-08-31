@@ -11,6 +11,7 @@ import { logger } from './common/utils/logger.util';
 import { NotFoundError } from './common/errors/NotFoundError';
 import { errorHandler } from './common/middleware/error-handler.middleware';
 import { apiLimiter } from './common/middleware/rate-limiter.middleware';
+import { sanitizeInput } from './common/middleware';
 import routes from './routes/v1';
 import { swaggerSpec } from './config/swagger.config';
 import swaggerOutputAuto from './config/swagger-output.json';
@@ -45,16 +46,19 @@ app.use(
   })
 );
 
-// Prevent NoSQL query injection
-app.use(mongoSanitize());
-
-// Rate limiting middleware
-app.use('/api/', apiLimiter);
-
-// Body parsing middleware
+// Body parsing middleware (must precede body-dependent sanitizers)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(config.COOKIE_SECRET));
+
+// Prevent NoSQL query injection on parsed body, query, and params
+app.use(mongoSanitize());
+
+// Input sanitization (XSS mitigation, null-byte removal, string trimming, prototype pollution defense)
+app.use(sanitizeInput);
+
+// Rate limiting middleware
+app.use('/api/', apiLimiter);
 
 // Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
