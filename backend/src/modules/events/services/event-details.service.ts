@@ -4,15 +4,23 @@ import { NotFoundError } from '@/common/errors/NotFoundError';
 import { logger } from '@/common/utils/logger.util';
 
 export class EventDetailsService {
-  private static instance: EventDetailsService;
+  private static instance: EventDetailsService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): EventDetailsService {
     if (!EventDetailsService.instance) {
       EventDetailsService.instance = new EventDetailsService();
     }
     return EventDetailsService.instance;
+  }
+
+  public static setInstance(instance: EventDetailsService | null): void {
+    EventDetailsService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    EventDetailsService.instance = null;
   }
 
   /**

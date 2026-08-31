@@ -26,15 +26,23 @@ export interface MentorDashboardSummary {
 }
 
 export class MentorDashboardService {
-  private static instance: MentorDashboardService;
+  private static instance: MentorDashboardService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): MentorDashboardService {
     if (!MentorDashboardService.instance) {
       MentorDashboardService.instance = new MentorDashboardService();
     }
     return MentorDashboardService.instance;
+  }
+
+  public static setInstance(instance: MentorDashboardService | null): void {
+    MentorDashboardService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    MentorDashboardService.instance = null;
   }
 
   /**

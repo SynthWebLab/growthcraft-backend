@@ -3,15 +3,23 @@ import { AuditLog, IAuditLog } from '@/database/models';
 import { logger } from '@/common/utils/logger.util';
 
 export class AuditLogService {
-  private static instance: AuditLogService;
+  private static instance: AuditLogService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): AuditLogService {
     if (!AuditLogService.instance) {
       AuditLogService.instance = new AuditLogService();
     }
     return AuditLogService.instance;
+  }
+
+  public static setInstance(instance: AuditLogService | null): void {
+    AuditLogService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    AuditLogService.instance = null;
   }
 
   /**

@@ -9,15 +9,23 @@ import { ValidationError } from '@/common/errors/ValidationError';
 import { logger } from '@/common/utils/logger.util';
 
 export class EmployerService {
-  private static instance: EmployerService;
+  private static instance: EmployerService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): EmployerService {
     if (!EmployerService.instance) {
       EmployerService.instance = new EmployerService();
     }
     return EmployerService.instance;
+  }
+
+  public static setInstance(instance: EmployerService | null): void {
+    EmployerService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    EmployerService.instance = null;
   }
 
   /**

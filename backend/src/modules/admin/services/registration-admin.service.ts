@@ -33,15 +33,23 @@ export interface UnifiedRegistration {
 }
 
 export class RegistrationAdminService {
-  private static instance: RegistrationAdminService;
+  private static instance: RegistrationAdminService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): RegistrationAdminService {
     if (!RegistrationAdminService.instance) {
       RegistrationAdminService.instance = new RegistrationAdminService();
     }
     return RegistrationAdminService.instance;
+  }
+
+  public static setInstance(instance: RegistrationAdminService | null): void {
+    RegistrationAdminService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    RegistrationAdminService.instance = null;
   }
 
   /**

@@ -8,23 +8,41 @@ import { Referral } from '@/database/models/Referral.model';
 import { RegisterDto, RegisterResponseDto, LoginResponseDto } from '../dto/register.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
 import { logger } from '@/common/utils/logger.util';
-import { tokenService } from './token.service';
-import { redisTokenService } from './redis-token.service';
+import { tokenService as defaultTokenService, TokenService } from './token.service';
+import { redisTokenService as defaultRedisTokenService, RedisTokenService } from './redis-token.service';
 import { emailService } from '@/common/services/email.service';
 import { generateVerificationToken, generateOTP, hashToken } from '@/common/utils/token.util';
 import { jwtConfig } from '@/config/jwt.config';
 import { config } from '@/config';
 
-export class AuthService {
-  private static instance: AuthService;
+export interface AuthServiceDependencies {
+  tokenService?: TokenService;
+  redisTokenService?: RedisTokenService;
+}
 
-  private constructor() { }
+export class AuthService {
+  private static instance: AuthService | null = null;
+  private readonly tokenService: TokenService;
+  private readonly redisTokenService: RedisTokenService;
+
+  public constructor(deps?: AuthServiceDependencies) {
+    this.tokenService = deps?.tokenService ?? defaultTokenService;
+    this.redisTokenService = deps?.redisTokenService ?? defaultRedisTokenService;
+  }
 
   public static getInstance(): AuthService {
     if (!AuthService.instance) {
       AuthService.instance = new AuthService();
     }
     return AuthService.instance;
+  }
+
+  public static setInstance(instance: AuthService | null): void {
+    AuthService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    AuthService.instance = null;
   }
 
   public async register(registerDto: RegisterDto): Promise<RegisterResponseDto> {
@@ -365,7 +383,7 @@ export class AuthService {
       }
 
       // Generate new tokens (JWT access + crypto refresh)
-      const tokens = tokenService.generateTokenPair({
+      const tokens = this.tokenService.generateTokenPair({
         userId: user._id.toString(),
         email: user.email,
         role: user.role,
@@ -376,14 +394,14 @@ export class AuthService {
 
       // Store refresh token in Redis (fallback to MongoDB if Redis unavailable)
       try {
-        if (redisTokenService.isAvailable()) {
-          await redisTokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+        if (this.redisTokenService.isAvailable()) {
+          await this.redisTokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
         } else {
-          await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+          await this.tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
         }
       } catch (error) {
         logger.warn('Failed to store token in Redis, falling back to MongoDB');
-        await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+        await this.tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
       }
 
       logger.info(`User logged in successfully: ${user.email}`);
@@ -438,16 +456,16 @@ export class AuthService {
       let tokens: RefreshTokenResponseDto;
 
       // Try Redis first, fallback to MongoDB if the token is not present there.
-      if (redisTokenService.isAvailable()) {
+      if (this.redisTokenService.isAvailable()) {
         // Validate token from Redis
-        const metadata = await redisTokenService.validateRefreshToken(refreshToken);
+        const metadata = await this.redisTokenService.validateRefreshToken(refreshToken);
 
         if (metadata?.userId === userId) {
           // Remove old token
-          await redisTokenService.removeRefreshToken(userId, refreshToken);
+          await this.redisTokenService.removeRefreshToken(userId, refreshToken);
 
           // Generate new token pair
-          tokens = tokenService.generateTokenPair({
+          tokens = this.tokenService.generateTokenPair({
             userId: user._id.toString(),
             email: user.email,
             role: user.role,
@@ -457,12 +475,12 @@ export class AuthService {
           });
 
           // Store new token in Redis
-          await redisTokenService.storeRefreshToken(userId, tokens.refreshToken, deviceInfo);
+          await this.redisTokenService.storeRefreshToken(userId, tokens.refreshToken, deviceInfo);
         } else {
           logger.warn(
             `Refresh token not found in Redis for user ${userId}; trying MongoDB fallback`
           );
-          tokens = await tokenService.rotateRefreshToken(
+          tokens = await this.tokenService.rotateRefreshToken(
             userId,
             refreshToken,
             {
@@ -481,7 +499,7 @@ export class AuthService {
         }
       } else {
         // Fallback to MongoDB token rotation
-        tokens = await tokenService.rotateRefreshToken(
+        tokens = await this.tokenService.rotateRefreshToken(
           userId,
           refreshToken,
           {
@@ -517,19 +535,19 @@ export class AuthService {
       // Immediately blacklist the access token so it cannot be reused within its 15-min window
       if (accessToken) {
         const decoded = jwtConfig.decodeToken(accessToken);
-        await redisTokenService.blacklistAccessToken(accessToken, decoded?.exp);
+        await this.redisTokenService.blacklistAccessToken(accessToken, decoded?.exp);
       }
 
       // Remove refresh token — Redis first, fallback to MongoDB
-      if (redisTokenService.isAvailable()) {
+      if (this.redisTokenService.isAvailable()) {
         try {
-          await redisTokenService.removeRefreshToken(userId, refreshToken);
+          await this.redisTokenService.removeRefreshToken(userId, refreshToken);
         } catch (redisError) {
           logger.warn('Redis logout failed, falling back to MongoDB:', redisError);
-          await tokenService.removeRefreshToken(userId, refreshToken);
+          await this.tokenService.removeRefreshToken(userId, refreshToken);
         }
       } else {
-        await tokenService.removeRefreshToken(userId, refreshToken);
+        await this.tokenService.removeRefreshToken(userId, refreshToken);
       }
       logger.info(`User logged out: ${userId}`);
     } catch (error: any) {
@@ -543,19 +561,19 @@ export class AuthService {
       // Blacklist the current session's access token immediately
       if (accessToken) {
         const decoded = jwtConfig.decodeToken(accessToken);
-        await redisTokenService.blacklistAccessToken(accessToken, decoded?.exp);
+        await this.redisTokenService.blacklistAccessToken(accessToken, decoded?.exp);
       }
 
       // Remove all refresh tokens — Redis first, fallback to MongoDB
-      if (redisTokenService.isAvailable()) {
+      if (this.redisTokenService.isAvailable()) {
         try {
-          await redisTokenService.removeAllRefreshTokens(userId);
+          await this.redisTokenService.removeAllRefreshTokens(userId);
         } catch (redisError) {
           logger.warn('Redis logoutAll failed, falling back to MongoDB:', redisError);
-          await tokenService.removeAllRefreshTokens(userId);
+          await this.tokenService.removeAllRefreshTokens(userId);
         }
       } else {
-        await tokenService.removeAllRefreshTokens(userId);
+        await this.tokenService.removeAllRefreshTokens(userId);
       }
       logger.info(`User logged out from all devices: ${userId}`);
     } catch (error: any) {

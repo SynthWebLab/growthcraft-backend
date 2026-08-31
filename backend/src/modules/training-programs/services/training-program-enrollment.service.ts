@@ -25,15 +25,23 @@ interface EnrollmentData {
 }
 
 export class TrainingProgramEnrollmentService {
-  private static instance: TrainingProgramEnrollmentService;
+  private static instance: TrainingProgramEnrollmentService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): TrainingProgramEnrollmentService {
     if (!TrainingProgramEnrollmentService.instance) {
       TrainingProgramEnrollmentService.instance = new TrainingProgramEnrollmentService();
     }
     return TrainingProgramEnrollmentService.instance;
+  }
+
+  public static setInstance(instance: TrainingProgramEnrollmentService | null): void {
+    TrainingProgramEnrollmentService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    TrainingProgramEnrollmentService.instance = null;
   }
 
   /**

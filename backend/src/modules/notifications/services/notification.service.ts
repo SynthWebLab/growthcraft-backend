@@ -1,17 +1,32 @@
 import { Notification } from '@/database/models';
-import { socketService } from './socket.service';
+import { socketService as defaultSocketService, SocketService } from './socket.service';
 import mongoose from 'mongoose';
 
-export class NotificationService {
-  private static instance: NotificationService;
+export interface NotificationServiceDependencies {
+  socketService?: SocketService;
+}
 
-  private constructor() {}
+export class NotificationService {
+  private static instance: NotificationService | null = null;
+  private readonly socketService: SocketService;
+
+  public constructor(deps?: NotificationServiceDependencies) {
+    this.socketService = deps?.socketService ?? defaultSocketService;
+  }
 
   public static getInstance(): NotificationService {
     if (!NotificationService.instance) {
       NotificationService.instance = new NotificationService();
     }
     return NotificationService.instance;
+  }
+
+  public static setInstance(instance: NotificationService | null): void {
+    NotificationService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    NotificationService.instance = null;
   }
 
   /**
@@ -29,7 +44,7 @@ export class NotificationService {
     });
 
     // Emit live to the user room
-    socketService.emitToUser(userId.toString(), 'notification', notification);
+    this.socketService.emitToUser(userId.toString(), 'notification', notification);
     return notification;
   }
 

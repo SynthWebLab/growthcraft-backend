@@ -16,16 +16,24 @@ import {
 import { ValidationError } from '@/common/errors/ValidationError';
 
 export class CourseService {
-  private static instance: CourseService;
+  private static instance: CourseService | null = null;
   private readonly CACHE_TTL = 300; // 5 minutes in seconds
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): CourseService {
     if (!CourseService.instance) {
       CourseService.instance = new CourseService();
     }
     return CourseService.instance;
+  }
+
+  public static setInstance(instance: CourseService | null): void {
+    CourseService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    CourseService.instance = null;
   }
 
   /**
