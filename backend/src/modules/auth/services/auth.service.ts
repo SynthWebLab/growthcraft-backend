@@ -46,9 +46,18 @@ export class AuthService {
   }
 
   public async register(registerDto: RegisterDto): Promise<RegisterResponseDto> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    let otpToSend: { email: string; otp: string; fullName: string } | null = null;
+    let registeredUser: IUser | null = null;
+    let collegeProfile: any = null;
+    let employerProfile: any = null;
+    let mentorProfile: any = null;
+
     try {
       // Check if user already exists
-      const existingUser = await User.findOne({ email: registerDto.email });
+      const existingUser = await User.findOne({ email: registerDto.email }).session(session);
       if (existingUser) {
         if (existingUser.role === 'student' && !existingUser.isEmailVerified) {
           existingUser.fullName = registerDto.fullName;
@@ -61,19 +70,35 @@ export class AuthService {
           existingUser.emailVerificationOTPExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
           existingUser.emailVerificationOTPAttempts = 0;
 
-          await existingUser.save();
+          await existingUser.save({ session });
 
-          let studentProfile = await StudentProfile.findOne({ userId: existingUser._id });
+          const studentProfile = await StudentProfile.findOne({ userId: existingUser._id }).session(session);
           if (!studentProfile) {
-            await StudentProfile.create({
-              userId: existingUser._id,
-              skills: [],
-              interests: [],
-            });
+            await StudentProfile.create(
+              [
+                {
+                  userId: existingUser._id,
+                  skills: [],
+                  interests: [],
+                },
+              ],
+              { session }
+            );
           }
 
+          await session.commitTransaction();
+
+          otpToSend = {
+            email: existingUser.email,
+            otp,
+            fullName: existingUser.fullName,
+          };
+
+          registeredUser = existingUser;
+
+          // Send verification OTP (non-blocking)
           try {
-            await emailService.sendVerificationOTP(existingUser.email, otp, existingUser.fullName);
+            await emailService.sendVerificationOTP(otpToSend.email, otpToSend.otp, otpToSend.fullName);
           } catch (emailError) {
             logger.error('Failed to send verification OTP:', emailError);
           }
@@ -84,7 +109,7 @@ export class AuthService {
             if (sp) isAmbassador = sp.isAmbassador || false;
           }
 
-          const tokens = tokenService.generateTokenPair({
+          const tokens = this.tokenService.generateTokenPair({
             userId: existingUser._id.toString(),
             email: existingUser.email,
             role: existingUser.role,
@@ -94,14 +119,14 @@ export class AuthService {
           });
 
           try {
-            if (redisTokenService.isAvailable()) {
-              await redisTokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
+            if (this.redisTokenService.isAvailable()) {
+              await this.redisTokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
             } else {
-              await tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
+              await this.tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
             }
           } catch (error) {
             logger.warn('Failed to store token in Redis, falling back to MongoDB');
-            await tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
+            await this.tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
           }
 
           return {
@@ -135,13 +160,18 @@ export class AuthService {
         emailVerificationOTPAttempts: 0,
       });
 
-      await user.save();
+      await user.save({ session });
+      registeredUser = user;
 
       // Check if student was referred
       if (user.role === 'student') {
-        let referral = await Referral.findOne({ referredEmail: user.email.toLowerCase(), status: 'sent' }).exec();
+        let referral = await Referral.findOne({ referredEmail: user.email.toLowerCase(), status: 'sent' })
+          .session(session)
+          .exec();
         if (!referral && registerDto.referralCode) {
-          const ambassadorProfile = await StudentProfile.findOne({ referralCode: registerDto.referralCode }).exec();
+          const ambassadorProfile = await StudentProfile.findOne({ referralCode: registerDto.referralCode })
+            .session(session)
+            .exec();
           if (ambassadorProfile) {
             referral = new Referral({
               ambassadorUserId: ambassadorProfile.userId,
@@ -154,12 +184,13 @@ export class AuthService {
         if (referral) {
           referral.referredUserId = user._id as mongoose.Types.ObjectId;
           referral.status = 'registered';
-          await referral.save();
+          await referral.save({ session });
 
           // Increment totalReferrals count on the ambassador profile
           await StudentProfile.updateOne(
             { userId: referral.ambassadorUserId },
-            { $inc: { totalReferrals: 1 } }
+            { $inc: { totalReferrals: 1 } },
+            { session }
           ).exec();
 
           logger.info(`Referral linked for user ${user.email} from ambassador ${referral.ambassadorUserId}`);
@@ -167,186 +198,143 @@ export class AuthService {
       }
 
       // Create college profile if role is college
-      let collegeProfile = null;
       if (registerDto.role === 'college' && registerDto.collegeData) {
-        try {
-          collegeProfile = new CollegeProfile({
-            userId: user._id,
-            collegeName: registerDto.collegeData.institutionName,
-            address: {
-              city: registerDto.collegeData.city,
-              state: registerDto.collegeData.state,
-              country: 'India', // Default country, can be made dynamic
-            },
-            contactPerson: {
-              name: registerDto.collegeData.contactPerson,
-              designation: registerDto.collegeData.designation,
-              email: registerDto.collegeData.officialEmail,
-              phone: registerDto.collegeData.phone,
-            },
-            website: registerDto.collegeData.website || undefined,
-            isVerified: false,
-            // TESTING PHASE: auto-activate a Silver subscription on registration.
-            partnershipTier: 'Silver',
-            partnershipActive: true,
-            partnershipStartDate: new Date(),
-          });
+        collegeProfile = new CollegeProfile({
+          userId: user._id,
+          collegeName: registerDto.collegeData.institutionName,
+          address: {
+            city: registerDto.collegeData.city,
+            state: registerDto.collegeData.state,
+            country: 'India', // Default country, can be made dynamic
+          },
+          contactPerson: {
+            name: registerDto.collegeData.contactPerson,
+            designation: registerDto.collegeData.designation,
+            email: registerDto.collegeData.officialEmail,
+            phone: registerDto.collegeData.phone,
+          },
+          website: registerDto.collegeData.website || undefined,
+          isVerified: false,
+          // TESTING PHASE: auto-activate a Silver subscription on registration.
+          partnershipTier: 'Silver',
+          partnershipActive: true,
+          partnershipStartDate: new Date(),
+        });
 
-          await collegeProfile.save();
-          logger.info(`College profile created for user: ${user.email}`);
-        } catch (profileError) {
-          // If college profile creation fails, delete the user to maintain consistency
-          await User.findByIdAndDelete(user._id);
-          logger.error(
-            'Failed to create college profile, rolling back user creation:',
-            profileError
-          );
-          throw new Error('Failed to create college profile. Please try again.');
-        }
+        await collegeProfile.save({ session });
+        logger.info(`College profile created for user: ${user.email}`);
       }
 
       // Create employer profile if role is employer
-      let employerProfile = null;
       if (registerDto.role === 'employer' && registerDto.employerData) {
-        try {
-          employerProfile = new EmployerProfile({
-            userId: user._id,
-            companyName: registerDto.employerData.companyName,
-            contactPerson: {
-              name: registerDto.employerData.contactPerson,
-              email: registerDto.employerData.officialEmail,
-              phone: registerDto.employerData.phone,
-            },
-            industry: registerDto.employerData.industry,
-            companySize: registerDto.employerData.companySize,
-            website: registerDto.employerData.website || undefined,
-            hiringNeeds: registerDto.employerData.hiringNeeds || undefined,
-            isVerified: false,
-          });
+        employerProfile = new EmployerProfile({
+          userId: user._id,
+          companyName: registerDto.employerData.companyName,
+          contactPerson: {
+            name: registerDto.employerData.contactPerson,
+            email: registerDto.employerData.officialEmail,
+            phone: registerDto.employerData.phone,
+          },
+          industry: registerDto.employerData.industry,
+          companySize: registerDto.employerData.companySize,
+          website: registerDto.employerData.website || undefined,
+          hiringNeeds: registerDto.employerData.hiringNeeds || undefined,
+          isVerified: false,
+        });
 
-          await employerProfile.save();
-          logger.info(`Employer profile created for user: ${user.email}`);
-        } catch (profileError) {
-          // If employer profile creation fails, delete the user to maintain consistency
-          await User.findByIdAndDelete(user._id);
-          logger.error(
-            'Failed to create employer profile, rolling back user creation:',
-            profileError
-          );
-          throw new Error('Failed to create employer profile. Please try again.');
-        }
+        await employerProfile.save({ session });
+        logger.info(`Employer profile created for user: ${user.email}`);
       }
 
       // Create mentor profile if role is mentor
-      let mentorProfile = null;
       if (registerDto.role === 'mentor' && registerDto.mentorData) {
-        try {
-          mentorProfile = new MentorProfile({
-            userId: user._id,
-            experienceYears: registerDto.mentorData.experienceYears,
-            areaOfExpertise: registerDto.mentorData.areaOfExpertise,
-            currentOrganization: registerDto.mentorData.currentOrganization,
-            bio: registerDto.mentorData.bio,
-            isVerified: false,
-          });
+        mentorProfile = new MentorProfile({
+          userId: user._id,
+          experienceYears: registerDto.mentorData.experienceYears,
+          areaOfExpertise: registerDto.mentorData.areaOfExpertise,
+          currentOrganization: registerDto.mentorData.currentOrganization,
+          bio: registerDto.mentorData.bio,
+          isVerified: false,
+        });
 
-          await mentorProfile.save();
-          logger.info(`Mentor profile created for user: ${user.email}`);
-        } catch (profileError) {
-          // If mentor profile creation fails, delete the user to maintain consistency
-          await User.findByIdAndDelete(user._id);
-          logger.error(
-            'Failed to create mentor profile, rolling back user creation:',
-            profileError
-          );
-          throw new Error('Failed to create mentor profile. Please try again.');
-        }
+        await mentorProfile.save({ session });
+        logger.info(`Mentor profile created for user: ${user.email}`);
       }
 
-      // Send verification OTP (non-blocking - don't fail registration if email fails)
+      // Commit transaction
+      await session.commitTransaction();
+
+      otpToSend = {
+        email: user.email,
+        otp,
+        fullName: user.fullName,
+      };
+    } catch (error: any) {
+      await session.abortTransaction();
+      logger.error('Registration failed, transaction aborted:', error);
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+
+    // Send verification OTP (non-blocking - don't fail registration if email fails)
+    if (otpToSend) {
       try {
-        await emailService.sendVerificationOTP(user.email, otp, user.fullName);
+        await emailService.sendVerificationOTP(otpToSend.email, otpToSend.otp, otpToSend.fullName);
       } catch (emailError) {
         logger.error('Failed to send verification OTP:', emailError);
         // Continue with registration even if email fails
       }
-
-      let isAmbassador = false;
-      if (user.role === 'student') {
-        const profile = await StudentProfile.findOne({ userId: user._id });
-        if (profile) isAmbassador = profile.isAmbassador || false;
-      }
-
-      // Generate tokens (JWT access + crypto refresh)
-      const tokens = tokenService.generateTokenPair({
-        userId: user._id.toString(),
-        email: user.email,
-        role: user.role,
-        isEmailVerified: user.isEmailVerified,
-        isActive: user.isActive,
-        isAmbassador,
-      });
-
-      // Store refresh token in Redis (fallback to MongoDB if Redis unavailable)
-      try {
-        if (redisTokenService.isAvailable()) {
-          await redisTokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
-        } else {
-          await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
-        }
-      } catch (error) {
-        logger.warn('Failed to store token in Redis, falling back to MongoDB');
-        await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
-      }
-
-      logger.info(`User registered successfully: ${user.email}`);
-
-      const response: RegisterResponseDto = {
-        user: {
-          id: user._id.toString(),
-          fullName: user.fullName,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          isEmailVerified: user.isEmailVerified,
-        },
-      };
-
-      // Add college profile data to response if created
-      if (collegeProfile) {
-        response.collegeProfile = {
-          id: collegeProfile._id.toString(),
-          collegeName: collegeProfile.collegeName,
-          city: collegeProfile.address.city,
-          state: collegeProfile.address.state,
-        };
-      }
-
-      // Add employer profile data to response if created
-      if (employerProfile) {
-        response.employerProfile = {
-          id: employerProfile._id.toString(),
-          companyName: employerProfile.companyName,
-          industry: employerProfile.industry,
-          companySize: employerProfile.companySize,
-        };
-      }
-
-      // Add mentor profile data to response if created
-      if (mentorProfile) {
-        response.mentorProfile = {
-          id: mentorProfile._id.toString(),
-          experienceYears: mentorProfile.experienceYears,
-          areaOfExpertise: mentorProfile.areaOfExpertise,
-          currentOrganization: mentorProfile.currentOrganization,
-        };
-      }
-
-      return response;
-    } catch (error: any) {
-      logger.error('Registration error:', error);
-      throw error;
     }
+
+    if (!registeredUser) {
+      throw new Error('Registration failed unexpectedly');
+    }
+
+    logger.info(`User registered successfully: ${registeredUser.email}`);
+
+    const response: RegisterResponseDto = {
+      user: {
+        id: registeredUser._id.toString(),
+        fullName: registeredUser.fullName,
+        email: registeredUser.email,
+        phone: registeredUser.phone,
+        role: registeredUser.role,
+        isEmailVerified: registeredUser.isEmailVerified,
+      },
+    };
+
+    // Add college profile data to response if created
+    if (collegeProfile) {
+      response.collegeProfile = {
+        id: collegeProfile._id.toString(),
+        collegeName: collegeProfile.collegeName,
+        city: collegeProfile.address.city,
+        state: collegeProfile.address.state,
+      };
+    }
+
+    // Add employer profile data to response if created
+    if (employerProfile) {
+      response.employerProfile = {
+        id: employerProfile._id.toString(),
+        companyName: employerProfile.companyName,
+        industry: employerProfile.industry,
+        companySize: employerProfile.companySize,
+      };
+    }
+
+    // Add mentor profile data to response if created
+    if (mentorProfile) {
+      response.mentorProfile = {
+        id: mentorProfile._id.toString(),
+        experienceYears: mentorProfile.experienceYears,
+        areaOfExpertise: mentorProfile.areaOfExpertise,
+        currentOrganization: mentorProfile.currentOrganization,
+      };
+    }
+
+    return response;
   }
 
   public async login(email: string, password: string): Promise<LoginResponseDto> {

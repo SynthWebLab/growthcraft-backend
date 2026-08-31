@@ -2994,20 +2994,6 @@
           "500": {
             "description": "Internal Server Error"
           }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "isActive": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
-          }
         }
       }
     },
@@ -3073,20 +3059,6 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "isAmbassador": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -3349,26 +3321,6 @@
           "500": {
             "description": "Internal Server Error"
           }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "amount": {
-                    "example": "any"
-                  },
-                  "period": {
-                    "example": "any"
-                  },
-                  "notes": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
-          }
         }
       }
     },
@@ -3420,20 +3372,6 @@
           },
           "500": {
             "description": "Internal Server Error"
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "razorpayPaymentId": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -3671,71 +3609,6 @@
           "401": {
             "description": "Unauthorized"
           }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "example": "any"
-                  },
-                  "description": {
-                    "example": "any"
-                  },
-                  "category": {
-                    "example": "any"
-                  },
-                  "price": {
-                    "example": "any"
-                  },
-                  "duration": {
-                    "example": "any"
-                  },
-                  "lessonsCount": {
-                    "example": "any"
-                  },
-                  "instructorName": {
-                    "example": "any"
-                  },
-                  "instructor": {
-                    "example": "any"
-                  },
-                  "difficultyLevel": {
-                    "example": "any"
-                  },
-                  "level": {
-                    "example": "any"
-                  },
-                  "originalPrice": {
-                    "example": "any"
-                  },
-                  "tags": {
-                    "example": "any"
-                  },
-                  "isPublished": {
-                    "example": "any"
-                  },
-                  "isFeatured": {
-                    "example": "any"
-                  },
-                  "slug": {
-                    "example": "any"
-                  },
-                  "otherFields": {
-                    "example": "any"
-                  },
-                  "mentorIds": {
-                    "example": "any"
-                  },
-                  "mentors": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
-          }
         }
       }
     },
@@ -3835,53 +3708,6 @@
           "401": {
             "description": "Unauthorized"
           }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "example": "any"
-                  },
-                  "description": {
-                    "example": "any"
-                  },
-                  "domain": {
-                    "example": "any"
-                  },
-                  "durationDays": {
-                    "example": "any"
-                  },
-                  "tools": {
-                    "example": "any"
-                  },
-                  "price": {
-                    "example": "any"
-                  },
-                  "isPublished": {
-                    "example": "any"
-                  },
-                  "isFeatured": {
-                    "example": "any"
-                  },
-                  "mentorIds": {
-                    "example": "any"
-                  },
-                  "mentors": {
-                    "example": "any"
-                  },
-                  "internshipPartners": {
-                    "example": "any"
-                  },
-                  "otherFields": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
-          }
         }
       }
     },
@@ -3901,38 +3727,6 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "example": "any"
-                  },
-                  "slug": {
-                    "example": "any"
-                  },
-                  "mentorIds": {
-                    "example": "any"
-                  },
-                  "mentors": {
-                    "example": "any"
-                  },
-                  "internshipPartners": {
-                    "example": "any"
-                  },
-                  "isPublished": {
-                    "example": "any"
-                  },
-                  "status": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
           }
         }
       },
@@ -3994,6 +3788,27 @@
             }
           },
           {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domain",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "search",
             "in": "query",
             "schema": {
@@ -4012,56 +3827,6 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "example": "any"
-                  },
-                  "type": {
-                    "example": "any"
-                  },
-                  "domain": {
-                    "example": "any"
-                  },
-                  "durationDays": {
-                    "example": "any"
-                  },
-                  "price": {
-                    "example": "any"
-                  },
-                  "startDate": {
-                    "example": "any"
-                  },
-                  "endDate": {
-                    "example": "any"
-                  },
-                  "maxSeats": {
-                    "example": "any"
-                  },
-                  "mentorIds": {
-                    "example": "any"
-                  },
-                  "mentors": {
-                    "example": "any"
-                  },
-                  "isPublished": {
-                    "example": "any"
-                  },
-                  "isFeatured": {
-                    "example": "any"
-                  },
-                  "otherFields": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -4082,50 +3847,6 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "example": "any"
-                  },
-                  "title": {
-                    "example": "any"
-                  },
-                  "slug": {
-                    "example": "any"
-                  },
-                  "mentorIds": {
-                    "example": "any"
-                  },
-                  "mentors": {
-                    "example": "any"
-                  },
-                  "mentorNames": {
-                    "example": "any"
-                  },
-                  "startDate": {
-                    "example": "any"
-                  },
-                  "endDate": {
-                    "example": "any"
-                  },
-                  "registrationDeadline": {
-                    "example": "any"
-                  },
-                  "status": {
-                    "example": "any"
-                  },
-                  "isPublished": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
           }
         }
       },
@@ -4185,20 +3906,6 @@
           "401": {
             "description": "Unauthorized"
           }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "status": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
-          }
         }
       }
     },
@@ -4244,47 +3951,6 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "example": "any"
-                  },
-                  "website": {
-                    "example": "any"
-                  },
-                  "partnership_type": {
-                    "example": "any"
-                  },
-                  "is_active": {
-                    "example": "any"
-                  },
-                  "contact_person": {
-                    "example": "any"
-                  },
-                  "email": {
-                    "example": "any"
-                  },
-                  "phone": {
-                    "example": "any"
-                  },
-                  "address": {
-                    "example": "any"
-                  },
-                  "city": {
-                    "example": "any"
-                  },
-                  "state": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
           }
         }
       },
@@ -4350,44 +4016,6 @@
           "401": {
             "description": "Unauthorized"
           }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "company_name": {
-                    "example": "any"
-                  },
-                  "industry": {
-                    "example": "any"
-                  },
-                  "company_size": {
-                    "example": "any"
-                  },
-                  "website": {
-                    "example": "any"
-                  },
-                  "hiring_needs": {
-                    "example": "any"
-                  },
-                  "contact_person": {
-                    "example": "any"
-                  },
-                  "email": {
-                    "example": "any"
-                  },
-                  "phone": {
-                    "example": "any"
-                  },
-                  "is_active": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
-          }
         }
       },
       "delete": {
@@ -4435,26 +4063,6 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "enquiry_type": {
-                    "example": "any"
-                  },
-                  "status": {
-                    "example": "any"
-                  },
-                  "notes": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
           }
         }
       },
@@ -4510,29 +4118,6 @@
         "responses": {
           "401": {
             "description": "Unauthorized"
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "item_type": {
-                    "example": "any"
-                  },
-                  "status": {
-                    "example": "any"
-                  },
-                  "payment_status": {
-                    "example": "any"
-                  },
-                  "notes": {
-                    "example": "any"
-                  }
-                }
-              }
-            }
           }
         }
       },
