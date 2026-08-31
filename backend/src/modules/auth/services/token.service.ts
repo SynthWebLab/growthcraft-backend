@@ -9,6 +9,9 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: string;
+  isEmailVerified?: boolean;
+  isActive?: boolean;
+  isAmbassador?: boolean;
 }
 
 export interface TokenPair {
@@ -22,15 +25,23 @@ export interface TokenRotationOptions {
 }
 
 export class TokenService {
-  private static instance: TokenService;
+  private static instance: TokenService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): TokenService {
     if (!TokenService.instance) {
       TokenService.instance = new TokenService();
     }
     return TokenService.instance;
+  }
+
+  public static setInstance(instance: TokenService | null): void {
+    TokenService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    TokenService.instance = null;
   }
 
   /**

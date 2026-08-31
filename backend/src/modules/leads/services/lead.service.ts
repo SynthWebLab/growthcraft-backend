@@ -13,15 +13,23 @@ interface CreateLeadData {
 }
 
 export class LeadService {
-  private static instance: LeadService;
+  private static instance: LeadService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): LeadService {
     if (!LeadService.instance) {
       LeadService.instance = new LeadService();
     }
     return LeadService.instance;
+  }
+
+  public static setInstance(instance: LeadService | null): void {
+    LeadService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    LeadService.instance = null;
   }
 
   /**

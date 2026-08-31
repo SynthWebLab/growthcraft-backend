@@ -29,15 +29,23 @@ export interface EventCallbackRequestData {
 }
 
 export class EventEnrollmentService {
-  private static instance: EventEnrollmentService;
+  private static instance: EventEnrollmentService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): EventEnrollmentService {
     if (!EventEnrollmentService.instance) {
       EventEnrollmentService.instance = new EventEnrollmentService();
     }
     return EventEnrollmentService.instance;
+  }
+
+  public static setInstance(instance: EventEnrollmentService | null): void {
+    EventEnrollmentService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    EventEnrollmentService.instance = null;
   }
 
   /**

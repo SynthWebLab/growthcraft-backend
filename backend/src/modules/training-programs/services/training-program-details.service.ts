@@ -4,15 +4,23 @@ import { logger } from '@/common/utils/logger.util';
 import { DEFAULT_INTERNSHIP_PARTNERS } from './training-program.service';
 
 export class TrainingProgramDetailsService {
-  private static instance: TrainingProgramDetailsService;
+  private static instance: TrainingProgramDetailsService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): TrainingProgramDetailsService {
     if (!TrainingProgramDetailsService.instance) {
       TrainingProgramDetailsService.instance = new TrainingProgramDetailsService();
     }
     return TrainingProgramDetailsService.instance;
+  }
+
+  public static setInstance(instance: TrainingProgramDetailsService | null): void {
+    TrainingProgramDetailsService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    TrainingProgramDetailsService.instance = null;
   }
 
   /**

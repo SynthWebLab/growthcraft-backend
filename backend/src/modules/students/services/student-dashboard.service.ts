@@ -68,15 +68,23 @@ export interface StudentDashboardSummary {
  * - StudentWorkspaceService
  */
 export class StudentDashboardService {
-  private static instance: StudentDashboardService;
+  private static instance: StudentDashboardService | null = null;
 
-  private constructor() {}
+  public constructor() { }
 
   public static getInstance(): StudentDashboardService {
     if (!StudentDashboardService.instance) {
       StudentDashboardService.instance = new StudentDashboardService();
     }
     return StudentDashboardService.instance;
+  }
+
+  public static setInstance(instance: StudentDashboardService | null): void {
+    StudentDashboardService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    StudentDashboardService.instance = null;
   }
 
   /**

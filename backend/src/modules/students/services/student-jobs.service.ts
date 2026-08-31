@@ -8,15 +8,23 @@ import { ConflictError } from '@/common/errors/ConflictError';
 import { logger } from '@/common/utils/logger.util';
 
 export class StudentJobsService {
-  private static instance: StudentJobsService;
+  private static instance: StudentJobsService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): StudentJobsService {
     if (!StudentJobsService.instance) {
       StudentJobsService.instance = new StudentJobsService();
     }
     return StudentJobsService.instance;
+  }
+
+  public static setInstance(instance: StudentJobsService | null): void {
+    StudentJobsService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    StudentJobsService.instance = null;
   }
 
   /**

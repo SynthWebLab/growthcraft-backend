@@ -22,15 +22,23 @@ export const DEFAULT_INTERNSHIP_PARTNERS: any[] = [
 ];
 
 export class TrainingProgramService {
-  private static instance: TrainingProgramService;
+  private static instance: TrainingProgramService | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): TrainingProgramService {
     if (!TrainingProgramService.instance) {
       TrainingProgramService.instance = new TrainingProgramService();
     }
     return TrainingProgramService.instance;
+  }
+
+  public static setInstance(instance: TrainingProgramService | null): void {
+    TrainingProgramService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    TrainingProgramService.instance = null;
   }
 
   private attachDefaultPartners(program: any): any {

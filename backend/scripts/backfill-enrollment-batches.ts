@@ -58,8 +58,9 @@ async function runBackfill() {
         if (!eventId || !bootcampExists) {
           if (eventTitle) {
             const cleanTitle = eventTitle.split(/[—\-\–]/)[0].trim();
+            const escapedTitle = cleanTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const matchingBootcamp = await Bootcamp.findOne({
-              title: { $regex: new RegExp(`^${cleanTitle}`, 'i') },
+              title: { $regex: new RegExp(`^${escapedTitle}`, 'i') },
             }).exec();
 
             if (matchingBootcamp) {

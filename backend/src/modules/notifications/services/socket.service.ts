@@ -18,16 +18,31 @@ const parseCookies = (cookieString?: string): Record<string, string> => {
 };
 
 export class SocketService {
-  private static instance: SocketService;
+  private static instance: SocketService | null = null;
   private io: SocketIOServer | null = null;
 
-  private constructor() {}
+  public constructor() {}
 
   public static getInstance(): SocketService {
     if (!SocketService.instance) {
       SocketService.instance = new SocketService();
     }
     return SocketService.instance;
+  }
+
+  public static setInstance(instance: SocketService | null): void {
+    SocketService.instance = instance;
+  }
+
+  public static resetInstance(): void {
+    if (SocketService.instance?.io) {
+      try {
+        SocketService.instance.io.close();
+      } catch (e) {
+        // ignore in tests
+      }
+    }
+    SocketService.instance = null;
   }
 
   public init(server: http.Server): SocketIOServer {

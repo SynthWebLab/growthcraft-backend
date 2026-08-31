@@ -5,6 +5,9 @@ export interface JwtPayload {
   userId: string;
   email: string;
   role: string;
+  isEmailVerified?: boolean;
+  isActive?: boolean;
+  isAmbassador?: boolean;
   iat?: number;
   exp?: number;
 }
