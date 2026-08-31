@@ -4,7 +4,9 @@ import { EmployerProfile, User } from '@/database/models';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
+import { auditLogService } from '../services/audit-log.service';
 import { logger } from '@/common/utils/logger.util';
+import { updateEmployerSchema } from '../validators/admin.validator';
 
 export class EmployerAdminController {
   private static instance: EmployerAdminController;
@@ -76,31 +78,57 @@ export class EmployerAdminController {
         throw new ValidationError('Invalid employer ID');
       }
 
-      const updates = req.body;
+      const parseResult = updateEmployerSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
+      }
+
+      const updates = parseResult.data;
       const profile = await EmployerProfile.findById(id).exec();
       if (!profile) {
         throw new NotFoundError('Employer profile not found');
       }
 
+      const oldValues = profile.toObject();
+
       // Map updates to DB schema fields
-      if (updates.company_name) profile.companyName = updates.company_name;
-      if (updates.industry) profile.industry = updates.industry;
-      if (updates.company_size) profile.companySize = updates.company_size;
-      if (updates.website) profile.website = updates.website;
-      if (updates.hiring_needs) profile.hiringNeeds = updates.hiring_needs;
+      const resolvedCompanyName = updates.company_name ?? updates.companyName;
+      if (resolvedCompanyName !== undefined) profile.companyName = resolvedCompanyName;
+
+      if (updates.industry !== undefined) profile.industry = updates.industry;
+
+      const resolvedCompanySize = updates.company_size ?? updates.companySize;
+      if (resolvedCompanySize !== undefined) profile.companySize = resolvedCompanySize;
+
+      if (updates.website !== undefined) profile.website = updates.website || undefined;
+
+      const resolvedHiringNeeds = updates.hiring_needs ?? updates.hiringNeeds;
+      if (resolvedHiringNeeds !== undefined) profile.hiringNeeds = resolvedHiringNeeds || undefined;
 
       if (!profile.contactPerson) {
         profile.contactPerson = { name: '', email: '', phone: '' };
       }
-      if (updates.contact_person) profile.contactPerson.name = updates.contact_person;
-      if (updates.email) profile.contactPerson.email = updates.email;
-      if (updates.phone) profile.contactPerson.phone = updates.phone;
+      if (updates.contact_person !== undefined) profile.contactPerson.name = updates.contact_person || '';
+      if (updates.email !== undefined) profile.contactPerson.email = updates.email || '';
+      if (updates.phone !== undefined) profile.contactPerson.phone = updates.phone || '';
 
       await profile.save();
 
       // Update associated user's isActive status if passed
-      if (updates.is_active !== undefined) {
-        await User.updateOne({ _id: profile.userId }, { $set: { isActive: !!updates.is_active } }).exec();
+      const resolvedActive = updates.is_active ?? updates.isActive;
+      if (resolvedActive !== undefined) {
+        await User.updateOne({ _id: profile.userId }, { $set: { isActive: !!resolvedActive } }).exec();
+      }
+
+      // Write AuditLog
+      if (req.user?.userId) {
+        await auditLogService.log(
+          req.user.userId,
+          'employer.update',
+          id,
+          { updates: Object.keys(updates), oldValues, newValues: updates },
+          req.ip
+        );
       }
 
       SuccessResponseHelper.ok(res, { profile }, 'Employer updated successfully');
@@ -131,6 +159,17 @@ export class EmployerAdminController {
       // Delete profile
       await EmployerProfile.deleteOne({ _id: id }).exec();
 
+      // Write AuditLog
+      if (req.user?.userId) {
+        await auditLogService.log(
+          req.user.userId,
+          'employer.delete',
+          id,
+          { companyName: profile.companyName },
+          req.ip
+        );
+      }
+
       SuccessResponseHelper.ok(res, null, 'Employer deleted successfully');
     } catch (error: any) {
       logger.error('Delete employer admin error:', error);
@@ -140,3 +179,4 @@ export class EmployerAdminController {
 }
 
 export const employerAdminController = EmployerAdminController.getInstance();
+

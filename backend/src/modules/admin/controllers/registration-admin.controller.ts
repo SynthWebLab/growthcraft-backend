@@ -3,6 +3,7 @@ import { registrationAdminService } from '../services/registration-admin.service
 import { SuccessResponseHelper } from '@/common/responses/success.response';
 import { logger } from '@/common/utils/logger.util';
 import { ValidationError } from '@/common/errors/ValidationError';
+import { updateRegistrationSchema } from '../validators/admin.validator';
 
 export class RegistrationAdminController {
   private static instance: RegistrationAdminController;
@@ -41,17 +42,13 @@ export class RegistrationAdminController {
   public async updateRegistration(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { item_type, status, payment_status, notes } = req.body;
 
-      if (!item_type) {
-        throw new ValidationError('Registration item type (item_type) is required in the body');
+      const parseResult = updateRegistrationSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
       }
-      if (!status) {
-        throw new ValidationError('Registration status (status) is required in the body');
-      }
-      if (!payment_status) {
-        throw new ValidationError('Registration payment status (payment_status) is required in the body');
-      }
+
+      const { item_type, status, payment_status, notes } = parseResult.data;
 
       const updated = await registrationAdminService.updateRegistration(id, item_type, status, payment_status, notes);
       SuccessResponseHelper.ok(

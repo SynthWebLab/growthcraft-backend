@@ -3,6 +3,7 @@ import { enquiryAdminService } from '../services/enquiry-admin.service';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
 import { logger } from '@/common/utils/logger.util';
 import { ValidationError } from '@/common/errors/ValidationError';
+import { updateEnquirySchema } from '../validators/admin.validator';
 
 export class EnquiryAdminController {
   private static instance: EnquiryAdminController;
@@ -41,14 +42,13 @@ export class EnquiryAdminController {
   public async updateEnquiry(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { enquiry_type, status, notes } = req.body;
 
-      if (!enquiry_type) {
-        throw new ValidationError('Enquiry type (enquiry_type) is required in the request body');
+      const parseResult = updateEnquirySchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
       }
-      if (!status) {
-        throw new ValidationError('Enquiry status (status) is required in the request body');
-      }
+
+      const { enquiry_type, status, notes } = parseResult.data;
 
       const updated = await enquiryAdminService.updateEnquiry(id, enquiry_type, status, notes);
       SuccessResponseHelper.ok(

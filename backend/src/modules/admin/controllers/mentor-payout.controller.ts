@@ -13,6 +13,10 @@ import { SuccessResponseHelper } from '@/common/responses/success.response';
 import { auditLogService } from '../services/audit-log.service';
 import { notificationService } from '@/modules/notifications/services/notification.service';
 import { paymentService } from '@/modules/payments/services/payment.service';
+import {
+  recordMentorPayoutSchema,
+  confirmMentorPayoutSchema,
+} from '../validators/admin.validator';
 import { logger } from '@/common/utils/logger.util';
 
 export class MentorPayoutController {
@@ -309,16 +313,13 @@ export class MentorPayoutController {
         throw new ValidationError('Invalid mentor ID');
       }
 
-      const { amount, period, notes } = req.body;
-      const parsedAmount = parseFloat(amount);
-
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        throw new ValidationError('Payout amount must be a positive number');
+      const parseResult = recordMentorPayoutSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
       }
 
-      if (!period) {
-        throw new ValidationError('Payout period is required (e.g. "June 2026")');
-      }
+      const { amount, period, notes } = parseResult.data;
+      const parsedAmount = amount;
 
       const profile = await MentorProfile.findOne({ userId: mentorId }).exec();
       if (!profile) {
@@ -459,11 +460,17 @@ export class MentorPayoutController {
   public async confirmPayout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { payoutId } = req.params;
-      const { razorpayPaymentId } = req.body;
 
       if (!mongoose.Types.ObjectId.isValid(payoutId)) {
         throw new ValidationError('Invalid payout ID');
       }
+
+      const parseResult = confirmMentorPayoutSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
+      }
+
+      const { razorpayPaymentId } = parseResult.data;
 
       const payout = await MentorPayout.findById(payoutId).exec();
       if (!payout) {
