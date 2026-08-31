@@ -9,6 +9,9 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: string;
+  isEmailVerified?: boolean;
+  isActive?: boolean;
+  isAmbassador?: boolean;
 }
 
 export interface TokenPair {

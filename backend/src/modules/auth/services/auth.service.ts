@@ -60,6 +60,32 @@ export class AuthService {
             logger.error('Failed to send verification OTP:', emailError);
           }
 
+          let isAmbassador = false;
+          if (existingUser.role === 'student') {
+            const sp = await StudentProfile.findOne({ userId: existingUser._id });
+            if (sp) isAmbassador = sp.isAmbassador || false;
+          }
+
+          const tokens = tokenService.generateTokenPair({
+            userId: existingUser._id.toString(),
+            email: existingUser.email,
+            role: existingUser.role,
+            isEmailVerified: existingUser.isEmailVerified,
+            isActive: existingUser.isActive,
+            isAmbassador,
+          });
+
+          try {
+            if (redisTokenService.isAvailable()) {
+              await redisTokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
+            } else {
+              await tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
+            }
+          } catch (error) {
+            logger.warn('Failed to store token in Redis, falling back to MongoDB');
+            await tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
+          }
+
           return {
             user: {
               id: existingUser._id.toString(),
@@ -227,6 +253,34 @@ export class AuthService {
         // Continue with registration even if email fails
       }
 
+      let isAmbassador = false;
+      if (user.role === 'student') {
+        const profile = await StudentProfile.findOne({ userId: user._id });
+        if (profile) isAmbassador = profile.isAmbassador || false;
+      }
+
+      // Generate tokens (JWT access + crypto refresh)
+      const tokens = tokenService.generateTokenPair({
+        userId: user._id.toString(),
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        isActive: user.isActive,
+        isAmbassador,
+      });
+
+      // Store refresh token in Redis (fallback to MongoDB if Redis unavailable)
+      try {
+        if (redisTokenService.isAvailable()) {
+          await redisTokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+        } else {
+          await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+        }
+      } catch (error) {
+        logger.warn('Failed to store token in Redis, falling back to MongoDB');
+        await tokenService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
+      }
+
       logger.info(`User registered successfully: ${user.email}`);
 
       const response: RegisterResponseDto = {
@@ -302,11 +356,22 @@ export class AuthService {
         throw new Error('Email not verified. Please verify your email before logging in.');
       }
 
+      let isAmbassador = false;
+      if (user.role === 'student') {
+        const studentProfile = await StudentProfile.findOne({ userId: user._id });
+        if (studentProfile) {
+          isAmbassador = studentProfile.isAmbassador || false;
+        }
+      }
+
       // Generate new tokens (JWT access + crypto refresh)
       const tokens = tokenService.generateTokenPair({
         userId: user._id.toString(),
         email: user.email,
         role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        isActive: user.isActive,
+        isAmbassador,
       });
 
       // Store refresh token in Redis (fallback to MongoDB if Redis unavailable)
@@ -322,14 +387,6 @@ export class AuthService {
       }
 
       logger.info(`User logged in successfully: ${user.email}`);
-
-      let isAmbassador = false;
-      if (user.role === 'student') {
-        const studentProfile = await StudentProfile.findOne({ userId: user._id });
-        if (studentProfile) {
-          isAmbassador = studentProfile.isAmbassador || false;
-        }
-      }
 
       return {
         user: {
@@ -370,6 +427,14 @@ export class AuthService {
         throw new Error('Account is deactivated');
       }
 
+      let isAmbassador = false;
+      if (user.role === 'student') {
+        const studentProfile = await StudentProfile.findOne({ userId: user._id });
+        if (studentProfile) {
+          isAmbassador = studentProfile.isAmbassador || false;
+        }
+      }
+
       let tokens: RefreshTokenResponseDto;
 
       // Try Redis first, fallback to MongoDB if the token is not present there.
@@ -386,6 +451,9 @@ export class AuthService {
             userId: user._id.toString(),
             email: user.email,
             role: user.role,
+            isEmailVerified: user.isEmailVerified,
+            isActive: user.isActive,
+            isAmbassador,
           });
 
           // Store new token in Redis
@@ -401,6 +469,9 @@ export class AuthService {
               userId: user._id.toString(),
               email: user.email,
               role: user.role,
+              isEmailVerified: user.isEmailVerified,
+              isActive: user.isActive,
+              isAmbassador,
             },
             {
               deviceInfo,
@@ -417,6 +488,9 @@ export class AuthService {
             userId: user._id.toString(),
             email: user.email,
             role: user.role,
+            isEmailVerified: user.isEmailVerified,
+            isActive: user.isActive,
+            isAmbassador,
           },
           {
             deviceInfo,
