@@ -49,7 +49,7 @@ export interface RegisterResponseDto {
     isEmailVerified: boolean;
     isAmbassador?: boolean;
   };
-  tokens: {
+  tokens?: {
     accessToken: string;
     refreshToken: string;
   };
@@ -70,5 +70,21 @@ export interface RegisterResponseDto {
     experienceYears: number;
     areaOfExpertise: string;
     currentOrganization: string;
+  };
+}
+
+export interface LoginResponseDto {
+  user: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    role: string;
+    isEmailVerified: boolean;
+    isAmbassador?: boolean;
+  };
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
   };
 }

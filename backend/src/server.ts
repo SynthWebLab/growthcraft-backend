@@ -18,21 +18,12 @@ process.on('unhandledRejection', (reason: any) => {
   process.exit(1);
 });
 
-import { backfillEnrollmentBatches } from './common/utils/backfill-enrollments.util';
-
 // Start server
 const startServer = async () => {
   try {
     // Connect to database
     await databaseConfig.connect();
     logger.info('✓ Database connected successfully');
-
-    // Run retroactive enrollment batch linkage backfill
-    try {
-      await backfillEnrollmentBatches();
-    } catch (err) {
-      logger.error('Failed to run enrollment batch linkage backfill:', err);
-    }
 
     // Connect to Redis (optional - app will work without it)
     try {
@@ -54,7 +45,7 @@ const startServer = async () => {
       logger.warn('⚠ Redis connection failed - continuing without Redis');
     }
 
-    // Start listening
+    // Start listening on configured port
     const server = app.listen(config.PORT, () => {
       logger.info(`Server running on port ${config.PORT}`);
       logger.info(`Environment: ${config.NODE_ENV}`);

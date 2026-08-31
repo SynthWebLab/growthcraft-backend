@@ -6,7 +6,8 @@ export class EnvUtil {
     const missingVars: string[] = [];
 
     for (const varName of requiredVars) {
-      if (!process.env[varName]) {
+      const value = process.env[varName];
+      if (!value || value.trim() === '') {
         missingVars.push(varName);
       }
     }
@@ -16,6 +17,38 @@ export class EnvUtil {
         `Missing required environment variables: ${missingVars.join(', ')}\n` +
           'Please check your .env file and ensure all required variables are set.'
       );
+    }
+
+    // Reject weak or default secrets and insecure origins in production
+    if (this.isProduction()) {
+      const insecureSecrets = [
+        'default-cookie-secret',
+        'your-cookie-secret',
+        'your-cookie-secret-change-this-in-production',
+        'your-super-secret-jwt-key-change-this-in-production',
+        'your-super-secret-refresh-key-change-this-in-production',
+      ];
+
+      const secretKeys = ['COOKIE_SECRET', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+      for (const key of secretKeys) {
+        const val = process.env[key];
+        if (val && (insecureSecrets.includes(val) || val.length < 32)) {
+          throw new Error(
+            `Insecure ${key} detected in production! Secret must be at least 32 characters long and not use default placeholder values.`
+          );
+        }
+      }
+
+      // Check FRONTEND_URL in production
+      const frontendUrl = process.env.FRONTEND_URL;
+      if (frontendUrl) {
+        const privateIpRegex = /^(https?:\/\/)?(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|127\.0\.0\.1|localhost)/i;
+        if (privateIpRegex.test(frontendUrl) || frontendUrl.includes('your-production-domain.com')) {
+          throw new Error(
+            `Insecure or placeholder FRONTEND_URL (${frontendUrl}) configured for production! Must be a valid public production domain with HTTPS.`
+          );
+        }
+      }
     }
   }
 

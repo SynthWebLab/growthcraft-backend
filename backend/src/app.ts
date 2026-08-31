@@ -24,12 +24,24 @@ const app: Application = express();
 // Trust proxy for correct IP identification behind reverse proxies (Vercel, Railway, Nginx, etc.)
 app.set('trust proxy', true);
 
+const allowedOrigins = config.ALLOWED_ORIGINS.length > 0 ? config.ALLOWED_ORIGINS : [config.FRONTEND_URL];
+
 // Security middleware
 app.use(helmet());
 app.use(
   cors({
-    origin: config.FRONTEND_URL,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, or server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin '${origin}' not allowed by CORS`));
+    },
     credentials: true, // CRITICAL: Allow cookies to be sent
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With'],
+    exposedHeaders: ['Set-Cookie'],
   })
 );
 

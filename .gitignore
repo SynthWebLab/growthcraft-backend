@@ -38,3 +38,10 @@ coverage/
 *.tmp
 *.temp
 .cache/
+
+# Tokens and Credentials
+token.txt
+token*.txt
+*.token
+*.token.txt
+tokens/

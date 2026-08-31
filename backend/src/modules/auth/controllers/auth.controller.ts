@@ -11,7 +11,7 @@ import { jwtConfig } from '@/config/jwt.config';
 export class AuthController {
   private static instance: AuthController;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): AuthController {
     if (!AuthController.instance) {
@@ -114,9 +114,6 @@ export class AuthController {
 
       // Register user
       const result = await authService.register(registerDto);
-
-      // Set httpOnly cookies
-      this.setTokenCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
 
       const responseData: any = {
         user: result.user,
@@ -591,12 +588,35 @@ export class AuthController {
 
       await authService.requestPasswordReset(email);
 
-      // Always return success to prevent email enumeration
       res.status(200).json({
         success: true,
-        message: 'If the email exists, a password reset link has been sent',
+        message: 'Password reset code has been sent to your email',
       });
-    } catch (error) {
+    } catch (error: any) {
+      logger.error('Request password reset error:', error);
+
+      if (error.message === 'No account found with this email address' || error.message === 'User not found') {
+        res.status(404).json({
+          success: false,
+          error: {
+            message: 'No account found with this email address',
+            code: 'USER_NOT_FOUND',
+          },
+        });
+        return;
+      }
+
+      if (error.message === 'Account is deactivated. Please contact support.') {
+        res.status(403).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'ACCOUNT_DEACTIVATED',
+          },
+        });
+        return;
+      }
+
       next(error);
     }
   }
@@ -656,6 +676,17 @@ export class AuthController {
           error: {
             message: error.message,
             code: 'INVALID_OTP',
+          },
+        });
+        return;
+      }
+
+      if (error.message === 'New password must be different from current password' || error.message === 'New password must be different from your previous password') {
+        res.status(400).json({
+          success: false,
+          error: {
+            message: error.message,
+            code: 'SAME_PASSWORD',
           },
         });
         return;

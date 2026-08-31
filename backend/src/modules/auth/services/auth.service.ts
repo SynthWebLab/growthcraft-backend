@@ -5,7 +5,7 @@ import { EmployerProfile } from '@/database/models/EmployerProfile.model';
 import { MentorProfile } from '@/database/models/MentorProfile.model';
 import { StudentProfile } from '@/database/models/StudentProfile.model';
 import { Referral } from '@/database/models/Referral.model';
-import { RegisterDto, RegisterResponseDto } from '../dto/register.dto';
+import { RegisterDto, RegisterResponseDto, LoginResponseDto } from '../dto/register.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
 import { logger } from '@/common/utils/logger.util';
 import { tokenService } from './token.service';
@@ -18,7 +18,7 @@ import { config } from '@/config';
 export class AuthService {
   private static instance: AuthService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): AuthService {
     if (!AuthService.instance) {
@@ -71,7 +71,7 @@ export class AuthService {
             email: existingUser.email,
             role: existingUser.role,
             isEmailVerified: existingUser.isEmailVerified,
-            isActive: existingUser.isActive !== false,
+            isActive: existingUser.isActive,
             isAmbassador,
           });
 
@@ -82,6 +82,7 @@ export class AuthService {
               await tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
             }
           } catch (error) {
+            logger.warn('Failed to store token in Redis, falling back to MongoDB');
             await tokenService.storeRefreshToken(existingUser._id.toString(), tokens.refreshToken);
           }
 
@@ -94,7 +95,6 @@ export class AuthService {
               role: existingUser.role,
               isEmailVerified: existingUser.isEmailVerified,
             },
-            tokens,
           };
         } else {
           throw new Error('User with this email already exists');
@@ -137,7 +137,7 @@ export class AuthService {
           referral.referredUserId = user._id as mongoose.Types.ObjectId;
           referral.status = 'registered';
           await referral.save();
-          
+
           // Increment totalReferrals count on the ambassador profile
           await StudentProfile.updateOne(
             { userId: referral.ambassadorUserId },
@@ -253,14 +253,20 @@ export class AuthService {
         // Continue with registration even if email fails
       }
 
+      let isAmbassador = false;
+      if (user.role === 'student') {
+        const profile = await StudentProfile.findOne({ userId: user._id });
+        if (profile) isAmbassador = profile.isAmbassador || false;
+      }
+
       // Generate tokens (JWT access + crypto refresh)
       const tokens = tokenService.generateTokenPair({
         userId: user._id.toString(),
         email: user.email,
         role: user.role,
         isEmailVerified: user.isEmailVerified,
-        isActive: user.isActive !== false,
-        isAmbassador: false,
+        isActive: user.isActive,
+        isAmbassador,
       });
 
       // Store refresh token in Redis (fallback to MongoDB if Redis unavailable)
@@ -286,7 +292,6 @@ export class AuthService {
           role: user.role,
           isEmailVerified: user.isEmailVerified,
         },
-        tokens,
       };
 
       // Add college profile data to response if created
@@ -326,7 +331,7 @@ export class AuthService {
     }
   }
 
-  public async login(email: string, password: string): Promise<RegisterResponseDto> {
+  public async login(email: string, password: string): Promise<LoginResponseDto> {
     try {
       // Find user with password field
       const user = await User.findOne({ email }).select('+password +refreshTokens');
@@ -365,7 +370,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         isEmailVerified: user.isEmailVerified,
-        isActive: user.isActive !== false,
+        isActive: user.isActive,
         isAmbassador,
       });
 
@@ -447,7 +452,7 @@ export class AuthService {
             email: user.email,
             role: user.role,
             isEmailVerified: user.isEmailVerified,
-            isActive: user.isActive !== false,
+            isActive: user.isActive,
             isAmbassador,
           });
 
@@ -465,7 +470,7 @@ export class AuthService {
               email: user.email,
               role: user.role,
               isEmailVerified: user.isEmailVerified,
-              isActive: user.isActive !== false,
+              isActive: user.isActive,
               isAmbassador,
             },
             {
@@ -484,7 +489,7 @@ export class AuthService {
             email: user.email,
             role: user.role,
             isEmailVerified: user.isEmailVerified,
-            isActive: user.isActive !== false,
+            isActive: user.isActive,
             isAmbassador,
           },
           {
@@ -562,7 +567,7 @@ export class AuthService {
   public async verifyEmail(
     email: string,
     otp: string
-  ): Promise<{ user: { email: string; fullName: string } }> {
+  ): Promise<{ user: { email: string; fullName: string; role: string } }> {
     try {
       const hashedOTP = hashToken(otp);
 
@@ -581,6 +586,7 @@ export class AuthService {
           user: {
             email: user.email,
             fullName: user.fullName,
+            role: user.role,
           },
         };
       }
@@ -638,6 +644,7 @@ export class AuthService {
         user: {
           email: user.email,
           fullName: user.fullName,
+          role: user.role,
         },
       };
     } catch (error: any) {
@@ -700,14 +707,17 @@ export class AuthService {
 
   public async requestPasswordReset(email: string): Promise<void> {
     try {
-      const user = await User.findOne({ email }).select(
+      const normalizedEmail = email.toLowerCase().trim();
+      const user = await User.findOne({ email: normalizedEmail }).select(
         '+passwordResetToken +passwordResetExpires'
       );
 
       if (!user) {
-        // Don't reveal if user exists or not for security
-        logger.info(`Password reset requested for non-existent email: ${email}`);
-        return;
+        throw new Error('No account found with this email address');
+      }
+
+      if (!user.isActive) {
+        throw new Error('Account is deactivated. Please contact support.');
       }
 
       // Generate 6-digit OTP
@@ -737,6 +747,7 @@ export class AuthService {
   }
 
   public async resetPassword(email: string, otp: string, newPassword: string): Promise<void> {
+    console.log('RESET PASSWORD CALLED', { email, newPassword: '***' });
     try {
       const hashedToken = hashToken(otp);
 
@@ -748,6 +759,15 @@ export class AuthService {
 
       if (!user) {
         throw new Error('Invalid or expired verification code');
+      }
+
+      // Check if new password is same as current password
+      console.log('Comparing passwords', { hasPassword: !!user.password });
+      const isSamePassword = await user.comparePassword(newPassword);
+      console.log('isSamePassword result:', isSamePassword);
+      if (isSamePassword) {
+        console.log('SAME PASSWORD DETECTED');
+        throw new Error('New password must be different from your previous password');
       }
 
       user.password = newPassword;
@@ -782,9 +802,11 @@ export class AuthService {
       }
 
       // Check if new password is same as current password
-      const isSamePassword = await user.comparePassword(newPassword);
-      if (isSamePassword) {
-        throw new Error('New password must be different from current password');
+      if (user.password) {
+        const isSamePassword = await user.comparePassword(newPassword);
+        if (isSamePassword) {
+          throw new Error('New password must be different from current password');
+        }
       }
 
       // Update password
