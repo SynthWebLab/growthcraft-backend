@@ -148,5 +148,7 @@ const studentProfileSchema = new Schema<IStudentProfile>(
 );
 
 // Index already created by unique: true on userId field
+studentProfileSchema.index({ collegeName: 1, yearOfStudy: 1 });
+studentProfileSchema.index({ isAmbassador: 1, totalConversions: -1 });
 
 export const StudentProfile = mongoose.model<IStudentProfile>('StudentProfile', studentProfileSchema);

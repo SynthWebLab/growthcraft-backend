@@ -51,8 +51,11 @@ const auditLogSchema = new Schema<IAuditLog>(
   }
 );
 
-// Index to clean old logs or sort efficiently
+// Indexes for audit queries and sorting
 auditLogSchema.index({ timestamp: -1 });
+auditLogSchema.index({ performedBy: 1, timestamp: -1 });
+auditLogSchema.index({ target: 1, timestamp: -1 });
+auditLogSchema.index({ action: 1, timestamp: -1 });
 
 // Remove __v from JSON response
 auditLogSchema.methods.toJSON = function (): Record<string, unknown> {

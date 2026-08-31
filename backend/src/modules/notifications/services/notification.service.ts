@@ -86,7 +86,7 @@ export class NotificationService {
   public async markAsRead(userId: string, notificationId: string) {
     const notification = await Notification.findOneAndUpdate(
       { _id: notificationId, userId },
-      { readAt: new Date() },
+      { readAt: new Date(), isRead: true },
       { new: true }
     ).exec();
     return notification;
@@ -98,7 +98,7 @@ export class NotificationService {
   public async markAllAsRead(userId: string): Promise<void> {
     await Notification.updateMany(
       { userId, readAt: null },
-      { readAt: new Date() }
+      { readAt: new Date(), isRead: true }
     ).exec();
   }
 }

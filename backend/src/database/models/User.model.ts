@@ -146,4 +146,11 @@ userSchema.methods.toJSON = function (): Record<string, unknown> {
   return obj;
 };
 
+// Indexes for query performance
+userSchema.index({ role: 1, createdAt: -1 });
+userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ isActive: 1 });
+userSchema.index({ emailVerificationOTP: 1 }, { sparse: true });
+userSchema.index({ passwordResetToken: 1 }, { sparse: true });
+
 export const User = mongoose.model<IUser>('User', userSchema);

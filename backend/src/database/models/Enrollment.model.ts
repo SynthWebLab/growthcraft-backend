@@ -108,6 +108,7 @@ enrollmentSchema.index({ batchId: 1, status: 1 });
 
 // Additional compound indexes for performance
 enrollmentSchema.index({ status: 1, enrolledAt: 1 });
+enrollmentSchema.index({ studentUserId: 1, enrolledAt: -1 });
 
 // Pre-save hook to set completedAt when status becomes Completed
 enrollmentSchema.pre('save', async function (next) {

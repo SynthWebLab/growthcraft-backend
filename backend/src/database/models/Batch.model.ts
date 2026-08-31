@@ -171,6 +171,10 @@ batchSchema.pre('validate', function (next) {
 
 batchSchema.index({ status: 1, startDate: 1 });
 batchSchema.index({ batchType: 1, status: 1 });
+batchSchema.index({ courseId: 1, status: 1 });
+batchSchema.index({ bootcampId: 1, status: 1 });
+batchSchema.index({ trainingProgramId: 1, status: 1 });
+batchSchema.index({ assignedMentorId: 1, status: 1 });
 
 batchSchema.methods.toJSON = function (): Record<string, unknown> {
   const obj = this.toObject() as Record<string, unknown>;
