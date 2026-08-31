@@ -8,6 +8,8 @@ import { auditLogService } from '../services/audit-log.service';
 import { catalogueService } from '@/modules/public/services/catalogue.service';
 import { logger } from '@/common/utils/logger.util';
 
+import { createCourseSchema, updateCourseSchema } from '../validators/admin.validator';
+
 // Helper to slugify title
 const slugify = (text: string): string => {
   return text
@@ -121,31 +123,14 @@ export class CourseAdminController {
    */
   public async createCourse(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const {
-        title,
-        description,
-        category,
-        price,
-        duration,
-        lessonsCount,
-        instructorName,
-        instructor,
-        difficultyLevel,
-        level,
-        originalPrice,
-        tags,
-        isPublished,
-        isFeatured,
-        slug: customSlug,
-        ...otherFields
-      } = req.body;
-
-      if (!title || !description || price === undefined || price === null) {
-        throw new ValidationError('Title, description, and price are required');
+      const parseResult = createCourseSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
       }
 
-      const normalizedCat = normalizeCategory(category);
-      const slug = customSlug ? slugify(customSlug) : slugify(title);
+      const validated = parseResult.data;
+      const normalizedCat = normalizeCategory(validated.category || 'Other');
+      const slug = validated.slug ? slugify(validated.slug) : slugify(validated.title);
 
       // Check if slug is unique among non-deleted courses
       const existingCourse = await Course.findOne({ slug, deletedAt: null }).exec();
@@ -153,17 +138,16 @@ export class CourseAdminController {
         throw new ValidationError(`Course with slug or title similar to '${slug}' already exists`);
       }
 
-      const numDuration = Number(duration || otherFields.totalHours || 20);
-      const numLessons = Number(lessonsCount || otherFields.totalLessons || Math.max(1, Math.floor(numDuration * 2)));
-      const resolvedDifficulty = difficultyLevel || level || 'Beginner';
-      const resolvedInstructorName = instructorName || instructor?.name || 'GrowthCraft Team';
+      const numDuration = Number(validated.duration || validated.totalHours || 20);
+      const numLessons = Number(validated.lessonsCount || validated.totalLessons || Math.max(1, Math.floor(numDuration * 2)));
+      const resolvedDifficulty = validated.difficultyLevel || validated.level || 'Beginner';
+      const resolvedInstructorName = validated.instructorName || validated.instructor?.name || 'GrowthCraft Team';
 
-      const { mentorIds, mentors: mentorsInput } = req.body;
-      const { mentors: resolvedMentors, primaryInstructor } = await resolveMentors(mentorIds, mentorsInput);
+      const { mentors: resolvedMentors, primaryInstructor } = await resolveMentors(validated.mentorIds, validated.mentors);
 
       let finalInstructor = {
         name: resolvedInstructorName.trim(),
-        avatar: instructor?.avatar || otherFields.instructorAvatar || '',
+        avatar: validated.instructor?.avatar || '',
       };
       if (primaryInstructor) {
         finalInstructor = {
@@ -172,11 +156,18 @@ export class CourseAdminController {
         };
       }
 
+      const tagsArray = Array.isArray(validated.tags)
+        ? validated.tags
+        : typeof validated.tags === 'string'
+        ? (validated.tags as string).split(',').map((t) => t.trim()).filter(Boolean)
+        : [];
+
       const coursePayload: Record<string, any> = {
-        title: title.trim(),
-        description: description.trim(),
+        title: validated.title.trim(),
+        description: validated.description.trim(),
+        shortDescription: validated.shortDescription?.trim() || '',
         category: normalizedCat,
-        price: Number(price),
+        price: Number(validated.price),
         slug,
         duration: numDuration,
         totalHours: numDuration,
@@ -184,16 +175,17 @@ export class CourseAdminController {
         difficultyLevel: resolvedDifficulty,
         instructor: finalInstructor,
         mentors: resolvedMentors.length > 0 ? resolvedMentors : [{ name: finalInstructor.name, avatar: finalInstructor.avatar }],
-        tags: Array.isArray(tags) ? tags : typeof tags === 'string' ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
-        isPublished: Boolean(isPublished),
-        isDraft: !Boolean(isPublished),
-        isFeatured: Boolean(isFeatured),
+        tags: tagsArray,
+        thumbnail: validated.thumbnail || '',
+        thumbnailUrl: validated.thumbnailUrl || validated.thumbnail || '',
+        isPublished: Boolean(validated.isPublished),
+        isDraft: !Boolean(validated.isPublished),
+        isFeatured: Boolean(validated.isFeatured),
         isActive: true,
-        ...otherFields,
       };
 
-      if (originalPrice !== undefined && originalPrice !== null && originalPrice !== '') {
-        coursePayload.originalPrice = Number(originalPrice);
+      if (validated.originalPrice !== undefined && validated.originalPrice !== null) {
+        coursePayload.originalPrice = Number(validated.originalPrice);
       }
 
       const course = await Course.create(coursePayload);
@@ -203,7 +195,7 @@ export class CourseAdminController {
         req.user!.userId,
         'course.create',
         course._id.toString(),
-        { title, category: normalizedCat, price },
+        { title: validated.title, category: normalizedCat, price: validated.price },
         req.ip
       );
 
@@ -227,75 +219,107 @@ export class CourseAdminController {
         throw new ValidationError('Invalid course ID');
       }
 
+      const parseResult = updateCourseSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
+      }
+
+      const updates = parseResult.data;
       const course = await Course.findOne({ _id: id, deletedAt: null }).exec();
       if (!course) {
         throw new NotFoundError('Course not found');
       }
 
-      const updates = { ...req.body };
-
       // Handle title and slug updating
-      if (updates.title && !updates.slug) {
-        updates.slug = slugify(updates.title);
-      } else if (updates.slug) {
-        updates.slug = slugify(updates.slug);
+      let targetSlug = updates.slug;
+      if (updates.title && !targetSlug) {
+        targetSlug = slugify(updates.title);
+      } else if (targetSlug) {
+        targetSlug = slugify(targetSlug);
       }
 
       // Prevent duplicate slug if it was updated
-      if (updates.slug && updates.slug !== course.slug) {
-        const existing = await Course.findOne({ slug: updates.slug, deletedAt: null }).exec();
+      if (targetSlug && targetSlug !== course.slug) {
+        const existing = await Course.findOne({ slug: targetSlug, deletedAt: null }).exec();
         if (existing) {
-          throw new ValidationError(`Course with slug '${updates.slug}' already exists`);
+          throw new ValidationError(`Course with slug '${targetSlug}' already exists`);
         }
+        course.slug = targetSlug;
       }
 
+      // Explicitly assign only validated fields (prevent mass assignment)
+      if (updates.title !== undefined) course.title = updates.title.trim();
+      if (updates.description !== undefined) course.description = updates.description.trim();
+      if (updates.shortDescription !== undefined) course.shortDescription = updates.shortDescription.trim();
+
       // Category normalization
-      if (updates.category) {
-        updates.category = normalizeCategory(updates.category);
+      if (updates.category !== undefined) {
+        course.category = normalizeCategory(updates.category) as any;
       }
 
       // Instructor & Mentors normalization
       if (updates.mentorIds !== undefined || updates.mentors !== undefined) {
         const { mentors: resolvedMentors, primaryInstructor } = await resolveMentors(updates.mentorIds, updates.mentors);
         if (resolvedMentors.length > 0) {
-          updates.mentors = resolvedMentors;
-          updates.instructor = {
+          course.mentors = resolvedMentors;
+          course.instructor = {
             name: primaryInstructor.name,
             avatar: primaryInstructor.avatar || course.instructor?.avatar || '',
           };
         }
-        delete updates.mentorIds;
       } else if (updates.instructorName !== undefined || updates.instructor !== undefined) {
         const name = updates.instructorName || updates.instructor?.name || course.instructor?.name || 'GrowthCraft Team';
         const avatar = updates.instructor?.avatar || course.instructor?.avatar;
-        updates.instructor = { name: name.trim(), avatar };
-        updates.mentors = [{ name: name.trim(), avatar }];
-        delete updates.instructorName;
+        course.instructor = { name: name.trim(), avatar };
+        course.mentors = [{ name: name.trim(), avatar }];
       }
 
       // Duration & Lessons count
-      if (updates.duration !== undefined) {
-        updates.duration = Number(updates.duration);
-        updates.totalHours = updates.duration;
+      const resolvedDuration = updates.duration ?? updates.totalHours;
+      if (resolvedDuration !== undefined) {
+        const numDur = Number(resolvedDuration);
+        course.duration = numDur;
+        course.totalHours = numDur;
       }
-      if (updates.lessonsCount !== undefined) {
-        updates.lessonsCount = Number(updates.lessonsCount);
+      const resolvedLessons = updates.lessonsCount ?? updates.totalLessons;
+      if (resolvedLessons !== undefined) {
+        course.lessonsCount = Number(resolvedLessons);
+      }
+
+      if (updates.difficultyLevel !== undefined) {
+        course.difficultyLevel = updates.difficultyLevel;
+      }
+      if (updates.level !== undefined) {
+        course.level = updates.level;
       }
 
       // Sync published & draft status
       if (updates.isPublished !== undefined) {
-        updates.isPublished = Boolean(updates.isPublished);
-        updates.isDraft = !updates.isPublished;
+        course.isPublished = Boolean(updates.isPublished);
+        course.isDraft = !updates.isPublished;
+      }
+      if (updates.isFeatured !== undefined) {
+        course.isFeatured = Boolean(updates.isFeatured);
       }
 
       // Clean numbers
-      if (updates.price !== undefined) updates.price = Number(updates.price);
-      if (updates.originalPrice !== undefined) updates.originalPrice = Number(updates.originalPrice);
+      if (updates.price !== undefined) course.price = Number(updates.price);
+      if (updates.originalPrice !== undefined) {
+        course.originalPrice = updates.originalPrice !== null ? Number(updates.originalPrice) : undefined;
+      }
+
+      if (updates.tags !== undefined) {
+        course.tags = Array.isArray(updates.tags)
+          ? updates.tags
+          : typeof updates.tags === 'string'
+          ? (updates.tags as string).split(',').map((t) => t.trim()).filter(Boolean)
+          : [];
+      }
+
+      if (updates.thumbnail !== undefined) course.thumbnail = updates.thumbnail;
+      if (updates.thumbnailUrl !== undefined) course.thumbnailUrl = updates.thumbnailUrl;
 
       const oldValues = course.toObject();
-
-      // Apply updates
-      Object.assign(course, updates);
       await course.save();
 
       // Write AuditLog

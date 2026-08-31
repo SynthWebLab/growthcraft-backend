@@ -5,6 +5,7 @@ import { SuccessResponseHelper } from '@/common/responses/success.response';
 import { logger } from '@/common/utils/logger.util';
 import { User, StudentProfile, Referral } from '@/database/models';
 import crypto from 'crypto';
+import { toggleAmbassadorSchema } from '../validators/admin.validator';
 
 export class AmbassadorController {
   private static instance: AmbassadorController;
@@ -113,14 +114,17 @@ export class AmbassadorController {
   public async toggleActivation(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { userId } = req.params;
-      const { isAmbassador } = req.body;
 
       if (!mongoose.Types.ObjectId.isValid(userId)) {
         throw new ValidationError('Invalid userId format');
       }
-      if (isAmbassador === undefined || typeof isAmbassador !== 'boolean') {
-        throw new ValidationError('isAmbassador boolean is required in request body');
+
+      const parseResult = toggleAmbassadorSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
       }
+
+      const { isAmbassador } = parseResult.data;
 
       const profile = await StudentProfile.findOne({ userId }).exec();
       if (!profile) {

@@ -4,7 +4,9 @@ import { CollegeProfile } from '@/database/models';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { NotFoundError } from '@/common/errors/NotFoundError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
+import { auditLogService } from '../services/audit-log.service';
 import { logger } from '@/common/utils/logger.util';
+import { updateCollegeSchema } from '../validators/admin.validator';
 
 export class CollegeAdminController {
   private static instance: CollegeAdminController;
@@ -73,33 +75,56 @@ export class CollegeAdminController {
         throw new ValidationError('Invalid college ID');
       }
 
-      const updates = req.body;
+      const parseResult = updateCollegeSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
+      }
+
+      const updates = parseResult.data;
       const college = await CollegeProfile.findById(id).exec();
       if (!college) {
         throw new NotFoundError('College profile not found');
       }
 
-      // Map the payload back to the nested model schema
-      if (updates.name) college.collegeName = updates.name;
-      if (updates.website) college.website = updates.website;
-      if (updates.partnership_type) college.partnershipTier = updates.partnership_type;
-      if (updates.is_active !== undefined) college.partnershipActive = updates.is_active;
+      const oldValues = college.toObject();
+
+      // Map the validated payload back to the nested model schema
+      const resolvedName = updates.name ?? updates.collegeName;
+      if (resolvedName !== undefined) college.collegeName = resolvedName;
+      if (updates.website !== undefined) college.website = updates.website || undefined;
+
+      const resolvedTier = updates.partnership_type ?? updates.partnershipTier;
+      if (resolvedTier !== undefined) college.partnershipTier = resolvedTier;
+
+      const resolvedActive = updates.is_active ?? updates.partnershipActive;
+      if (resolvedActive !== undefined) college.partnershipActive = resolvedActive;
 
       if (!college.contactPerson) {
         college.contactPerson = { name: '', designation: '', email: '', phone: '' };
       }
-      if (updates.contact_person) college.contactPerson.name = updates.contact_person;
-      if (updates.email) college.contactPerson.email = updates.email;
-      if (updates.phone) college.contactPerson.phone = updates.phone;
+      if (updates.contact_person !== undefined) college.contactPerson.name = updates.contact_person || '';
+      if (updates.email !== undefined) college.contactPerson.email = updates.email || '';
+      if (updates.phone !== undefined) college.contactPerson.phone = updates.phone || '';
 
       if (!college.address) {
         college.address = { city: '', state: '', country: 'India' };
       }
-      if (updates.address) college.address.street = updates.address;
-      if (updates.city) college.address.city = updates.city;
-      if (updates.state) college.address.state = updates.state;
+      if (updates.address !== undefined) college.address.street = updates.address || '';
+      if (updates.city !== undefined) college.address.city = updates.city || '';
+      if (updates.state !== undefined) college.address.state = updates.state || '';
 
       await college.save();
+
+      // Write AuditLog
+      if (req.user?.userId) {
+        await auditLogService.log(
+          req.user.userId,
+          'college.update',
+          id,
+          { updates: Object.keys(updates), oldValues, newValues: updates },
+          req.ip
+        );
+      }
 
       SuccessResponseHelper.ok(res, { college }, 'College updated successfully');
     } catch (error: any) {
@@ -126,6 +151,17 @@ export class CollegeAdminController {
 
       await CollegeProfile.deleteOne({ _id: id }).exec();
 
+      // Write AuditLog
+      if (req.user?.userId) {
+        await auditLogService.log(
+          req.user.userId,
+          'college.delete',
+          id,
+          { collegeName: college.collegeName },
+          req.ip
+        );
+      }
+
       SuccessResponseHelper.ok(res, null, 'College deleted successfully');
     } catch (error: any) {
       logger.error('Delete college admin error:', error);
@@ -135,3 +171,4 @@ export class CollegeAdminController {
 }
 
 export const collegeAdminController = CollegeAdminController.getInstance();
+

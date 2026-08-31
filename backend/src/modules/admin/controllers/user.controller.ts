@@ -6,6 +6,7 @@ import { ValidationError } from '@/common/errors/ValidationError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
 import { logger } from '@/common/utils/logger.util';
 import { User, StudentProfile } from '@/database/models';
+import { updateUserStatusSchema } from '../validators/admin.validator';
 
 const listUsersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
@@ -148,15 +149,17 @@ export class UserController {
   public async updateUserStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { isActive } = req.body;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
         throw ValidationError.forField('id', 'Invalid user ID format');
       }
 
-      if (isActive === undefined || typeof isActive !== 'boolean') {
-        throw new ValidationError('isActive boolean is required in request body');
+      const parseResult = updateUserStatusSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
       }
+
+      const { isActive } = parseResult.data;
 
       const user = await User.findById(id).exec();
       if (!user) {

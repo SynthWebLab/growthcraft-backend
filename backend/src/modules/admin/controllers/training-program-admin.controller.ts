@@ -6,6 +6,10 @@ import { NotFoundError } from '@/common/errors/NotFoundError';
 import { SuccessResponseHelper } from '@/common/responses/success.response';
 import { auditLogService } from '../services/audit-log.service';
 import { logger } from '@/common/utils/logger.util';
+import {
+  createTrainingProgramSchema,
+  updateTrainingProgramSchema,
+} from '../validators/admin.validator';
 
 // Helper to slugify title
 const slugify = (text: string): string => {
@@ -130,59 +134,78 @@ export class TrainingProgramAdminController {
    */
   public async createTrainingProgram(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const {
-        title,
-        description,
-        domain,
-        durationDays,
-        tools,
-        price,
-        isPublished,
-        isFeatured,
-        mentorIds,
-        mentors: mentorsInput,
-        internshipPartners,
-        ...otherFields
-      } = req.body;
-
-      if (!title || !description || !domain || !durationDays || price === undefined) {
-        throw new ValidationError('Title, description, domain, durationDays, and price are required');
+      const parseResult = createTrainingProgramSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
       }
 
-      const slug = otherFields.slug ? slugify(otherFields.slug) : slugify(title);
+      const validated = parseResult.data;
+      const slug = validated.slug ? slugify(validated.slug) : slugify(validated.title);
 
       const existing = await TrainingProgram.findOne({ slug, deletedAt: null }).exec();
       if (existing) {
         throw new ValidationError(`Training program with slug or title similar to '${slug}' already exists`);
       }
 
-      const resolvedMentors = await resolveMentors(mentorIds, mentorsInput);
-      const resolvedInternshipPartners = resolvePartners(internshipPartners || otherFields.internshipPartners);
-      const toolsArray = Array.isArray(tools) ? tools : typeof tools === 'string' ? tools.split(',').map(t => t.trim()).filter(Boolean) : ['React', 'Node.js'];
+      const resolvedMentors = await resolveMentors(validated.mentorIds, validated.mentors);
+      const resolvedInternshipPartners = resolvePartners(validated.internshipPartners);
+      const toolsArray = Array.isArray(validated.tools)
+        ? validated.tools
+        : typeof validated.tools === 'string'
+        ? (validated.tools as string).split(',').map((t) => t.trim()).filter(Boolean)
+        : ['React', 'Node.js'];
 
-      const program = await TrainingProgram.create({
-        title: title.trim(),
-        description: description.trim(),
-        domain: domain.trim(),
-        durationDays: Number(durationDays),
+      const prereqArray = Array.isArray(validated.prerequisites)
+        ? validated.prerequisites
+        : typeof validated.prerequisites === 'string'
+        ? (validated.prerequisites as string).split(/,|\n/).map((p) => p.trim()).filter(Boolean)
+        : [];
+
+      const careerOutcomesArray = Array.isArray(validated.careerOutcomes)
+        ? validated.careerOutcomes
+        : typeof validated.careerOutcomes === 'string'
+        ? (validated.careerOutcomes as string).split(/,|\n/).map((c) => c.trim()).filter(Boolean)
+        : [];
+
+      const resolvedSeats = validated.maxSeats || validated.batchSize;
+
+      const programPayload: Record<string, any> = {
+        title: validated.title.trim(),
+        description: validated.description.trim(),
+        domain: validated.domain.trim(),
+        durationDays: Number(validated.durationDays),
         tools: toolsArray.length > 0 ? toolsArray : ['React', 'Node.js'],
-        price: Number(price),
+        prerequisites: prereqArray,
+        careerOutcomes: careerOutcomesArray,
+        price: Number(validated.price),
         slug,
-        status: Boolean(isPublished) ? 'active' : 'draft',
-        isPublished: Boolean(isPublished),
-        isFeatured: Boolean(isFeatured),
+        status: Boolean(validated.isPublished) ? 'active' : 'draft',
+        isPublished: Boolean(validated.isPublished),
+        isFeatured: Boolean(validated.isFeatured),
         mentors: resolvedMentors,
         internshipPartners: resolvedInternshipPartners,
-        level: otherFields.level || 'Beginner',
-        ...otherFields,
-      });
+        level: (validated.level as any) || 'Beginner',
+        thumbnail: validated.thumbnail || '',
+      };
+
+      if (validated.originalPrice !== undefined && validated.originalPrice !== null) {
+        programPayload.originalPrice = Number(validated.originalPrice);
+      }
+      if (resolvedSeats !== undefined) {
+        programPayload.maxSeats = Number(resolvedSeats);
+      }
+      if (validated.startDate) {
+        programPayload.startDate = new Date(validated.startDate);
+      }
+
+      const program = await TrainingProgram.create(programPayload);
 
       // Write AuditLog
       await auditLogService.log(
         req.user!.userId,
         'trainingprogram.create',
         program._id.toString(),
-        { title, domain, price },
+        { title: validated.title, domain: validated.domain, price: validated.price },
         req.ip
       );
 
@@ -204,39 +227,101 @@ export class TrainingProgramAdminController {
         throw new ValidationError('Invalid training program ID');
       }
 
-      const updates = req.body;
+      const parseResult = updateTrainingProgramSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
+      }
+
+      const updates = parseResult.data;
       const program = await TrainingProgram.findOne({ _id: id, deletedAt: null }).exec();
       if (!program) {
         throw new NotFoundError('Training program not found');
       }
 
-      if (updates.title && !updates.slug) {
-        updates.slug = slugify(updates.title);
-      } else if (updates.slug) {
-        updates.slug = slugify(updates.slug);
+      let targetSlug = updates.slug;
+      if (updates.title && !targetSlug) {
+        targetSlug = slugify(updates.title);
+      } else if (targetSlug) {
+        targetSlug = slugify(targetSlug);
       }
 
-      if (updates.slug && updates.slug !== program.slug) {
-        const existing = await TrainingProgram.findOne({ slug: updates.slug, deletedAt: null }).exec();
+      if (targetSlug && targetSlug !== program.slug) {
+        const existing = await TrainingProgram.findOne({ slug: targetSlug, deletedAt: null }).exec();
         if (existing) {
-          throw new ValidationError(`Training program with slug '${updates.slug}' already exists`);
+          throw new ValidationError(`Training program with slug '${targetSlug}' already exists`);
         }
+        program.slug = targetSlug;
+      }
+
+      // Explicitly assign only validated fields (prevent mass assignment)
+      if (updates.title !== undefined) program.title = updates.title.trim();
+      if (updates.description !== undefined) program.description = updates.description.trim();
+      if (updates.domain !== undefined) program.domain = updates.domain.trim();
+      if (updates.durationDays !== undefined) program.durationDays = Number(updates.durationDays);
+      if (updates.price !== undefined) program.price = Number(updates.price);
+      if (updates.originalPrice !== undefined) {
+        program.originalPrice = updates.originalPrice !== null ? Number(updates.originalPrice) : undefined;
+      }
+
+      if (updates.level !== undefined) {
+        program.level = updates.level as any;
+      }
+
+      const resolvedSeats = updates.maxSeats ?? updates.batchSize;
+      if (resolvedSeats !== undefined) {
+        program.maxSeats = Number(resolvedSeats);
+      }
+
+      if (updates.startDate !== undefined) {
+        program.startDate = updates.startDate ? new Date(updates.startDate) : undefined;
+      }
+
+      if (updates.thumbnail !== undefined) {
+        program.thumbnail = updates.thumbnail;
+      }
+
+      if (updates.tools !== undefined) {
+        program.tools = Array.isArray(updates.tools)
+          ? updates.tools
+          : typeof updates.tools === 'string'
+          ? (updates.tools as string).split(',').map((t) => t.trim()).filter(Boolean)
+          : ['React', 'Node.js'];
+      }
+
+      if (updates.prerequisites !== undefined) {
+        program.prerequisites = Array.isArray(updates.prerequisites)
+          ? updates.prerequisites
+          : typeof updates.prerequisites === 'string'
+          ? (updates.prerequisites as string).split(/,|\n/).map((p) => p.trim()).filter(Boolean)
+          : [];
+      }
+
+      if (updates.careerOutcomes !== undefined) {
+        program.careerOutcomes = Array.isArray(updates.careerOutcomes)
+          ? updates.careerOutcomes
+          : typeof updates.careerOutcomes === 'string'
+          ? (updates.careerOutcomes as string).split(/,|\n/).map((c) => c.trim()).filter(Boolean)
+          : [];
+      }
+
+      if (updates.mentorIds !== undefined || updates.mentors !== undefined) {
+        program.mentors = await resolveMentors(updates.mentorIds, updates.mentors);
+      }
+
+      if (updates.internshipPartners !== undefined) {
+        program.internshipPartners = resolvePartners(updates.internshipPartners);
+      }
+
+      if (updates.isPublished !== undefined) {
+        program.isPublished = Boolean(updates.isPublished);
+        program.status = updates.isPublished ? 'active' : 'draft';
+      }
+
+      if (updates.isFeatured !== undefined) {
+        program.isFeatured = Boolean(updates.isFeatured);
       }
 
       const oldValues = program.toObject();
-
-      if (updates.mentorIds || updates.mentors) {
-        updates.mentors = await resolveMentors(updates.mentorIds, updates.mentors);
-        delete updates.mentorIds;
-      }
-      if (updates.internshipPartners !== undefined) {
-        updates.internshipPartners = resolvePartners(updates.internshipPartners);
-      }
-      if (updates.isPublished !== undefined) {
-        updates.status = updates.isPublished ? 'active' : 'draft';
-      }
-
-      Object.assign(program, updates);
       await program.save();
 
       // Write AuditLog

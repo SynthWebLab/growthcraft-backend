@@ -8,6 +8,11 @@ import { auditLogService } from '../services/audit-log.service';
 import { catalogueService } from '@/modules/public/services/catalogue.service';
 import { socketService } from '@/modules/notifications/services/socket.service';
 import { logger } from '@/common/utils/logger.util';
+import {
+  createEventSchema,
+  updateEventSchema,
+  toggleEventStatusSchema,
+} from '../validators/admin.validator';
 
 // Helper to slugify title
 const slugify = (text: string): string => {
@@ -72,19 +77,29 @@ export class EventAdminController {
 
   /**
    * GET /api/v1/admin/events
-   * List all events for admin dashboard
+   * List all events/bootcamps for admin with pagination, filtering & search
    */
   public async listEvents(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { page = 1, limit = 100, search } = req.query;
+      const { page = 1, limit = 10, type, domain, status, search } = req.query;
       const skip = (Number(page) - 1) * Number(limit);
 
       const query: any = { deletedAt: null };
+
+      if (type && Object.values(EventType).includes(type as EventType)) {
+        query.type = type;
+      }
+      if (domain) {
+        query.domain = { $regex: domain, $options: 'i' };
+      }
+      if (status) {
+        query.status = status;
+      }
       if (search) {
         query.$or = [
-          { title: { $regex: search as string, $options: 'i' } },
-          { domain: { $regex: search as string, $options: 'i' } },
-          { type: { $regex: search as string, $options: 'i' } },
+          { title: { $regex: search, $options: 'i' } },
+          { domain: { $regex: search, $options: 'i' } },
+          { mentorNames: { $in: [new RegExp(String(search), 'i')] } },
         ];
       }
 
@@ -118,48 +133,60 @@ export class EventAdminController {
    */
   public async createEvent(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { title, type, domain, durationDays, price, startDate, endDate, maxSeats, mentorIds, mentors, isPublished, isFeatured, ...otherFields } = req.body;
-
-      if (!title || !domain) {
-        throw new ValidationError('Title and domain are required');
+      const parseResult = createEventSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
       }
 
-      const eventType = type && Object.values(EventType).includes(type) ? type : EventType.BOOTCAMP;
-      const slug = otherFields.slug ? slugify(otherFields.slug) : slugify(title);
+      const validated = parseResult.data;
+      const eventType = validated.type || EventType.BOOTCAMP;
+      const slug = validated.slug ? slugify(validated.slug) : slugify(validated.title);
 
       const existing = await Bootcamp.findOne({ slug, deletedAt: null }).exec();
       if (existing) {
         throw new ValidationError(`Event with slug or title similar to '${slug}' already exists`);
       }
 
-      const resolvedMentors = await resolveMentors(mentorIds, mentors);
+      const resolvedMentors = await resolveMentors(validated.mentorIds, validated.mentors);
 
-      const event = await Bootcamp.create({
-        title,
+      const eventPayload: Record<string, any> = {
+        title: validated.title.trim(),
         type: eventType,
-        domain,
-        durationDays: durationDays ? Number(durationDays) : 30,
-        price: price ? Number(price) : 0,
-        startDate: startDate ? new Date(startDate) : new Date(),
-        endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 86400000),
-        maxSeats: maxSeats ? Number(maxSeats) : 50,
+        domain: validated.domain.trim(),
+        description: validated.description?.trim() || '',
+        durationDays: validated.durationDays ? Number(validated.durationDays) : 30,
+        price: validated.price ? Number(validated.price) : 0,
+        startDate: validated.startDate ? new Date(validated.startDate) : new Date(),
+        endDate: validated.endDate ? new Date(validated.endDate) : new Date(Date.now() + 30 * 86400000),
+        registrationDeadline: validated.registrationDeadline ? new Date(validated.registrationDeadline) : undefined,
+        maxSeats: validated.maxSeats ? Number(validated.maxSeats) : 50,
+        mode: validated.mode || 'Online',
+        banner: validated.banner || '',
+        keyTopics: validated.keyTopics || ['Full Stack', 'Web Development'],
+        skillsCovered: validated.skillsCovered || [],
+        tags: validated.tags || [],
         slug,
-        status: isPublished ? 'Open' : 'Draft',
-        isPublished: !!isPublished,
-        isFeatured: !!isFeatured,
+        status: validated.status || (validated.isPublished ? 'Open' : 'Draft'),
+        isPublished: Boolean(validated.isPublished),
+        isFeatured: Boolean(validated.isFeatured),
         isActive: true,
         enrolledCount: 0,
         mentors: resolvedMentors,
         mentorNames: resolvedMentors.map((m) => m.name),
-        ...otherFields,
-      });
+      };
+
+      if (validated.originalPrice !== undefined && validated.originalPrice !== null) {
+        eventPayload.originalPrice = Number(validated.originalPrice);
+      }
+
+      const event = await Bootcamp.create(eventPayload);
 
       // Write AuditLog
       await auditLogService.log(
         req.user!.userId,
         'event.create',
         event._id.toString(),
-        { title, type: eventType, domain, price },
+        { title: validated.title, type: eventType, domain: validated.domain, price: validated.price },
         req.ip
       );
 
@@ -184,43 +211,75 @@ export class EventAdminController {
         throw new ValidationError('Invalid event ID');
       }
 
-      const updates = req.body;
+      const parseResult = updateEventSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
+      }
+
+      const updates = parseResult.data;
       const event = await Bootcamp.findOne({ _id: id, deletedAt: null }).exec();
       if (!event) {
         throw new NotFoundError('Event not found');
       }
 
-      if (updates.type && !Object.values(EventType).includes(updates.type)) {
-        throw new ValidationError(`Invalid event type: ${updates.type}`);
+      let targetSlug = updates.slug;
+      if (updates.title && !targetSlug) {
+        targetSlug = slugify(updates.title);
+      } else if (targetSlug) {
+        targetSlug = slugify(targetSlug);
       }
 
-      if (updates.title && !updates.slug) {
-        updates.slug = slugify(updates.title);
-      } else if (updates.slug) {
-        updates.slug = slugify(updates.slug);
-      }
-
-      if (updates.slug && updates.slug !== event.slug) {
-        const existing = await Bootcamp.findOne({ slug: updates.slug, deletedAt: null }).exec();
+      if (targetSlug && targetSlug !== event.slug) {
+        const existing = await Bootcamp.findOne({ slug: targetSlug, deletedAt: null }).exec();
         if (existing) {
-          throw new ValidationError(`Event with slug '${updates.slug}' already exists`);
+          throw new ValidationError(`Event with slug '${targetSlug}' already exists`);
         }
+        event.slug = targetSlug;
       }
 
-      if (updates.mentorIds || updates.mentors) {
-        updates.mentors = await resolveMentors(updates.mentorIds, updates.mentors);
-        updates.mentorNames = updates.mentors.map((m: any) => m.name);
-        delete updates.mentorIds;
+      // Explicitly assign only validated fields (prevent mass assignment)
+      if (updates.title !== undefined) event.title = updates.title.trim();
+      if (updates.domain !== undefined) event.domain = updates.domain.trim();
+      if (updates.type !== undefined) event.type = updates.type;
+      if (updates.description !== undefined) event.description = updates.description.trim();
+      if (updates.durationDays !== undefined) event.durationDays = Number(updates.durationDays);
+      if (updates.price !== undefined) event.price = Number(updates.price);
+      if (updates.originalPrice !== undefined) {
+        event.originalPrice = updates.originalPrice !== null ? Number(updates.originalPrice) : undefined;
+      }
+      if (updates.maxSeats !== undefined) event.maxSeats = Number(updates.maxSeats);
+      if (updates.mode !== undefined) event.mode = updates.mode;
+      if (updates.banner !== undefined) event.banner = updates.banner;
+      if (updates.keyTopics !== undefined) event.keyTopics = updates.keyTopics;
+      if (updates.skillsCovered !== undefined) event.skillsCovered = updates.skillsCovered;
+      if (updates.tags !== undefined) event.tags = updates.tags;
+
+      if (updates.mentorIds !== undefined || updates.mentors !== undefined) {
+        event.mentors = await resolveMentors(updates.mentorIds, updates.mentors);
+        event.mentorNames = event.mentors.map((m: any) => m.name);
       }
 
-      if (updates.startDate) updates.startDate = new Date(updates.startDate);
-      if (updates.endDate) updates.endDate = new Date(updates.endDate);
+      if (updates.startDate !== undefined) {
+        event.startDate = new Date(updates.startDate);
+      }
+      if (updates.endDate !== undefined) {
+        event.endDate = new Date(updates.endDate);
+      }
 
       // Reset stale registrationDeadline if start date is updated to future date
       if (updates.startDate && new Date(updates.startDate) > new Date()) {
         if (!updates.registrationDeadline || new Date(updates.registrationDeadline) < new Date()) {
-          updates.registrationDeadline = updates.startDate;
+          event.registrationDeadline = new Date(updates.startDate);
         }
+      } else if (updates.registrationDeadline !== undefined) {
+        event.registrationDeadline = new Date(updates.registrationDeadline);
+      }
+
+      if (updates.isPublished !== undefined) {
+        event.isPublished = Boolean(updates.isPublished);
+      }
+      if (updates.isFeatured !== undefined) {
+        event.isFeatured = Boolean(updates.isFeatured);
       }
 
       // Status handling:
@@ -228,16 +287,14 @@ export class EventAdminController {
       // 2. If dates updated to future and event is published, auto-open unless explicit status was passed as 'Closed' or 'Draft'.
       // 3. Otherwise if isPublished was changed without explicit status, set status based on isPublished.
       if (updates.status && ['Open', 'Closed', 'Draft', 'Completed'].includes(updates.status)) {
-        // keep explicit status
-      } else if (updates.startDate && new Date(updates.startDate) > new Date() && (updates.isPublished ?? event.isPublished)) {
-        updates.status = 'Open';
+        event.status = updates.status;
+      } else if (updates.startDate && new Date(updates.startDate) > new Date() && event.isPublished) {
+        event.status = 'Open';
       } else if (updates.isPublished !== undefined) {
-        updates.status = updates.isPublished ? 'Open' : 'Draft';
+        event.status = updates.isPublished ? 'Open' : 'Draft';
       }
 
       const oldValues = event.toObject();
-
-      Object.assign(event, updates);
       await event.save();
 
       // Write AuditLog
@@ -269,11 +326,16 @@ export class EventAdminController {
   public async toggleEventStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { status } = req.body;
       if (!mongoose.Types.ObjectId.isValid(id)) {
         throw new ValidationError('Invalid event ID');
       }
 
+      const parseResult = toggleEventStatusSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        throw ValidationError.fromZodError(parseResult.error);
+      }
+
+      const { status } = parseResult.data;
       const event = await Bootcamp.findOne({ _id: id, deletedAt: null }).exec();
       if (!event) {
         throw new NotFoundError('Event not found');
