@@ -94,15 +94,16 @@ export class EventEnrollmentService {
 
       data.eventId = event._id.toString();
 
+      let eventUpdated = false;
+
       // Verify event type matches
       if (event.type !== data.eventType) {
         logger.warn(`Event type mismatch: updating event ${event._id} type from ${event.type} to ${data.eventType}`);
         event.type = data.eventType;
-        await event.save();
+        eventUpdated = true;
       }
 
       // Auto-correct event parameters for seamless testing/development
-      let eventUpdated = false;
       if (!event.isActive) {
         event.isActive = true;
         eventUpdated = true;
@@ -129,7 +130,7 @@ export class EventEnrollmentService {
         eventUpdated = true;
       }
       if (eventUpdated) {
-        logger.info(`Auto-corrected event parameters for testing: ${event._id}`);
+        logger.info(`Updated event parameters for event: ${event._id}`);
         await event.save();
       }
 

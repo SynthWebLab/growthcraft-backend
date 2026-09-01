@@ -83,6 +83,37 @@ export class TokenService {
   }
 
   /**
+   * Calculate refresh token expiry Date based on configuration
+   */
+  private calculateRefreshTokenExpiry(): Date {
+    const expiresAt = new Date();
+    const refreshExpiresIn = config.JWT_REFRESH_EXPIRES_IN || '7d';
+    const match = refreshExpiresIn.match(/^(\d+)([smhd])$/);
+
+    if (match) {
+      const value = parseInt(match[1], 10);
+      const unit = match[2];
+
+      switch (unit) {
+        case 's':
+          expiresAt.setSeconds(expiresAt.getSeconds() + value);
+          break;
+        case 'm':
+          expiresAt.setMinutes(expiresAt.getMinutes() + value);
+          break;
+        case 'h':
+          expiresAt.setHours(expiresAt.getHours() + value);
+          break;
+        case 'd':
+          expiresAt.setDate(expiresAt.getDate() + value);
+          break;
+      }
+    }
+
+    return expiresAt;
+  }
+
+  /**
    * Store hashed refresh token in database with metadata
    */
   public async storeRefreshToken(
@@ -98,30 +129,7 @@ export class TokenService {
         throw new Error('User not found');
       }
 
-      // Calculate expiration date (7 days from now)
-      const expiresAt = new Date();
-      const refreshExpiresIn = config.JWT_REFRESH_EXPIRES_IN || '7d';
-      const match = refreshExpiresIn.match(/^(\d+)([smhd])$/);
-
-      if (match) {
-        const value = parseInt(match[1], 10);
-        const unit = match[2];
-
-        switch (unit) {
-          case 's':
-            expiresAt.setSeconds(expiresAt.getSeconds() + value);
-            break;
-          case 'm':
-            expiresAt.setMinutes(expiresAt.getMinutes() + value);
-            break;
-          case 'h':
-            expiresAt.setHours(expiresAt.getHours() + value);
-            break;
-          case 'd':
-            expiresAt.setDate(expiresAt.getDate() + value);
-            break;
-        }
-      }
+      const expiresAt = this.calculateRefreshTokenExpiry();
 
       // Create refresh token object with metadata
       const refreshTokenObj: IRefreshToken = {
@@ -160,22 +168,31 @@ export class TokenService {
         return false;
       }
 
-      // Remove expired tokens
-      user.refreshTokens = user.refreshTokens.filter((rt) => rt.expiresAt > new Date());
-      await user.save({ validateModifiedOnly: true });
+      const now = new Date();
+      const initialCount = user.refreshTokens.length;
+
+      // Filter out expired tokens in-memory
+      user.refreshTokens = user.refreshTokens.filter((rt) => rt.expiresAt > now);
+      const expiredTokensRemoved = user.refreshTokens.length !== initialCount;
 
       // Check if any hashed token matches the provided token
+      let tokenMatched = false;
       for (const tokenObj of user.refreshTokens) {
         const isValid = await this.verifyRefreshToken(refreshToken, tokenObj.token);
         if (isValid) {
           // Update last used timestamp
-          tokenObj.lastUsedAt = new Date();
-          await user.save({ validateModifiedOnly: true });
-          return true;
+          tokenObj.lastUsedAt = now;
+          tokenMatched = true;
+          break;
         }
       }
 
-      return false;
+      // Batch write: save document at most once if expired tokens were pruned or a token was matched
+      if (tokenMatched || expiredTokensRemoved) {
+        await user.save({ validateModifiedOnly: true });
+      }
+
+      return tokenMatched;
     } catch (error: any) {
       logger.error('Error validating refresh token:', error);
       return false;
@@ -283,14 +300,33 @@ export class TokenService {
         }
       }
 
-      // Remove old refresh token
-      await this.removeRefreshToken(userId, oldRefreshToken);
+      // Remove old refresh token from in-memory array
+      user.refreshTokens = user.refreshTokens.filter((t) => t !== matchedToken);
 
       // Generate new token pair
       const tokenPair = this.generateTokenPair(payload);
 
-      // Store new hashed refresh token with metadata
-      await this.storeRefreshToken(userId, tokenPair.refreshToken, options.deviceInfo);
+      // Hash new refresh token and create token metadata
+      const hashedToken = await this.hashRefreshToken(tokenPair.refreshToken);
+      const refreshTokenObj: IRefreshToken = {
+        token: hashedToken,
+        createdAt: new Date(),
+        expiresAt: this.calculateRefreshTokenExpiry(),
+        deviceInfo: options.deviceInfo,
+      };
+
+      user.refreshTokens.push(refreshTokenObj);
+
+      // Remove expired tokens
+      user.refreshTokens = user.refreshTokens.filter((rt) => rt.expiresAt > new Date());
+
+      // Limit to last 5 refresh tokens per user
+      if (user.refreshTokens.length > 5) {
+        user.refreshTokens = user.refreshTokens.slice(-5);
+      }
+
+      // Single batched write to persist rotated token state
+      await user.save({ validateModifiedOnly: true });
 
       logger.info(`Refresh token rotated for user: ${userId}`);
 
