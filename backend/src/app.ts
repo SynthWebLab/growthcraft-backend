@@ -11,7 +11,7 @@ import { logger } from './common/utils/logger.util';
 import { NotFoundError } from './common/errors/NotFoundError';
 import { errorHandler } from './common/middleware/error-handler.middleware';
 import { apiLimiter } from './common/middleware/rate-limiter.middleware';
-import { sanitizeInput } from './common/middleware';
+import { sanitizeInput, requestLogger } from './common/middleware';
 import routes from './routes/v1';
 import { swaggerSpec } from './config/swagger.config';
 import swaggerOutputAuto from './config/swagger-output.json';
@@ -60,11 +60,8 @@ app.use(sanitizeInput);
 // Rate limiting middleware
 app.use('/api/', apiLimiter);
 
-// Request logging middleware
-app.use((req: Request, res: Response, next: NextFunction) => {
-  logger.info(`${req.method} ${req.path}`);
-  next();
-});
+// Request logging middleware (filtered; logs at http level)
+app.use(requestLogger);
 
 // Optional: Auto-refresh middleware for seamless token rotation
 // Uncomment to enable automatic token refresh when access token is about to expire
