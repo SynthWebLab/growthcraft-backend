@@ -128,6 +128,10 @@ eventEnrollmentSchema.index({ email: 1, eventId: 1 }, { unique: true });
 eventEnrollmentSchema.index({ eventId: 1, eventType: 1, status: 1 });
 eventEnrollmentSchema.index({ eventType: 1, status: 1 });
 
+// Indexes for querying enrollments by user and status
+eventEnrollmentSchema.index({ userId: 1, status: 1 });
+eventEnrollmentSchema.index({ userId: 1, enrollmentDate: -1 });
+
 // Remove __v from JSON response
 eventEnrollmentSchema.methods.toJSON = function (): Record<string, unknown> {
   const obj = this.toObject() as Record<string, unknown>;

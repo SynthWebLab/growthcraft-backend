@@ -79,5 +79,9 @@ const referralSchema = new Schema<IReferral>(
 
 // Compound indexes for optimization
 referralSchema.index({ ambassadorUserId: 1, referredEmail: 1 }, { unique: true });
+referralSchema.index({ ambassadorUserId: 1, status: 1 });
+referralSchema.index({ ambassadorUserId: 1, createdAt: -1 });
+referralSchema.index({ referredEmail: 1, status: 1 });
+referralSchema.index({ referredUserId: 1, status: 1 });
 
 export const Referral = mongoose.model<IReferral>('Referral', referralSchema);

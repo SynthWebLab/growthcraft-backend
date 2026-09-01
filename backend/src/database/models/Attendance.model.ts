@@ -58,6 +58,8 @@ const attendanceSchema = new Schema<IAttendance>(
 attendanceSchema.index({ studentUserId: 1, batchId: 1 });
 attendanceSchema.index({ batchId: 1, attendanceDate: 1 });
 attendanceSchema.index({ studentUserId: 1, batchId: 1, attendanceDate: 1 }, { unique: true });
+attendanceSchema.index({ batchId: 1, attendanceDate: -1, createdAt: -1 });
+attendanceSchema.index({ studentUserId: 1, attendanceDate: -1 });
 
 // Remove __v from JSON response
 attendanceSchema.methods.toJSON = function (): Record<string, unknown> {

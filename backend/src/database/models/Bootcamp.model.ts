@@ -452,4 +452,8 @@ bootcampSchema.methods.toJSON = function (): Record<string, unknown> {
   return obj;
 };
 
+// Indexes for event and bootcamp queries
+bootcampSchema.index({ status: 1, startDate: 1 });
+bootcampSchema.index({ type: 1, status: 1 });
+
 export const Bootcamp = mongoose.model<IBootcamp>('Bootcamp', bootcampSchema);

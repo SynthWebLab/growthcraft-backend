@@ -86,5 +86,6 @@ const jobPostingSchema = new Schema<IJobPosting>(
 jobPostingSchema.index({ hiringPartnerId: 1 });
 jobPostingSchema.index({ status: 1 });
 jobPostingSchema.index({ createdAt: -1 });
+jobPostingSchema.index({ hiringPartnerId: 1, status: 1 });
 
 export const JobPosting = mongoose.model<IJobPosting>('JobPosting', jobPostingSchema);
