@@ -51,8 +51,13 @@ export const config = {
     .filter(Boolean),
 
   // Rate Limiting
+  RATE_LIMIT_ENABLED: process.env.RATE_LIMIT_ENABLED !== 'false',
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
   RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000', 10),
+  AUTH_RATE_LIMIT_WINDOW_MS: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || '900000', 10),
+  AUTH_RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS || '10', 10),
+  PASSWORD_RESET_RATE_LIMIT_WINDOW_MS: parseInt(process.env.PASSWORD_RESET_RATE_LIMIT_WINDOW_MS || '3600000', 10),
+  PASSWORD_RESET_RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.PASSWORD_RESET_RATE_LIMIT_MAX_REQUESTS || '10', 10),
 
   // Security
   BCRYPT_SALT_ROUNDS: parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10),
