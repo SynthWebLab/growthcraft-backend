@@ -9,3 +9,5 @@ export { authorize } from './authorize.middleware';
 export { apiLimiter, authLimiter, passwordResetLimiter } from './rate-limiter.middleware';
 export { validate } from './validate.middleware';
 export { sanitizeInput, sanitizeValue, sanitizeString } from './sanitize.middleware';
+export { requestLogger, shouldSkipRequestLogging } from './request-logger.middleware';
+
