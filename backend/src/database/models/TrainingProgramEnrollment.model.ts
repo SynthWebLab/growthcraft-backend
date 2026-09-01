@@ -104,6 +104,10 @@ trainingProgramEnrollmentSchema.index({ email: 1, programId: 1 }, { unique: true
 // Index for querying enrollments by program
 trainingProgramEnrollmentSchema.index({ programId: 1, status: 1 });
 
+// Indexes for querying enrollments by user and status
+trainingProgramEnrollmentSchema.index({ userId: 1, status: 1 });
+trainingProgramEnrollmentSchema.index({ userId: 1, createdAt: -1 });
+
 // Remove __v from JSON response
 trainingProgramEnrollmentSchema.methods.toJSON = function (): Record<string, unknown> {
   const obj = this.toObject() as Record<string, unknown>;

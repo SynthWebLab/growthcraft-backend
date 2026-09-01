@@ -73,5 +73,8 @@ const mentorCheckInSchema = new Schema<IMentorCheckIn>(
 // Indexes
 mentorCheckInSchema.index({ mentorId: 1, batchId: 1 });
 mentorCheckInSchema.index({ mentorId: 1, sessionDate: -1 });
+mentorCheckInSchema.index({ batchId: 1, sessionDate: -1 });
+mentorCheckInSchema.index({ mentorId: 1, batchId: 1, status: 1 });
+mentorCheckInSchema.index({ status: 1, sessionDate: -1 });
 
 export const MentorCheckIn = mongoose.model<IMentorCheckIn>('MentorCheckIn', mentorCheckInSchema);

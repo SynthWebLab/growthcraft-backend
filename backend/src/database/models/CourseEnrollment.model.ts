@@ -86,6 +86,10 @@ courseEnrollmentSchema.index({ email: 1, courseId: 1 }, { unique: true });
 // Index for querying enrollments by course
 courseEnrollmentSchema.index({ courseId: 1, status: 1 });
 
+// Indexes for querying enrollments by user and status
+courseEnrollmentSchema.index({ userId: 1, status: 1 });
+courseEnrollmentSchema.index({ userId: 1, enrollmentDate: -1 });
+
 // Remove __v from JSON response
 courseEnrollmentSchema.methods.toJSON = function (): Record<string, unknown> {
   const obj = this.toObject() as Record<string, unknown>;

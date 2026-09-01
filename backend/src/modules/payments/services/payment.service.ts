@@ -400,11 +400,12 @@ class PaymentService {
               payout.status = 'processed';
               payout.processedAt = new Date();
               payout.razorpayPaymentId = paymentId;
-              await payout.save();
 
               profile.totalPayouts = (profile.totalPayouts || 0) + payout.amount;
               profile.pendingPayout = Math.max(0, (profile.pendingPayout || 0) - payout.amount);
-              await profile.save();
+
+              // Batch save payout and profile concurrently
+              await Promise.all([payout.save(), profile.save()]);
 
               logger.info(`[Razorpay Webhook] Auto-confirmed mentor payout ${payout._id} via payment ${paymentId}`);
 

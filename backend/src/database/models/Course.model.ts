@@ -559,4 +559,8 @@ courseSchema.methods.toJSON = function (): Record<string, unknown> {
   return obj;
 };
 
+// Indexes for catalog and public filtering
+courseSchema.index({ isPublished: 1, type: 1 });
+courseSchema.index({ category: 1, level: 1 });
+
 export const Course = mongoose.model<ICourse>('Course', courseSchema);
