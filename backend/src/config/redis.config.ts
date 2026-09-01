@@ -189,32 +189,90 @@ export class RedisConfig {
     }
   }
 
-  public async keys(pattern: string): Promise<string[]> {
+  /**
+   * Find keys matching pattern using SCAN instead of KEYS to avoid blocking the Redis server.
+   * Iterates incrementally through the keyspace in batches.
+   */
+  public async keys(pattern: string, count: number = 100): Promise<string[]> {
     if (!this.client || !this.isConnected) {
       return [];
     }
 
     try {
-      return await this.client.keys(pattern);
+      const matchedKeys: string[] = [];
+      let cursor = '0';
+
+      do {
+        const result = await this.client.scan(cursor, {
+          MATCH: pattern,
+          COUNT: count,
+        });
+
+        cursor = String(result.cursor);
+        if (result.keys && result.keys.length > 0) {
+          matchedKeys.push(...result.keys);
+        }
+      } while (cursor !== '0');
+
+      return matchedKeys;
     } catch (error) {
-      logger.error('Redis KEYS error:', error);
+      logger.error('Redis SCAN error:', error);
       return [];
     }
   }
 
-  public async delByPattern(pattern: string): Promise<void> {
+  /**
+   * Alias for keys() using non-blocking SCAN iteration.
+   */
+  public async scanKeys(pattern: string, count: number = 100): Promise<string[]> {
+    return this.keys(pattern, count);
+  }
+
+  /**
+   * Delete keys matching a pattern using SCAN to avoid blocking Redis at scale.
+   * Iterates incrementally through keys and deletes matching keys in batches.
+   */
+  public async delByPattern(pattern: string, count: number = 100): Promise<number> {
     if (!this.client || !this.isConnected) {
-      return;
+      return 0;
     }
 
+    let totalDeleted = 0;
+
     try {
-      const keys = await this.client.keys(pattern);
-      if (keys && keys.length > 0) {
-        await this.client.del(keys);
-      }
+      let cursor = '0';
+
+      do {
+        const result = await this.client.scan(cursor, {
+          MATCH: pattern,
+          COUNT: count,
+        });
+
+        cursor = String(result.cursor);
+        const keys = result.keys;
+
+        if (keys && keys.length > 0) {
+          await this.client.del(keys);
+          totalDeleted += keys.length;
+        }
+      } while (cursor !== '0');
+
+      return totalDeleted;
     } catch (error) {
       logger.error('Redis DEL pattern error:', error);
+      return totalDeleted;
     }
+  }
+
+  /**
+   * Delete keys matching multiple patterns using SCAN iteration.
+   */
+  public async delByPatterns(patterns: string[], count: number = 100): Promise<number> {
+    let totalDeleted = 0;
+    for (const pattern of patterns) {
+      totalDeleted += await this.delByPattern(pattern, count);
+    }
+    return totalDeleted;
   }
 }
 
