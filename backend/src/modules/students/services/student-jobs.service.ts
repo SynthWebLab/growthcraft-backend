@@ -107,11 +107,14 @@ export class StudentJobsService {
         status: 'Applied',
       });
 
-      const savedApplication = await application.save({ session });
-
       // Increment applicantsCount on JobPosting
       job.applicantsCount = (job.applicantsCount || 0) + 1;
-      await job.save({ session });
+
+      // Batch save both documents concurrently within the session
+      const [savedApplication] = await Promise.all([
+        application.save({ session }),
+        job.save({ session }),
+      ]);
 
       await session.commitTransaction();
       logger.info(`Student ${studentId} successfully applied to Job ${jobId}`);
