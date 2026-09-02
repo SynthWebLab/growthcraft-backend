@@ -72,12 +72,26 @@ export const authorizeChatParticipant = async (
     // Role-based peer validation:
     // Students can only communicate with Mentors (or Admins).
     // Mentors can only communicate with Students (or Admins).
-    if (senderRole === UserRole.STUDENT && receiver.role !== UserRole.MENTOR && receiver.role !== UserRole.SUPER_ADMIN) {
-      throw new AuthorizationError('Students can only communicate with mentors', 'FORBIDDEN_PEER_ROLE');
+    if (
+      senderRole === UserRole.STUDENT &&
+      receiver.role !== UserRole.MENTOR &&
+      receiver.role !== UserRole.SUPER_ADMIN
+    ) {
+      throw new AuthorizationError(
+        'Students can only communicate with mentors',
+        'FORBIDDEN_PEER_ROLE'
+      );
     }
 
-    if (senderRole === UserRole.MENTOR && receiver.role !== UserRole.STUDENT && receiver.role !== UserRole.SUPER_ADMIN) {
-      throw new AuthorizationError('Mentors can only communicate with students', 'FORBIDDEN_PEER_ROLE');
+    if (
+      senderRole === UserRole.MENTOR &&
+      receiver.role !== UserRole.STUDENT &&
+      receiver.role !== UserRole.SUPER_ADMIN
+    ) {
+      throw new AuthorizationError(
+        'Mentors can only communicate with students',
+        'FORBIDDEN_PEER_ROLE'
+      );
     }
 
     const sObjectId = new mongoose.Types.ObjectId(senderId);
@@ -113,10 +127,7 @@ export const authorizeChatParticipant = async (
     if (mentorProfile) {
       // Check batch assignments
       const batches = await Batch.find({
-        $or: [
-          { assignedMentorId: mentorProfile._id },
-          { assignedMentorIds: mentorProfile._id },
-        ],
+        $or: [{ assignedMentorId: mentorProfile._id }, { assignedMentorIds: mentorProfile._id }],
       }).select('_id');
 
       if (batches.length > 0) {

@@ -291,7 +291,9 @@ describe('GC-317: Chat Authorization & RBAC Tests', () => {
 
       expect(postResponse.status).toBe(201);
       expect(postResponse.body.success).toBe(true);
-      expect(postResponse.body.data.message.message).toBe('Hello mentor, looking forward to our session!');
+      expect(postResponse.body.data.message.message).toBe(
+        'Hello mentor, looking forward to our session!'
+      );
     });
 
     it('should allow mentor to view chat history with student who has existing messages', async () => {

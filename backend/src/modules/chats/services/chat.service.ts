@@ -45,7 +45,11 @@ export class ChatService {
     }
   }
 
-  public async sendMessage(senderId: string, receiverId: string, messageText: string): Promise<IChatMessage> {
+  public async sendMessage(
+    senderId: string,
+    receiverId: string,
+    messageText: string
+  ): Promise<IChatMessage> {
     try {
       const sId = new mongoose.Types.ObjectId(senderId);
       const rId = new mongoose.Types.ObjectId(receiverId);
@@ -105,11 +109,15 @@ export class ChatService {
           });
 
           await MentorProfile.updateOne({ userId: sId }, { $inc: { totalSessions: 1 } });
-          logger.info(`Auto-created MentorSession ${session._id} with Google Meet link ${googleMeetLink}`);
+          logger.info(
+            `Auto-created MentorSession ${session._id} with Google Meet link ${googleMeetLink}`
+          );
         } catch (dbErr: any) {
           // Duplicate key is ok (session already exists for this slot), log but don't fail
           if (dbErr.code === 11000) {
-            logger.warn('MentorSession already exists for this time slot, skipping duplicate creation');
+            logger.warn(
+              'MentorSession already exists for this time slot, skipping duplicate creation'
+            );
           } else {
             logger.error('Failed to auto-create MentorSession:', dbErr);
           }
