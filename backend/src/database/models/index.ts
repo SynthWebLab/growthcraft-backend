@@ -49,8 +49,4 @@ export {
   PaymentItemType,
 } from './PaymentTransaction.model';
 export { ChatMessage, IChatMessage } from './ChatMessage.model';
-
-
-
-
-
+export { MentorSession, IMentorSession } from './MentorSession.model';
