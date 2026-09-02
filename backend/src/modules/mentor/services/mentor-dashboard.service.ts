@@ -954,14 +954,26 @@ export class MentorDashboardService {
         .populate('batchId', 'code')
         .exec();
 
-      return enrollments.map((e: any) => ({
-        id: e.studentUserId?._id?.toString() || '',
-        name: e.studentUserId?.fullName || 'Student',
-        course: e.batchId?.code ? `Batch ${e.batchId.code}` : 'Training Cohort',
-        sessionsCompleted: e.attendancePercent ? Math.round((e.attendancePercent / 100) * 10) : 0,
-        lastSession: e.updatedAt ? new Date(e.updatedAt).toLocaleDateString() : 'N/A',
-        nextSession: 'Scheduled',
-      }));
+      const uniqueStudents = new Map<string, any>();
+
+      for (const e of enrollments) {
+        const student = e.studentUserId as any;
+        if (!student || !student._id) continue;
+        const studentId = student._id.toString();
+
+        if (!uniqueStudents.has(studentId)) {
+          uniqueStudents.set(studentId, {
+            id: studentId,
+            name: student.fullName || 'Student',
+            course: (e.batchId as any)?.code ? `Batch ${(e.batchId as any).code}` : 'Training Cohort',
+            sessionsCompleted: e.attendancePercent ? Math.round((e.attendancePercent / 100) * 10) : 0,
+            lastSession: e.updatedAt ? new Date(e.updatedAt).toLocaleDateString() : 'N/A',
+            nextSession: 'Scheduled',
+          });
+        }
+      }
+
+      return Array.from(uniqueStudents.values());
     } catch (error: any) {
       logger.error('Get mentor students error:', error);
       throw error;

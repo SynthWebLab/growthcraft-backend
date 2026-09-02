@@ -16,6 +16,7 @@ import mentorRoutes from '@/modules/mentor/routes/mentor.routes';
 import { employerRouter, talentRouter, publicJobsRouter } from '@/modules/employers/routes/employer.routes';
 import notificationRoutes from '@/modules/notifications/routes/notification.routes';
 import paymentRoutes from '@/modules/payments/routes/payment.routes';
+import chatRoutes from '@/modules/chats/routes/chat.routes';
 
 const router = Router();
 
@@ -37,6 +38,7 @@ router.use('/talent', talentRouter);
 router.use('/public/jobs', publicJobsRouter);
 router.use('/notifications', notificationRoutes);
 router.use('/payments', paymentRoutes);
+router.use('/chats', chatRoutes);
 
 
 
