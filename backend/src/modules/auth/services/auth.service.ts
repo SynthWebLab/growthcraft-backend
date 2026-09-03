@@ -15,6 +15,7 @@ import { emailService } from '@/common/services/email.service';
 import { generateVerificationToken, generateOTP, hashToken } from '@/common/utils/token.util';
 import { jwtConfig } from '@/config/jwt.config';
 import { config } from '@/config';
+import { AppError } from '@/common/errors/AppError';
 
 export interface AuthServiceDependencies {
   tokenService?: TokenService;
@@ -141,7 +142,12 @@ export class AuthService {
             },
           };
         } else {
-          throw new Error('An account with this email and role already exists');
+          const roleDisplay = registerDto.role ? registerDto.role.charAt(0).toUpperCase() + registerDto.role.slice(1) : 'this';
+          throw new AppError(
+            `An account with this email already exists for the ${roleDisplay} role. You can log in directly.`,
+            409,
+            'USER_EXISTS'
+          );
         }
       }
 

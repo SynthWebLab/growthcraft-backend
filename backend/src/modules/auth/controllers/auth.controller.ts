@@ -7,6 +7,7 @@ import { logger } from '@/common/utils/logger.util';
 import { StudentProfile } from '@/database/models/StudentProfile.model';
 import { config } from '@/config';
 import { jwtConfig } from '@/config/jwt.config';
+import { AppError } from '@/common/errors/AppError';
 
 export class AuthController {
   private static instance: AuthController;
@@ -143,12 +144,23 @@ export class AuthController {
     } catch (error: any) {
       logger.error('Register controller error:', error);
 
-      if (error.message === 'User with this email already exists') {
-        res.status(409).json({
+      if (
+        error instanceof AppError ||
+        error.message === 'User with this email already exists' ||
+        (typeof error.message === 'string' && error.message.includes('already exists')) ||
+        error.code === 11000
+      ) {
+        const statusCode = error.statusCode || 409;
+        const code = error.code && error.code !== 11000 ? error.code : 'USER_EXISTS';
+        const message = typeof error.message === 'string' && error.message.includes('already exists')
+          ? error.message
+          : 'An account with this email already exists for this role. You can log in directly.';
+
+        res.status(statusCode).json({
           success: false,
           error: {
-            message: error.message,
-            code: 'USER_EXISTS',
+            message,
+            code,
           },
         });
         return;
