@@ -207,13 +207,25 @@ export class AuthController {
         return;
       }
 
-      const { email, password } = req.body;
+      const { email, password, role } = req.body;
 
       // Login user
-      const result = await authService.login(email, password);
+      const result = await authService.login(email, password, role);
+
+      if (result.requiresRoleSelection) {
+        res.status(200).json({
+          success: true,
+          message: 'Multiple roles found. Please select a role to continue.',
+          data: {
+            requiresRoleSelection: true,
+            availableRoles: result.availableRoles,
+          },
+        });
+        return;
+      }
 
       // Set httpOnly cookies
-      this.setTokenCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
+      this.setTokenCookies(res, result.tokens!.accessToken, result.tokens!.refreshToken);
 
       res.status(200).json({
         success: true,
@@ -228,16 +240,20 @@ export class AuthController {
       if (
         error.message === 'Invalid email or password' ||
         error.message === 'Account is deactivated' ||
-        error.message === 'Email not verified. Please verify your email before logging in.'
+        error.message === 'Email not verified. Please verify your email before logging in.' ||
+        (typeof error.message === 'string' && error.message.includes('portal: /login/'))
       ) {
         const statusCode = error.message.includes('Email not verified') ? 403 : 401;
+        const code = error.message.includes('Email not verified')
+          ? 'EMAIL_NOT_VERIFIED'
+          : error.message.includes('portal: /login/')
+            ? 'WRONG_PORTAL'
+            : 'AUTHENTICATION_FAILED';
         res.status(statusCode).json({
           success: false,
           error: {
             message: error.message,
-            code: error.message.includes('Email not verified')
-              ? 'EMAIL_NOT_VERIFIED'
-              : 'AUTHENTICATION_FAILED',
+            code,
           },
         });
         return;
