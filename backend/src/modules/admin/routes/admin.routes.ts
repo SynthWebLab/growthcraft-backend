@@ -1,8 +1,10 @@
+import path from 'path';
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import { authenticate } from '@/common/middleware/authenticate.middleware';
 import { authorize } from '@/common/middleware/authorize.middleware';
 import { UserRole } from '@/common/constants/user.constants';
+import { ValidationError } from '@/common/errors/ValidationError';
 import { batchController } from '../controllers/batch.controller';
 import { enrollmentController } from '../controllers/enrollment.controller';
 import { userController } from '../controllers/user.controller';
@@ -22,7 +24,29 @@ import { registrationAdminController } from '../controllers/registration-admin.c
 import metricsJobRoutes from './metrics-job.routes';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+
+// Max file size for admin image uploads (5MB) to prevent OOM / memory exhaustion
+export const ADMIN_UPLOAD_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+export const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: ADMIN_UPLOAD_MAX_FILE_SIZE,
+    files: 1,
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|webp|gif/;
+    const ext = path.extname(file.originalname).toLowerCase();
+    const mimeType = allowedTypes.test(file.mimetype);
+    const extName = allowedTypes.test(ext);
+
+    if (mimeType && extName) {
+      cb(null, true);
+    } else {
+      cb(new ValidationError('Only image files are allowed (jpeg, jpg, png, webp, gif)'));
+    }
+  },
+});
 
 // All admin routes require authentication and SuperAdmin or Ops role by default
 router.use(authenticate);

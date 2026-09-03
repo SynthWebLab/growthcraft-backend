@@ -41,7 +41,6 @@ const userSchema = new Schema<IUser>(
     email: {
       type: String,
       required: [true, 'Email is required'],
-      unique: true,
       lowercase: true,
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
@@ -145,6 +144,13 @@ userSchema.methods.toJSON = function (): Record<string, unknown> {
   delete obj.__v;
   return obj;
 };
+// Indexes
+userSchema.index({ email: 1, role: 1 }, { unique: true });
+userSchema.index({ role: 1, createdAt: -1 });
+userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ isActive: 1 });
+userSchema.index({ emailVerificationOTP: 1 }, { sparse: true });
+userSchema.index({ passwordResetToken: 1 }, { sparse: true });
 
 // Indexes for query performance
 userSchema.index({ role: 1, createdAt: -1 });
