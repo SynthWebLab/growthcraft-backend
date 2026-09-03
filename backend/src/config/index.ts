@@ -65,6 +65,20 @@ export const config = {
 
   // Logging
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+  // Enable writing logs to rotating files. Defaults to on in production.
+  LOG_TO_FILE: process.env.LOG_TO_FILE
+    ? process.env.LOG_TO_FILE === 'true'
+    : process.env.NODE_ENV === 'production',
+  // Directory where log files are written (relative paths resolve from cwd).
+  LOG_DIR: process.env.LOG_DIR || 'logs',
+  // Max size of a single log file before rotation (e.g. '20m', '100k').
+  LOG_MAX_SIZE: process.env.LOG_MAX_SIZE || '20m',
+  // How long to retain rotated files (e.g. '14d', '30d') or a file count.
+  LOG_MAX_FILES: process.env.LOG_MAX_FILES || '14d',
+  // Gzip rotated log files to save disk space.
+  LOG_ZIP_ARCHIVE: process.env.LOG_ZIP_ARCHIVE
+    ? process.env.LOG_ZIP_ARCHIVE === 'true'
+    : true,
 
   // Swagger
   SWAGGER_ENABLED: process.env.SWAGGER_ENABLED === 'true',
