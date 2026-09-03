@@ -92,7 +92,7 @@ const startServer = async () => {
         }
       });
 
-      // Force shutdown after 5 seconds
+      // Force shutdown after 10 seconds
       setTimeout(() => {
         logger.error('Forced shutdown after timeout');
         process.exit(1);
