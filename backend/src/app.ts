@@ -10,8 +10,7 @@ import { config } from './config';
 import { logger } from './common/utils/logger.util';
 import { NotFoundError } from './common/errors/NotFoundError';
 import { errorHandler } from './common/middleware/error-handler.middleware';
-import { apiLimiter } from './common/middleware/rate-limiter.middleware';
-import { sanitizeInput, requestLogger } from './common/middleware';
+import { apiLimiter, sanitizeInput, requestLogger, swaggerAuthGuard } from './common/middleware';
 import routes from './routes/v1';
 import { swaggerSpec } from './config/swagger.config';
 import swaggerOutputAuto from './config/swagger-output.json';
@@ -73,6 +72,7 @@ if (config.SWAGGER_ENABLED) {
   // Manual detailed documentation
   app.use(
     config.SWAGGER_PATH,
+    swaggerAuthGuard,
     swaggerUi.serve,
     swaggerUi.setup(swaggerSpec, {
       customCss: '.swagger-ui .topbar { display: none }',
@@ -83,6 +83,7 @@ if (config.SWAGGER_ENABLED) {
   // Auto-generated documentation
   app.use(
     config.SWAGGER_AUTO_PATH,
+    swaggerAuthGuard,
     swaggerUi.serve,
     swaggerUi.setup(swaggerOutputAuto, {
       customCss: '.swagger-ui .topbar { display: none }',
@@ -91,12 +92,14 @@ if (config.SWAGGER_ENABLED) {
   );
 
   // Swagger JSON endpoint
-  app.get('/api-docs.json', (req: Request, res: Response) => {
+  app.get('/api-docs.json', swaggerAuthGuard, (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
   });
 
-  logger.info(`Swagger docs enabled at ${config.SWAGGER_PATH} and ${config.SWAGGER_AUTO_PATH}`);
+  logger.info(
+    `Swagger docs enabled at ${config.SWAGGER_PATH} and ${config.SWAGGER_AUTO_PATH} (auth required: ${config.SWAGGER_REQUIRE_AUTH || config.NODE_ENV === 'production'})`
+  );
 }
 
 // Health check endpoint

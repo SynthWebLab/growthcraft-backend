@@ -70,6 +70,11 @@ export const config = {
   SWAGGER_ENABLED: process.env.SWAGGER_ENABLED === 'true',
   SWAGGER_PATH: process.env.SWAGGER_PATH || '/api-docs',
   SWAGGER_AUTO_PATH: process.env.SWAGGER_AUTO_PATH || '/api-docs-auto',
+  SWAGGER_USER: process.env.SWAGGER_USER || 'admin',
+  SWAGGER_PASSWORD: process.env.SWAGGER_PASSWORD || '',
+  SWAGGER_REQUIRE_AUTH:
+    process.env.SWAGGER_REQUIRE_AUTH === 'true' ||
+    (process.env.SWAGGER_REQUIRE_AUTH !== 'false' && process.env.NODE_ENV === 'production'),
 
   // Razorpay
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',

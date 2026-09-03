@@ -249,6 +249,11 @@ export class AuthValidator {
         .normalizeEmail(),
 
       body('password').notEmpty().withMessage('Password is required'),
+
+      body('role')
+        .optional()
+        .isIn(['student', 'college', 'mentor', 'employer', 'ops', 'super_admin'])
+        .withMessage('Invalid role. Must be one of: student, college, mentor, employer, ops, super_admin'),
     ];
   }
 

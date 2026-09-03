@@ -17,4 +17,9 @@ export {
 export { validate } from './validate.middleware';
 export { sanitizeInput, sanitizeValue, sanitizeString } from './sanitize.middleware';
 export { requestLogger, shouldSkipRequestLogging } from './request-logger.middleware';
-
+export {
+  swaggerAuth,
+  swaggerAuthGuard,
+  isSwaggerAuthRequired,
+  safeCompare,
+} from './swagger-auth.middleware';

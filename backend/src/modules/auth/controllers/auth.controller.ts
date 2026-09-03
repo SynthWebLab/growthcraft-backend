@@ -7,6 +7,7 @@ import { logger } from '@/common/utils/logger.util';
 import { StudentProfile } from '@/database/models/StudentProfile.model';
 import { config } from '@/config';
 import { jwtConfig } from '@/config/jwt.config';
+import { AppError } from '@/common/errors/AppError';
 
 export class AuthController {
   private static instance: AuthController;
@@ -143,12 +144,23 @@ export class AuthController {
     } catch (error: any) {
       logger.error('Register controller error:', error);
 
-      if (error.message === 'User with this email already exists') {
-        res.status(409).json({
+      if (
+        error instanceof AppError ||
+        error.message === 'User with this email already exists' ||
+        (typeof error.message === 'string' && error.message.includes('already exists')) ||
+        error.code === 11000
+      ) {
+        const statusCode = error.statusCode || 409;
+        const code = error.code && error.code !== 11000 ? error.code : 'USER_EXISTS';
+        const message = typeof error.message === 'string' && error.message.includes('already exists')
+          ? error.message
+          : 'An account with this email already exists for this role. You can log in directly.';
+
+        res.status(statusCode).json({
           success: false,
           error: {
-            message: error.message,
-            code: 'USER_EXISTS',
+            message,
+            code,
           },
         });
         return;
@@ -207,13 +219,25 @@ export class AuthController {
         return;
       }
 
-      const { email, password } = req.body;
+      const { email, password, role } = req.body;
 
       // Login user
-      const result = await authService.login(email, password);
+      const result = await authService.login(email, password, role);
+
+      if (result.requiresRoleSelection) {
+        res.status(200).json({
+          success: true,
+          message: 'Multiple roles found. Please select a role to continue.',
+          data: {
+            requiresRoleSelection: true,
+            availableRoles: result.availableRoles,
+          },
+        });
+        return;
+      }
 
       // Set httpOnly cookies
-      this.setTokenCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
+      this.setTokenCookies(res, result.tokens!.accessToken, result.tokens!.refreshToken);
 
       res.status(200).json({
         success: true,
@@ -228,16 +252,20 @@ export class AuthController {
       if (
         error.message === 'Invalid email or password' ||
         error.message === 'Account is deactivated' ||
-        error.message === 'Email not verified. Please verify your email before logging in.'
+        error.message === 'Email not verified. Please verify your email before logging in.' ||
+        (typeof error.message === 'string' && error.message.includes('portal: /login/'))
       ) {
         const statusCode = error.message.includes('Email not verified') ? 403 : 401;
+        const code = error.message.includes('Email not verified')
+          ? 'EMAIL_NOT_VERIFIED'
+          : error.message.includes('portal: /login/')
+            ? 'WRONG_PORTAL'
+            : 'AUTHENTICATION_FAILED';
         res.status(statusCode).json({
           success: false,
           error: {
             message: error.message,
-            code: error.message.includes('Email not verified')
-              ? 'EMAIL_NOT_VERIFIED'
-              : 'AUTHENTICATION_FAILED',
+            code,
           },
         });
         return;
