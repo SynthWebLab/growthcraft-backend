@@ -96,7 +96,7 @@ const startServer = async () => {
       setTimeout(() => {
         logger.error('Forced shutdown after timeout');
         process.exit(1);
-      }, 5000);
+      }, 10000);
     };
 
     // Listen for termination signals
