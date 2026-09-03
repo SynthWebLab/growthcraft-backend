@@ -5,7 +5,8 @@ import { EmployerProfile } from '@/database/models/EmployerProfile.model';
 import { MentorProfile } from '@/database/models/MentorProfile.model';
 import { StudentProfile } from '@/database/models/StudentProfile.model';
 import { Referral } from '@/database/models/Referral.model';
-import { RegisterDto, RegisterResponseDto, LoginResponseDto } from '../dto/register.dto';
+import { RegisterDto, RegisterResponseDto } from '../dto/register.dto';
+import { LoginResponseDto } from '../dto/login.dto';
 import { RefreshTokenResponseDto } from '../dto/refresh-token.dto';
 import { logger } from '@/common/utils/logger.util';
 import { tokenService as defaultTokenService, TokenService } from './token.service';
@@ -14,6 +15,7 @@ import { emailService } from '@/common/services/email.service';
 import { generateVerificationToken, generateOTP, hashToken } from '@/common/utils/token.util';
 import { jwtConfig } from '@/config/jwt.config';
 import { config } from '@/config';
+import { AppError } from '@/common/errors/AppError';
 
 export interface AuthServiceDependencies {
   tokenService?: TokenService;
@@ -56,8 +58,8 @@ export class AuthService {
     let mentorProfile: any = null;
 
     try {
-      // Check if user already exists
-      const existingUser = await User.findOne({ email: registerDto.email }).session(session);
+      // Check if user already exists with the SAME role
+      const existingUser = await User.findOne({ email: registerDto.email, role: registerDto.role }).session(session);
       if (existingUser) {
         if (existingUser.role === 'student' && !existingUser.isEmailVerified) {
           existingUser.fullName = registerDto.fullName;
@@ -140,7 +142,12 @@ export class AuthService {
             },
           };
         } else {
-          throw new Error('User with this email already exists');
+          const roleDisplay = registerDto.role ? registerDto.role.charAt(0).toUpperCase() + registerDto.role.slice(1) : 'this';
+          throw new AppError(
+            `An account with this email already exists for the ${roleDisplay} role. You can log in directly.`,
+            409,
+            'USER_EXISTS'
+          );
         }
       }
 
@@ -337,10 +344,48 @@ export class AuthService {
     return response;
   }
 
-  public async login(email: string, password: string): Promise<LoginResponseDto> {
+  public async login(email: string, password: string, role?: string): Promise<LoginResponseDto> {
     try {
-      // Find user with password field
-      const user = await User.findOne({ email }).select('+password +refreshTokens');
+      let user: IUser | null = null;
+      
+      if (role) {
+        user = await User.findOne({ email, role }).select('+password +refreshTokens');
+        if (!user) {
+          // Check if the user exists with another role to provide a helpful error message
+          const otherUsers = await User.find({ email }).select('+password');
+          for (const other of otherUsers) {
+            if (await other.comparePassword(password)) {
+              const formattedRole = other.role.charAt(0).toUpperCase() + other.role.slice(1);
+              throw new Error(`This email is registered as a ${formattedRole} account. Please sign in at the ${formattedRole} portal: /login/${other.role.toLowerCase()}`);
+            }
+          }
+        }
+      } else {
+        const users = await User.find({ email }).select('+password +refreshTokens');
+        if (users.length === 0) {
+          throw new Error('Invalid email or password');
+        }
+        
+        // Check which user accounts match the password
+        const validUsers = [];
+        for (const u of users) {
+          if (await u.comparePassword(password)) {
+            validUsers.push(u);
+          }
+        }
+        
+        if (validUsers.length === 0) {
+          throw new Error('Invalid email or password');
+        } else if (validUsers.length === 1) {
+          user = validUsers[0];
+        } else {
+          // Multiple accounts exist with valid password. Require role selection.
+          return {
+            requiresRoleSelection: true,
+            availableRoles: validUsers.map(u => u.role)
+          } as any;
+        }
+      }
 
       if (!user) {
         throw new Error('Invalid email or password');
@@ -351,10 +396,12 @@ export class AuthService {
         throw new Error('Account is deactivated');
       }
 
-      // Verify password
-      const isPasswordValid = await user.comparePassword(password);
-      if (!isPasswordValid) {
-        throw new Error('Invalid email or password');
+      if (role) {
+        // If role was explicitly provided, we still need to verify the password here
+        const isPasswordValid = await user.comparePassword(password);
+        if (!isPasswordValid) {
+          throw new Error('Invalid email or password');
+        }
       }
 
       // Check if email is verified
@@ -577,24 +624,32 @@ export class AuthService {
     try {
       const hashedOTP = hashToken(otp);
 
-      const user = await User.findOne({ email }).select(
+      const users = await User.find({ email }).select(
         '+emailVerificationOTP +emailVerificationOTPExpires +emailVerificationOTPAttempts'
       );
 
-      if (!user) {
+      if (users.length === 0) {
         throw new Error('User not found');
       }
 
-      // Check if already verified
-      if (user.isEmailVerified) {
-        logger.info(`Email already verified for user: ${user.email}`);
-        return {
-          user: {
-            email: user.email,
-            fullName: user.fullName,
-            role: user.role,
-          },
-        };
+      // First, try to find the exact unverified account matching the OTP
+      let user = users.find(u => !u.isEmailVerified && u.emailVerificationOTP === hashedOTP);
+
+      if (!user) {
+        const unverifiedUsers = users.filter(u => !u.isEmailVerified);
+        if (unverifiedUsers.length === 0) {
+          // All accounts are verified
+          logger.info(`Email already verified for user: ${email}`);
+          return {
+            user: {
+              email: users[0].email,
+              fullName: users[0].fullName,
+              role: users[0].role,
+            },
+          };
+        }
+        // Use the first unverified account to handle invalid/expired attempts
+        user = unverifiedUsers[0];
       }
 
       // Check if OTP exists
@@ -661,17 +716,20 @@ export class AuthService {
 
   public async resendVerificationOTP(email: string): Promise<void> {
     try {
-      const user = await User.findOne({ email }).select(
+      const users = await User.find({ email }).select(
         '+emailVerificationOTP +emailVerificationOTPExpires +emailVerificationOTPAttempts'
       );
 
-      if (!user) {
+      if (users.length === 0) {
         throw new Error('User not found');
       }
 
-      if (user.isEmailVerified) {
+      const unverifiedUsers = users.filter(u => !u.isEmailVerified);
+      if (unverifiedUsers.length === 0) {
         throw new Error('Email is already verified');
       }
+
+      const user = unverifiedUsers[0];
 
       // Rate limiting: Check if last OTP was sent recently (30 seconds)
       if (user.emailVerificationOTPExpires) {
@@ -714,15 +772,17 @@ export class AuthService {
   public async requestPasswordReset(email: string): Promise<void> {
     try {
       const normalizedEmail = email.toLowerCase().trim();
-      const user = await User.findOne({ email: normalizedEmail }).select(
+      const users = await User.find({ email: normalizedEmail }).select(
         '+passwordResetToken +passwordResetExpires'
       );
 
-      if (!user) {
+      if (users.length === 0) {
         throw new Error('No account found with this email address');
       }
 
-      if (!user.isActive) {
+      const activeUsers = users.filter(u => u.isActive);
+
+      if (activeUsers.length === 0) {
         throw new Error('Account is deactivated. Please contact support.');
       }
 
@@ -730,13 +790,17 @@ export class AuthService {
       const otp = generateOTP();
       const hashedToken = hashToken(otp);
 
-      user.passwordResetToken = hashedToken;
-      user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-      await user.save({ validateModifiedOnly: true });
+      for (const user of activeUsers) {
+        user.passwordResetToken = hashedToken;
+        user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+        await user.save({ validateModifiedOnly: true });
+      }
+      
+      const userForEmail = activeUsers[0];
 
       // Send password reset email
       try {
-        await emailService.sendPasswordResetEmail(user.email, otp, user.fullName);
+        await emailService.sendPasswordResetEmail(userForEmail.email, otp, userForEmail.fullName);
       } catch (emailError) {
         if (config.NODE_ENV === 'development') {
           logger.warn(`[DEVELOPMENT ONLY] Failed to send password reset email: ${(emailError as any).message}`);
@@ -745,7 +809,7 @@ export class AuthService {
         }
       }
 
-      logger.info(`Password reset OTP email sent to: ${user.email}`);
+      logger.info(`Password reset OTP email sent to: ${email}`);
     } catch (error: any) {
       logger.error('Password reset request error:', error);
       throw error;
@@ -757,31 +821,32 @@ export class AuthService {
     try {
       const hashedToken = hashToken(otp);
 
-      const user = await User.findOne({
+      const users = await User.find({
         email: email.toLowerCase().trim(),
         passwordResetToken: hashedToken,
         passwordResetExpires: { $gt: Date.now() },
       }).select('+passwordResetToken +passwordResetExpires +password');
 
-      if (!user) {
+      if (users.length === 0) {
         throw new Error('Invalid or expired verification code');
       }
 
-      // Check if new password is same as current password
-      console.log('Comparing passwords', { hasPassword: !!user.password });
-      const isSamePassword = await user.comparePassword(newPassword);
-      console.log('isSamePassword result:', isSamePassword);
-      if (isSamePassword) {
-        console.log('SAME PASSWORD DETECTED');
-        throw new Error('New password must be different from your previous password');
+      // Check if new password is same as current password for ANY of the accounts
+      for (const user of users) {
+        const isSamePassword = await user.comparePassword(newPassword);
+        if (isSamePassword) {
+          throw new Error('New password must be different from your previous password');
+        }
       }
 
-      user.password = newPassword;
-      user.passwordResetToken = undefined;
-      user.passwordResetExpires = undefined;
-      await user.save({ validateModifiedOnly: true });
+      for (const user of users) {
+        user.password = newPassword;
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+        await user.save({ validateModifiedOnly: true });
+      }
 
-      logger.info(`Password reset successfully for user: ${user.email}`);
+      logger.info(`Password reset successfully for user: ${email}`);
     } catch (error: any) {
       logger.error('Password reset error:', error);
       throw error;

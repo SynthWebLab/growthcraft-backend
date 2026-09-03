@@ -73,6 +73,17 @@ export const errorHandler = (
     isOperational = true;
   }
 
+  // Handle Multer upload errors
+  if (err.name === 'MulterError' || (err as any).code === 'LIMIT_FILE_SIZE') {
+    statusCode = 400;
+    code = (err as any).code || 'FILE_UPLOAD_ERROR';
+    message =
+      (err as any).code === 'LIMIT_FILE_SIZE'
+        ? 'File size exceeds the allowed limit (max 5MB)'
+        : err.message || 'File upload failed';
+    isOperational = true;
+  }
+
   // Log error
   const logMessage = `[${code}] ${message} - ${req.method} ${req.path}`;
 

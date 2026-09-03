@@ -51,8 +51,13 @@ export const config = {
     .filter(Boolean),
 
   // Rate Limiting
+  RATE_LIMIT_ENABLED: process.env.RATE_LIMIT_ENABLED !== 'false',
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
   RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000', 10),
+  AUTH_RATE_LIMIT_WINDOW_MS: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || '900000', 10),
+  AUTH_RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS || '10', 10),
+  PASSWORD_RESET_RATE_LIMIT_WINDOW_MS: parseInt(process.env.PASSWORD_RESET_RATE_LIMIT_WINDOW_MS || '3600000', 10),
+  PASSWORD_RESET_RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.PASSWORD_RESET_RATE_LIMIT_MAX_REQUESTS || '10', 10),
 
   // Security
   BCRYPT_SALT_ROUNDS: parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10),
@@ -79,6 +84,11 @@ export const config = {
   SWAGGER_ENABLED: process.env.SWAGGER_ENABLED === 'true',
   SWAGGER_PATH: process.env.SWAGGER_PATH || '/api-docs',
   SWAGGER_AUTO_PATH: process.env.SWAGGER_AUTO_PATH || '/api-docs-auto',
+  SWAGGER_USER: process.env.SWAGGER_USER || 'admin',
+  SWAGGER_PASSWORD: process.env.SWAGGER_PASSWORD || '',
+  SWAGGER_REQUIRE_AUTH:
+    process.env.SWAGGER_REQUIRE_AUTH === 'true' ||
+    (process.env.SWAGGER_REQUIRE_AUTH !== 'false' && process.env.NODE_ENV === 'production'),
 
   // Razorpay
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',
