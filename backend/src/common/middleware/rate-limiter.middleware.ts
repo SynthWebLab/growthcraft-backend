@@ -80,6 +80,7 @@ export const apiLimiter = rateLimit({
 /**
  * Strict rate limiter for authentication endpoints
  * Prevents brute force attacks while allowing successful logins
+ * Configured via config.AUTH_RATE_LIMIT_MAX_REQUESTS (default: 10 requests per windowMs)
  */
 export const authLimiter = rateLimit({
   windowMs: config.AUTH_RATE_LIMIT_WINDOW_MS,
@@ -100,6 +101,7 @@ export const authLimiter = rateLimit({
 
 /**
  * Moderate rate limiter for password reset endpoints
+ * Configured via config.PASSWORD_RESET_RATE_LIMIT_MAX_REQUESTS (default: 10 requests per windowMs)
  */
 export const passwordResetLimiter = rateLimit({
   windowMs: config.PASSWORD_RESET_RATE_LIMIT_WINDOW_MS,
