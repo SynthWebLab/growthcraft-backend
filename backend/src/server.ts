@@ -5,17 +5,19 @@ import { redisConfig } from './config/redis.config';
 import { logger } from './common/utils/logger.util';
 import { initializeJobs, shutdownJobs } from './jobs';
 import { socketService } from './modules/notifications/services/socket.service';
+import {
+  handleUnhandledRejection,
+  handleUncaughtException,
+} from './common/middleware';
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error: Error) => {
-  logger.error('Uncaught Exception:', error);
-  process.exit(1);
+  handleUncaughtException(error);
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (reason: any) => {
-  logger.error('Unhandled Rejection:', reason);
-  process.exit(1);
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+  handleUnhandledRejection(reason, promise);
 });
 
 // Start server
