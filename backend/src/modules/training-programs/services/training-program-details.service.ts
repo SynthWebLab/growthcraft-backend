@@ -51,6 +51,12 @@ export class TrainingProgramDetailsService {
 
       (programDetails as any).internshipPartners = partners;
       if (program) {
+        if (program.startDate && !program.endDate && !program.isDateTBA) {
+          const days = program.durationDays || 60;
+          if (days > 0) {
+            (program as any).endDate = new Date(new Date(program.startDate).getTime() + days * 86400000);
+          }
+        }
         (programDetails as any).program = { ...program, internshipPartners: partners };
       }
 

@@ -156,9 +156,12 @@ export class EventAdminController {
         description: validated.description?.trim() || '',
         durationDays: validated.durationDays ? Number(validated.durationDays) : 30,
         price: validated.price ? Number(validated.price) : 0,
-        startDate: validated.startDate ? new Date(validated.startDate) : new Date(),
-        endDate: validated.endDate ? new Date(validated.endDate) : new Date(Date.now() + 30 * 86400000),
-        registrationDeadline: validated.registrationDeadline ? new Date(validated.registrationDeadline) : undefined,
+        isDateTBA: Boolean(validated.isDateTBA),
+        startDate: !validated.isDateTBA && validated.startDate ? new Date(validated.startDate) : null,
+        endDate: !validated.isDateTBA && validated.startDate
+          ? (validated.endDate ? new Date(validated.endDate) : new Date(new Date(validated.startDate).getTime() + (validated.durationDays ? Number(validated.durationDays) : 30) * 86400000))
+          : null,
+        registrationDeadline: !validated.isDateTBA && validated.registrationDeadline ? new Date(validated.registrationDeadline) : null,
         maxSeats: validated.maxSeats ? Number(validated.maxSeats) : 50,
         mode: validated.mode || 'Online',
         banner: validated.banner || '',
@@ -259,20 +262,33 @@ export class EventAdminController {
         event.mentorNames = event.mentors.map((m: any) => m.name);
       }
 
-      if (updates.startDate !== undefined) {
-        event.startDate = new Date(updates.startDate);
-      }
-      if (updates.endDate !== undefined) {
-        event.endDate = new Date(updates.endDate);
+      if (updates.isDateTBA !== undefined) {
+        event.isDateTBA = Boolean(updates.isDateTBA);
       }
 
-      // Reset stale registrationDeadline if start date is updated to future date
-      if (updates.startDate && new Date(updates.startDate) > new Date()) {
-        if (!updates.registrationDeadline || new Date(updates.registrationDeadline) < new Date()) {
-          event.registrationDeadline = new Date(updates.startDate);
+      if (event.isDateTBA) {
+        event.startDate = null;
+        event.endDate = null;
+        event.registrationDeadline = null;
+      } else {
+        if (updates.startDate !== undefined) {
+          event.startDate = updates.startDate ? new Date(updates.startDate) : null;
         }
-      } else if (updates.registrationDeadline !== undefined) {
-        event.registrationDeadline = new Date(updates.registrationDeadline);
+        if (updates.endDate !== undefined) {
+          event.endDate = updates.endDate ? new Date(updates.endDate) : null;
+        } else if (event.startDate && !event.endDate) {
+          const days = event.durationDays || event.duration || 30;
+          event.endDate = new Date(event.startDate.getTime() + days * 86400000);
+        }
+
+        // Reset stale registrationDeadline if start date is updated to future date
+        if (updates.startDate && new Date(updates.startDate) > new Date()) {
+          if (!updates.registrationDeadline || new Date(updates.registrationDeadline) < new Date()) {
+            event.registrationDeadline = new Date(updates.startDate);
+          }
+        } else if (updates.registrationDeadline !== undefined) {
+          event.registrationDeadline = updates.registrationDeadline ? new Date(updates.registrationDeadline) : null;
+        }
       }
 
       if (updates.isPublished !== undefined) {

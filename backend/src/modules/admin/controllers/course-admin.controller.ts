@@ -178,6 +178,9 @@ export class CourseAdminController {
         tags: tagsArray,
         thumbnail: validated.thumbnail || '',
         thumbnailUrl: validated.thumbnailUrl || validated.thumbnail || '',
+        isDateTBA: validated.isDateTBA !== undefined ? Boolean(validated.isDateTBA) : true,
+        startDate: validated.startDate && !validated.isDateTBA ? new Date(validated.startDate) : null,
+        endDate: validated.endDate && !validated.isDateTBA ? new Date(validated.endDate) : null,
         isPublished: Boolean(validated.isPublished),
         isDraft: !Boolean(validated.isPublished),
         isFeatured: Boolean(validated.isFeatured),
@@ -300,6 +303,20 @@ export class CourseAdminController {
       }
       if (updates.isFeatured !== undefined) {
         course.isFeatured = Boolean(updates.isFeatured);
+      }
+
+      if (updates.isDateTBA !== undefined) {
+        course.isDateTBA = Boolean(updates.isDateTBA);
+      }
+      if (updates.startDate !== undefined) {
+        course.startDate = updates.startDate && !course.isDateTBA ? new Date(updates.startDate) : null;
+      }
+      if (updates.endDate !== undefined) {
+        course.endDate = updates.endDate && !course.isDateTBA ? new Date(updates.endDate) : null;
+      }
+      if (course.isDateTBA) {
+        course.startDate = null;
+        course.endDate = null;
       }
 
       // Clean numbers

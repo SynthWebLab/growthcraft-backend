@@ -46,6 +46,12 @@ export class TrainingProgramService {
     if (!program.internshipPartners || program.internshipPartners.length === 0) {
       program.internshipPartners = DEFAULT_INTERNSHIP_PARTNERS;
     }
+    if (program.startDate && !program.endDate && !program.isDateTBA) {
+      const days = program.durationDays || program.duration || 60;
+      if (days > 0) {
+        program.endDate = new Date(new Date(program.startDate).getTime() + days * 86400000);
+      }
+    }
     return program;
   }
 

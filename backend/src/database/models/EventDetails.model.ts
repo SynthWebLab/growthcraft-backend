@@ -88,6 +88,8 @@ export interface IEventDetails extends Document {
   // FAQ Section
   faqs: IFAQ[];
   
+  isDateTBA?: boolean;
+  
   createdAt: Date;
   updatedAt: Date;
 }
@@ -188,6 +190,10 @@ const eventDetailsSchema = new Schema<IEventDetails>(
         _id: false,
       },
     ],
+    isDateTBA: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

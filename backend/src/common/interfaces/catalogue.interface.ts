@@ -27,8 +27,9 @@ export interface CatalogueItem {
   tags: string[];
   
   // Dates (optional for courses, required for bootcamps)
-  startDate?: string;
-  endDate?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  isDateTBA?: boolean;
   
   // Type-specific fields (optional)
   // For courses

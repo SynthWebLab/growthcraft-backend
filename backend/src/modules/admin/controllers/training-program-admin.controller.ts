@@ -194,8 +194,19 @@ export class TrainingProgramAdminController {
       if (resolvedSeats !== undefined) {
         programPayload.maxSeats = Number(resolvedSeats);
       }
-      if (validated.startDate) {
+      const isDateTBA = validated.isDateTBA !== undefined ? Boolean(validated.isDateTBA) : true;
+      programPayload.isDateTBA = isDateTBA;
+      if (validated.startDate && !isDateTBA) {
         programPayload.startDate = new Date(validated.startDate);
+        if (validated.endDate) {
+          programPayload.endDate = new Date(validated.endDate);
+        } else {
+          const days = Number(validated.durationDays) || 60;
+          programPayload.endDate = new Date(new Date(validated.startDate).getTime() + days * 86400000);
+        }
+      } else {
+        programPayload.startDate = null;
+        programPayload.endDate = null;
       }
 
       const program = await TrainingProgram.create(programPayload);
@@ -319,6 +330,23 @@ export class TrainingProgramAdminController {
 
       if (updates.isFeatured !== undefined) {
         program.isFeatured = Boolean(updates.isFeatured);
+      }
+
+      if (updates.isDateTBA !== undefined) {
+        program.isDateTBA = Boolean(updates.isDateTBA);
+      }
+      if (updates.startDate !== undefined) {
+        program.startDate = updates.startDate && !program.isDateTBA ? new Date(updates.startDate) : null;
+      }
+      if (updates.endDate !== undefined) {
+        program.endDate = updates.endDate && !program.isDateTBA ? new Date(updates.endDate) : null;
+      }
+      if (program.isDateTBA) {
+        program.startDate = null;
+        program.endDate = null;
+      } else if (program.startDate && !program.endDate) {
+        const days = program.durationDays || 60;
+        program.endDate = new Date(program.startDate.getTime() + days * 86400000);
       }
 
       const oldValues = program.toObject();

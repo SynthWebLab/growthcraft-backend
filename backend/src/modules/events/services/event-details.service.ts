@@ -270,9 +270,13 @@ export class EventDetailsService {
       price: baseEvent.price ?? rawObj.price ?? 0,
       originalPrice: baseEvent.originalPrice ?? rawObj.originalPrice ?? 0,
       maxSeats: baseEvent.maxSeats ?? rawObj.maxSeats ?? 50,
-      enrolledCount: baseEvent.enrolledCount ?? rawObj.enrolledCount ?? 0,
       startDate: baseEvent.startDate || rawObj.startDate,
-      endDate: baseEvent.endDate || rawObj.endDate,
+      endDate: (baseEvent.endDate || rawObj.endDate) || (
+        (baseEvent.startDate || rawObj.startDate) && !Boolean(baseEvent.isDateTBA ?? rawObj.isDateTBA ?? false)
+          ? new Date(new Date(baseEvent.startDate || rawObj.startDate).getTime() + (baseEvent.durationDays || baseEvent.duration || 1) * 86400000)
+          : null
+      ),
+      isDateTBA: Boolean(baseEvent.isDateTBA ?? rawObj.isDateTBA ?? false),
       status: baseEvent.status || rawObj.status || 'Open',
       slug: rawObj.slug,
       type: rawObj.type || baseEvent.type,
