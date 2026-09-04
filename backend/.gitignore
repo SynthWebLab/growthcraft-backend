@@ -2,9 +2,15 @@
 node_modules/
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
+# Alternative package manager lockfiles (standardize on package-lock.json)
+bun.lock
+bun.lockb
 yarn.lock
-uploads
+pnpm-lock.yaml
+
+uploads/
+scratch/
+
 # Build output
 dist/
 build/
