@@ -121,11 +121,44 @@ export const errorHandler = (
 };
 
 /**
- * Handle unhandled promise rejections
+ * Checks whether an error/rejection is critical (fatal to system operations).
+ * Operational errors (e.g. AppError with isOperational=true) or standard non-critical errors are non-fatal.
  */
-export const handleUnhandledRejection = (reason: Error, promise: Promise<any>): void => {
-  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Application specific logging, throwing an error, or other logic here
+export const isCriticalError = (reason: unknown): boolean => {
+  if (!reason) return false;
+
+  // AppError with explicit operational flag
+  if (reason instanceof AppError) {
+    return !reason.isOperational;
+  }
+
+  // Any custom object with isOperational=false or isFatal=true
+  if (typeof reason === 'object' && reason !== null) {
+    const err = reason as Record<string, unknown>;
+    if (err.isOperational === false || err.isFatal === true) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+/**
+ * Handle unhandled promise rejections.
+ * Distinguishes between critical (fatal) vs non-critical rejections.
+ * Non-critical rejections are logged without exiting the process.
+ * Critical rejections log a critical error and exit the process.
+ */
+export const handleUnhandledRejection = (reason: unknown, promise?: Promise<unknown>): void => {
+  if (isCriticalError(reason)) {
+    logger.error('Critical Unhandled Rejection - terminating process:', { reason, promise });
+    process.exit(1);
+  } else {
+    logger.error('Unhandled Rejection (non-critical, continuing process execution):', {
+      reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
+      promise,
+    });
+  }
 };
 
 /**

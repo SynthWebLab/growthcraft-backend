@@ -2,6 +2,7 @@ export {
   errorHandler,
   handleUnhandledRejection,
   handleUncaughtException,
+  isCriticalError,
 } from './error-handler.middleware';
 export { asyncHandler } from '../utils/async-handler.util';
 export { authenticate, optionalAuthenticate } from './authenticate.middleware';
