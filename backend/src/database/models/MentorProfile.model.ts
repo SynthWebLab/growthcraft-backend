@@ -6,6 +6,7 @@ export interface IMentorProfile extends Document {
   areaOfExpertise: string;
   currentOrganization: string;
   bio: string;
+  avatar?: string;
   // Additional fields for later use
   hourlyRate?: number;
   availability: {
@@ -69,6 +70,11 @@ const mentorProfileSchema = new Schema<IMentorProfile>(
       type: String,
       required: [true, 'Bio is required'],
       maxlength: [1000, 'Bio cannot exceed 1000 characters'],
+    },
+    avatar: {
+      type: String,
+      default: '',
+      trim: true,
     },
     hourlyRate: {
       type: Number,
