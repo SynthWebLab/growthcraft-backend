@@ -301,6 +301,28 @@ export class MentorDashboardController {
   }
 
   /**
+   * Upload avatar
+   * POST /api/v1/mentor/avatar
+   */
+  public async uploadAvatar(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.file) {
+        throw new ValidationError('No image file provided');
+      }
+      const userId = this.getUserId(req);
+      const result = await mentorDashboardService.uploadAvatar(
+        userId,
+        req.file.buffer,
+        req.file.originalname
+      );
+      SuccessResponseHelper.ok(res, result, 'Avatar uploaded successfully');
+    } catch (error: any) {
+      logger.error('Upload avatar controller error:', error);
+      next(error);
+    }
+  }
+
+  /**
    * Create support ticket
    * POST /api/v1/mentor/support
    */

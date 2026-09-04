@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import { mentorDashboardController } from '../controllers/mentor-dashboard.controller';
 import { MentorValidator } from '../validators/mentor.validator';
 import { authenticate } from '@/common/middleware/authenticate.middleware';
@@ -6,6 +7,11 @@ import { authorize } from '@/common/middleware/authorize.middleware';
 import { UserRole } from '@/common/constants/user.constants';
 
 const router = Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
 
 // All mentor dashboard routes require authentication and mentor role
 router.use(authenticate);
@@ -154,6 +160,14 @@ router.put(
     void mentorDashboardController.updateProfile(req, res, next);
   }
 );
+
+/**
+ * POST /api/v1/mentor/avatar
+ * Upload mentor profile picture
+ */
+router.post('/avatar', upload.single('file'), (req: Request, res: Response, next: NextFunction) => {
+  void mentorDashboardController.uploadAvatar(req, res, next);
+});
 
 /**
  * POST /api/v1/mentor/support

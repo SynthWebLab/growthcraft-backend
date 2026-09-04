@@ -16,6 +16,7 @@ export interface IUser extends Document {
   phone: string;
   password: string;
   role: UserRole;
+  avatar?: string;
   isEmailVerified: boolean;
   isActive: boolean;
   emailVerificationOTP?: string;
@@ -44,6 +45,11 @@ const userSchema = new Schema<IUser>(
       lowercase: true,
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
+    },
+    avatar: {
+      type: String,
+      default: '',
+      trim: true,
     },
     phone: {
       type: String,
