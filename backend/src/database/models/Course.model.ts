@@ -88,7 +88,9 @@ export interface ICourse extends Document {
   // Course type
   type: CourseType; // Course or Bootcamp
   
-  // Bootcamp-specific fields (optional)
+  startDate?: Date | null;
+  endDate?: Date | null;
+  isDateTBA?: boolean;
   bootcampDetails?: IBootcampDetails;
   
   createdAt: Date;
@@ -273,6 +275,18 @@ const courseSchema = new Schema<ICourse>(
       type: String,
       default: 'Course',
       index: true,
+    },
+    startDate: {
+      type: Date,
+      default: null,
+    },
+    endDate: {
+      type: Date,
+      default: null,
+    },
+    isDateTBA: {
+      type: Boolean,
+      default: true,
     },
     bootcampDetails: {
       totalSeats: {

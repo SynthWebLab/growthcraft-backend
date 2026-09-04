@@ -36,7 +36,9 @@ export interface ITrainingProgram extends Document {
   rating: number;
   level: ProgramLevel;
   thumbnail?: string;
-  startDate?: Date;
+  startDate?: Date | null;
+  endDate?: Date | null;
+  isDateTBA?: boolean;
   maxSeats?: number;
   enrolledCount?: number;
   isPublished: boolean;
@@ -169,6 +171,16 @@ const trainingProgramSchema = new Schema<ITrainingProgram>(
     startDate: {
       type: Date,
       index: true,
+      default: null,
+    },
+    endDate: {
+      type: Date,
+      index: true,
+      default: null,
+    },
+    isDateTBA: {
+      type: Boolean,
+      default: true,
     },
     maxSeats: {
       type: Number,
@@ -229,6 +241,17 @@ trainingProgramSchema.index({ title: 'text', description: 'text' });
 trainingProgramSchema.index({ isPublished: 1, status: 1 });
 trainingProgramSchema.index({ domain: 1, level: 1, status: 1 });
 trainingProgramSchema.index({ rating: -1, enrollmentCount: -1 });
+
+// Pre-save hook to calculate endDate if not provided
+trainingProgramSchema.pre('save', function (next) {
+  if (this.startDate && !this.isDateTBA) {
+    const days = this.durationDays || 60;
+    if (!this.endDate && days > 0) {
+      this.endDate = new Date(this.startDate.getTime() + days * 86400000);
+    }
+  }
+  next();
+});
 
 // Methods for CTAs
 trainingProgramSchema.methods.getPrimaryCTA = function (): string {

@@ -52,9 +52,10 @@ export interface IBootcamp extends Document {
   category: BootcampCategory;
   
   // Dates
-  startDate: Date;
-  endDate: Date;
-  registrationDeadline?: Date;
+  startDate?: Date | null;
+  endDate?: Date | null;
+  registrationDeadline?: Date | null;
+  isDateTBA?: boolean;
   
   // Capacity
   maxSeats: number; // Total seats available
@@ -179,14 +180,21 @@ const bootcampSchema = new Schema<IBootcamp>(
     startDate: {
       type: Date,
       index: true,
+      default: null,
     },
     endDate: {
       type: Date,
       index: true,
+      default: null,
     },
     registrationDeadline: {
       type: Date,
       index: true,
+      default: null,
+    },
+    isDateTBA: {
+      type: Boolean,
+      default: false,
     },
     maxSeats: {
       type: Number,
@@ -291,8 +299,18 @@ bootcampSchema.index({ status: 1, publishedAt: 1 });
 
 // Pre-save hook to calculate duration and available seats
 bootcampSchema.pre('save', function (next) {
+  // If startDate and duration exist, but endDate is missing
+  if (this.startDate && !this.endDate && !this.isDateTBA) {
+    const days = this.durationDays || this.duration || 30;
+    if (days > 0) {
+      this.endDate = new Date(this.startDate.getTime() + days * 86400000);
+      this.duration = days;
+      this.durationDays = days;
+    }
+  }
+
   // Calculate duration in days (sync durationDays with duration)
-  if (this.startDate && this.endDate) {
+  if (this.startDate && this.endDate && !this.isDateTBA) {
     const durationMs = this.endDate.getTime() - this.startDate.getTime();
     const calculatedDays = Math.round(durationMs / (1000 * 60 * 60 * 24));
     this.duration = calculatedDays;
@@ -313,11 +331,13 @@ bootcampSchema.pre('save', function (next) {
 
 // Method to check if bootcamp has started
 bootcampSchema.methods.hasStarted = function (): boolean {
+  if (!this.startDate || this.isDateTBA) return false;
   return new Date() >= new Date(this.startDate);
 };
 
 // Method to check if bootcamp has ended
 bootcampSchema.methods.hasEnded = function (): boolean {
+  if (!this.endDate || this.isDateTBA) return false;
   return new Date() > new Date(this.endDate);
 };
 

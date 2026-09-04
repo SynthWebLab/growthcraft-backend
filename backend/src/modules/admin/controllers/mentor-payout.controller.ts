@@ -42,11 +42,22 @@ export class MentorPayoutController {
       const skip = (page - 1) * limit;
       const search = req.query.search as string;
 
-      const userFilter: any = { role: 'mentor' };
+      // Find all user IDs that have a valid MentorProfile
+      const activeMentorProfiles = await MentorProfile.find({}).select('userId').exec();
+      const validMentorUserIds = activeMentorProfiles.map((p) => p.userId);
+
+      const userFilter: any = {
+        _id: { $in: validMentorUserIds },
+        role: 'mentor',
+      };
       if (search) {
-        userFilter.$or = [
-          { fullName: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
+        userFilter.$and = [
+          {
+            $or: [
+              { fullName: { $regex: search, $options: 'i' } },
+              { email: { $regex: search, $options: 'i' } },
+            ],
+          },
         ];
       }
 
