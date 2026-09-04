@@ -1,0 +1,21 @@
+# Root Dockerignore
+node_modules
+dist
+coverage
+.git
+
+backend/scratch/
+backend/scripts/
+backend/postman/
+backend/swagger-docs/
+backend/uploads/
+backend/src/test/
+backend/dist/
+backend/node_modules/
+
+*.md
+docs/
+
+.env
+.env.*
+!.env.example
