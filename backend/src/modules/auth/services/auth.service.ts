@@ -817,7 +817,7 @@ export class AuthService {
   }
 
   public async resetPassword(email: string, otp: string, newPassword: string): Promise<void> {
-    console.log('RESET PASSWORD CALLED', { email, newPassword: '***' });
+    logger.debug('RESET PASSWORD CALLED', { email, newPassword: '***' });
     try {
       const hashedToken = hashToken(otp);
 
