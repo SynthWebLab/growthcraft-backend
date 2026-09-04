@@ -14,6 +14,7 @@ import { NotFoundError } from '@/common/errors/NotFoundError';
 import { ValidationError } from '@/common/errors/ValidationError';
 import { auditLogService } from '@/modules/admin/services/audit-log.service';
 import { notificationService } from '@/modules/notifications/services/notification.service';
+import { uploadService } from '@/common/services/upload.service';
 import bcrypt from 'bcryptjs';
 
 export interface MentorDashboardSummary {
@@ -814,7 +815,7 @@ export class MentorDashboardService {
    */
   public async getProfile(userId: string): Promise<IMentorProfile | null> {
     try {
-      return await MentorProfile.findOne({ userId }).populate('userId', 'fullName email phone').exec();
+      return await MentorProfile.findOne({ userId }).populate('userId', 'fullName email phone avatar').exec();
     } catch (error: any) {
       logger.error('Get profile error:', error);
       throw error;
@@ -831,7 +832,18 @@ export class MentorDashboardService {
         throw new NotFoundError('Mentor profile not found');
       }
 
-      const fields = ['bio', 'experienceYears', 'areaOfExpertise', 'currentOrganization', 'linkedIn', 'website', 'specializations', 'linkedinUrl', 'portfolioUrl'];
+      const fields = [
+        'bio',
+        'experienceYears',
+        'areaOfExpertise',
+        'currentOrganization',
+        'linkedIn',
+        'website',
+        'specializations',
+        'linkedinUrl',
+        'portfolioUrl',
+        'avatar',
+      ];
       for (const field of fields) {
         if (data[field] !== undefined) {
           (profile as any)[field] = data[field];
@@ -839,9 +851,38 @@ export class MentorDashboardService {
       }
 
       await profile.save();
+
+      if (data.avatar !== undefined) {
+        await User.findByIdAndUpdate(userId, { avatar: data.avatar });
+      }
+
       return profile;
     } catch (error: any) {
       logger.error('Update profile error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload mentor avatar photo (Cloudinary or local fallback)
+   */
+  public async uploadAvatar(userId: string, buffer: Buffer, originalname: string): Promise<{ url: string }> {
+    try {
+      const profile = await MentorProfile.findOne({ userId });
+      if (!profile) {
+        throw new NotFoundError('Mentor profile not found');
+      }
+
+      const fileUrl = await uploadService.uploadImage(buffer, originalname, 'growthcraft/avatars');
+      profile.avatar = fileUrl;
+      await profile.save();
+
+      await User.findByIdAndUpdate(userId, { avatar: fileUrl });
+      logger.info(`Mentor avatar updated for user ${userId}: ${fileUrl}`);
+
+      return { url: fileUrl };
+    } catch (error: any) {
+      logger.error('Upload mentor avatar error:', error);
       throw error;
     }
   }

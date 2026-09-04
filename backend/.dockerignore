@@ -1,0 +1,35 @@
+# Node / Build artifacts
+node_modules
+dist
+coverage
+.npm
+
+# Debug, temporary & seed script directories
+scratch/
+scripts/
+postman/
+swagger-docs/
+uploads/
+
+# Documentation
+*.md
+docs/
+
+# Tests
+src/test/
+**/*.test.ts
+**/*.spec.ts
+
+# Environment & credentials
+.env
+.env.*
+!.env.example
+*.token
+*.token.txt
+
+# System & IDE
+.git
+.gitignore
+.vscode
+.DS_Store
+*.log

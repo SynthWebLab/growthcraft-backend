@@ -4,6 +4,7 @@ import userRoutes from '@/modules/auth/routes/user.routes';
 import courseRoutes from '@/modules/courses/routes/course.routes';
 import publicCatalogueRoutes from '@/modules/public/routes/catalogue.routes';
 import publicBatchRoutes from '@/modules/public/routes/batch.routes';
+import publicMentorRoutes from '@/modules/public/routes/mentor.routes';
 import reservationRoutes from '@/modules/reservations/routes/reservation.routes';
 import adminRoutes from '@/modules/admin/routes/admin.routes';
 import eventEnrollmentRoutes from '@/modules/events/routes/event-enrollment.routes';
@@ -44,6 +45,7 @@ router.use('/chats', chatRoutes);
 
 
 // Public routes (no auth required)
+router.use('/mentors', publicMentorRoutes);
 router.use('/', publicCatalogueRoutes);
 router.use('/', publicBatchRoutes);
 
